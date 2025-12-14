@@ -63,7 +63,10 @@
           "action": "agent.session",
           "params": {
             "goal": "Creation of a complete requirements package",
-            "agentIds": ["cmck2zx350003wtwyxm0w6g6p"],
+            "agentIds": [
+              "cmck2zx350003wtwyxm0w6g6p",
+              "cmihn5vau00tfhahwh8l09khi"
+            ],
             "agentEngine": "overcut",
             "exitCriteria": {
               "timeLimit": {
@@ -153,6 +156,10 @@
       {
         "id": "cmck2zx350003wtwyxm0w6g6p",
         "name": "Senior Developer"
+      },
+      {
+        "id": "cmihn5vau00tfhahwh8l09khi",
+        "name": "System Architect"
       }
     ]
   }
