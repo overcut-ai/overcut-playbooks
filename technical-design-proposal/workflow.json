@@ -1,0 +1,162 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Generate Technical Design Proposal",
+    "description": "Generate a technical design proposal for a given ticket based on the requirements and code context.",
+    "instructions": [
+      {
+        "description": "Overcut will automatically generate technical design proposals every time you label an issue with `needs-design` or when you add a comment with the command `/design`. Overcut will analyze requirements and generate comprehensive technical design proposals including architecture diagrams, implementation plans, and technical specifications.",
+        "action": "create_issue"
+      }
+    ],
+    "definition": {
+      "flow": [
+        {
+          "to": "analyze-ticket",
+          "from": "clone-repo",
+          "condition": null
+        },
+        {
+          "to": "design-session",
+          "from": "analyze-ticket",
+          "condition": null
+        },
+        {
+          "to": "identify-repos",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "clone-repo",
+          "from": "identify-repos",
+          "condition": null
+        },
+        {
+          "to": "post-design",
+          "from": "design-session",
+          "condition": null
+        }
+      ],
+      "name": "Generate Technical Design Proposal",
+      "steps": [
+        {
+          "id": "clone-repo",
+          "name": "Clone Repository",
+          "action": "git.clone",
+          "params": {
+            "branch": "",
+            "cloneOptions": {
+              "depth": 1
+            },
+            "repoFullName": "{{outputs.identify-repos}}"
+          },
+          "instruction": null
+        },
+        {
+          "id": "analyze-ticket",
+          "name": "Analyze Ticket",
+          "action": "agent.run",
+          "params": {
+            "agentId": "cme5khhdh0005bf6tfd9jo4ae"
+          },
+          "instruction": "You are a Senior Developer tasked with understanding the requirements in the ticket. \n\n1) Extract functional & non-functional requirements. \n2) Identify modules or files likely impacted. \n3) List open questions if requirements are ambiguous. \n\nOutput a concise JSON block with keys: requirements, impactedAreas, openQuestions."
+        },
+        {
+          "id": "design-session",
+          "name": "Draft Design",
+          "action": "agent.session",
+          "params": {
+            "goal": "Draft a production-ready technical design document",
+            "agentIds": [
+              "cme5khhdh0005bf6tfd9jo4ae",
+              "cme5kh6qv0004bf6t8802o7ul"
+            ],
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 15
+              },
+              "userSignals": {
+                "explicit": ["/done", "/approve"]
+              }
+            },
+            "listenToComments": false,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are the **Coordinator Agent**.  \nYour responsibility is to orchestrate the creation of a **detailed design document**.  \n\n### Process  \n1. **Delegate** the drafting of each required section (Overview, System Impact, Edge Cases, Risks & Mitigations, Open Questions, Next Steps) to the **Design Writer sub-agent**.  \n2. **Instruct** the sub-agent to:  \n   - Use insights from the previous analysis step.  \n   - Access and review the code in the repository to fill in missing details.  \n   - Embed diagrams when useful, in fenced \\`\\`\\`mermaid code blocks.  \n   - Return results formatted in Markdown.  \n3. **Collect and assemble** the sub-agent outputs into a single cohesive document.  \n4. Ensure the final output begins with:  \n   \\`\\`\\`  \n   ### Proposed Design  \n   \\`\\`\\`  \n\n### Constraints  \n- Do **not** reply to the user yet.  \n- Do **not** add results back to the ticket.  \n- Only return the completed Markdown document as the final output.  "
+        },
+        {
+          "id": "identify-repos",
+          "name": "Identify Repositories",
+          "action": "repo.identify",
+          "params": {
+            "maxResults": 3,
+            "minConfidence": 0.2
+          },
+          "instruction": null
+        },
+        {
+          "id": "post-design",
+          "name": "Post Design & Open Session",
+          "action": "agent.session",
+          "params": {
+            "goal": "Help the user with their questions",
+            "agentIds": ["cme5km2d40007bf6twhwvz27n"],
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 120
+              },
+              "userSignals": {
+                "explicit": ["/done"]
+              }
+            },
+            "listenToComments": true,
+            "keepSessionOpenForComments": true
+          },
+          "instruction": "You are the **Coordinator Agent**.  \nYour responsibility is to handle the post-processing of the generated design document.  \n\n### Process  \n1. Take the Markdown design content produced in the previous step.  \n2. Use `add_comment_to_ticket` to post it as a comment on the issue.  \n   - Append the note:  \n     > If you’d like a draft implementation branch, comment `/pr`.  \n3. Use `update_ticket` to assign the issue to its creator (`{{trigger.issue.user.login}}`).  \n4. Check the \"Open Questions\" section of the design:  \n   - If any open questions exist → add the label `design-needs-feedback`.  \n   - Otherwise → add the label `design-complete`.  \n\n### Constraints  \n- Ensure only one final comment is added (idempotent).  \n- Do not modify or truncate the generated Markdown content.  \n- Always append the `/pr` note at the end of the comment.  "
+        }
+      ],
+      "trigger": {
+        "event": "issue_labeled",
+        "settings": null,
+        "conditions": {
+          "field": null,
+          "rules": [
+            {
+              "field": "context.trigger.label",
+              "rules": null,
+              "value": "needs-design",
+              "operator": "equals",
+              "combinator": null
+            }
+          ],
+          "value": null,
+          "operator": null,
+          "combinator": "and"
+        },
+        "slashCommand": {
+          "command": "design",
+          "requireMention": false
+        }
+      },
+      "version": "1.0.0",
+      "priority": 3,
+      "timeoutMs": null
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "cme5kh6qv0004bf6t8802o7ul",
+        "name": "Technical Writer"
+      },
+      {
+        "id": "cme5khhdh0005bf6tfd9jo4ae",
+        "name": "Senior Developer"
+      },
+      {
+        "id": "cme5km2d40007bf6twhwvz27n",
+        "name": "Product Manager"
+      }
+    ]
+  }
+}
