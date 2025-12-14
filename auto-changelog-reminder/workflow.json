@@ -1,0 +1,103 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Auto-Changelog Reminder",
+    "description": "Automatically check for changelog updates when a pull request is opened and provide a suggestion if the changelog is missing.",
+    "instructions": [
+      {
+        "description": "Overcut will automatically check for changelog updates every time you `create a PR` or when you add a comment with the command `/changelog`. Overcut will analyze if your changes need changelog entries and suggest properly formatted changelog updates based on your code modifications.",
+        "action": "create_pr"
+      }
+    ],
+    "definition": {
+      "flow": [
+        {
+          "to": "clone-repo",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "validate-changelog",
+          "from": "clone-repo",
+          "condition": null
+        }
+      ],
+      "name": "Auto-Changelog Reminder",
+      "steps": [
+        {
+          "id": "clone-repo",
+          "name": "Clone Repo",
+          "action": "git.clone",
+          "params": {
+            "branch": "{{trigger.pullRequest.headBranch}}",
+            "cloneOptions": {
+              "singleBranch": true
+            },
+            "repoFullName": "{{trigger.repository.fullName}}"
+          },
+          "instruction": null
+        },
+        {
+          "id": "validate-changelog",
+          "name": "Validate Changelog",
+          "action": "agent.session",
+          "params": {
+            "goal": "Ensure PRs with user-facing changes include a changelog update, or suggest and commit one if missing.",
+            "agentIds": [
+              "cme8quzab000crwpytiyhd1ca",
+              "cme8qu4ts0009rwpyq1h82bme",
+              "cme8qusyf000brwpy8w8mm0rq"
+            ],
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 120
+              },
+              "userSignals": {
+                "explicit": ["/done", "thanks"]
+              }
+            },
+            "listenToComments": true,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are an automated reviewer that ensures every pull request containing user-facing changes also includes an appropriate update to the project’s changelog.\n\n---\n\n## Definition of User-Facing Change\nA change is considered **user-facing** if it:\n\n- Modifies UI components, public APIs, CLI commands, endpoints, or text visible to end-users.\n- **Heuristics**:\n  - Any files under: `src/ui/**`, `public/**`, `components/**`\n  - Any changes that modify literal user-visible strings in code or templates.\n\n---\n\n## Process\n\n### 1. Analyze the PR\n- Read the PR description.\n- Examine the PR diff the using get_pull_request_diff tool\n- Determine if **any** changes are user-facing according to the definition above.\n\n### 2. Locate the Relevant Changelog File\n- For each changed package, check: `packages/<package>/CHANGELOG.md`.\n- If none found, use the root-level `CHANGELOG.md`.\n\n### 3. Check for Changelog Updates\n- Confirm if the relevant changelog file was modified in this PR.\n\n### 4. Respond Based on the Result\n\n**Case A — User-facing change, no changelog update**\n- Draft a suggested entry matching the file’s existing style (headers, bullets, date/version sections).\n- Post the following comment:\n    ```\n    ⚠️ A changelog entry is required for user-facing changes.\n\n    Here’s a suggested entry you can copy-paste:\n    ```markdown\n    <SUGGESTED_ENTRY>\n    ```\n\n    Reply with **\"approve changelog\"** and I will create a commit on this PR with the suggested entry.\n    ```\n\n**Case B — User-facing change, changelog update present**\n- Post:\n    ```\n    ✅ Changelog entry detected. Thank you!\n    ```\n\n**Case C — No user-facing changes**\n- Post:\n    ```\n    ✅ No user-facing changes detected. No changelog update required.\n    ```\n\n---\n\n## Formatting Rules for Suggested Entry\n- Match the file’s existing bullet style (`-` or `*`).\n- Use past tense and concise phrasing.\n- Place under the correct section (`Unreleased` or the version heading)."
+        }
+      ],
+      "trigger": {
+        "event": "pull_request_opened",
+        "settings": {
+          "delaySeconds": 60
+        },
+        "conditions": {
+          "field": null,
+          "rules": [],
+          "value": null,
+          "operator": null,
+          "combinator": "and"
+        },
+        "slashCommand": {
+          "command": "changelog",
+          "requireMention": false
+        }
+      },
+      "version": "1.0.0",
+      "priority": 7,
+      "timeoutMs": null
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "cme8qu4ts0009rwpyq1h82bme",
+        "name": "Senior Developer"
+      },
+      {
+        "id": "cme8qusyf000brwpy8w8mm0rq",
+        "name": "Product Manager"
+      },
+      {
+        "id": "cme8quzab000crwpytiyhd1ca",
+        "name": "Technical Writer"
+      }
+    ]
+  }
+}
