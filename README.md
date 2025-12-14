@@ -1,3 +1,10 @@
+<a href="https://overcut.ai/#gh-light-mode-only">
+  <img src="./logo-overcut-black.svg" width="380">
+</a>
+<a href="https://overcut.ai/#gh-dark-mode-only">
+  <img src="./logo-overcut-white.svg" width="380">
+</a>
+
 # Overcut Playbooks
 
 > Open-source collection of ready-to-use AI agent workflows for software development automation using [Overcut](https://overcut.ai).
