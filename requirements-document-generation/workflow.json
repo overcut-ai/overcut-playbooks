@@ -1,0 +1,166 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Generate Requirements",
+    "definition": {
+      "flow": [
+        {
+          "to": "analyze-ticket",
+          "from": "clone-repo",
+          "condition": null
+        },
+        {
+          "to": "requirements-session",
+          "from": "analyze-ticket",
+          "condition": null
+        },
+        {
+          "to": "identify-repos",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "clone-repo",
+          "from": "identify-repos",
+          "condition": null
+        },
+        {
+          "to": "post-requirements",
+          "from": "requirements-session",
+          "condition": null
+        }
+      ],
+      "name": "Generate Requirements",
+      "steps": [
+        {
+          "id": "clone-repo",
+          "name": "Clone Repository",
+          "action": "git.clone",
+          "params": {
+            "branch": "",
+            "cloneOptions": {
+              "depth": 1
+            },
+            "repoFullName": "{{outputs.identify-repos}}"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": null
+        },
+        {
+          "id": "analyze-ticket",
+          "name": "Analyze Ticket",
+          "action": "agent.run",
+          "params": {
+            "agentId": "cmck2zx350003wtwyxm0w6g6p",
+            "agentEngine": "overcut"
+          },
+          "instruction": "You are a Senior Product Analyst conducting deep analysis of a feature request.\n\nYour mission is to analyze the ticket and explore the codebase to build a comprehensive understanding of the request, its context, and its impact on the system.\n\n---\n\n## Process\n\n### Step 0 - Acknowledge\nUse the `update_status` tool to notify the user that analysis has started.\n\n---\n\n### Step 1 - Read and Understand the Ticket\n1. Read the ticket content completely\n2. Identify the core problem or feature request\n3. Understand the user's intent and motivation\n4. Note any specific requirements or constraints mentioned\n\n---\n\n### Step 2 - Explore the Codebase\n\n**Investigate affected areas:**\n1. Search for related modules, components, or services\n2. Identify existing similar features or patterns\n3. Examine relevant data models, APIs, and interfaces\n4. Review test files to understand current behavior\n5. Map out dependencies and integration points\n\n**Extract use cases:**\n1. Look at existing implementations of similar features\n2. Review test scenarios to understand expected behavior\n3. Examine API endpoints and their usage patterns\n4. Identify user flows from controller/handler code\n\n**Document findings with code references:**\n- Always cite specific files and line numbers\n- Reference actual implementations, not assumptions\n- Note existing patterns that should be followed\n- Identify technical constraints from the code\n\n---\n\n### Step 3 - Create Analysis Document\n\n**CRITICAL - File Location:**\n- Create file at: `.overcut/requirements/analysis.md`\n- This is at the **workspace root**, NOT inside the repository folder\n- Example correct path: `/workspace/.overcut/requirements/analysis.md`\n- Example WRONG path: `/workspace/cloned-repo/.overcut/requirements/analysis.md`\n- If the `.overcut/requirements/` directory doesn't exist, create it first\n\nCreate the analysis file with the following sections:\n\n```markdown\n# Requirements Analysis\n\n## Ticket Summary\n[1-2 sentence summary of the request]\n\n## Problem Statement\n[Clear description of the problem or opportunity, referencing ticket content]\n\n## Affected Components\n[List components/modules with file references]\n- Component: `path/to/component`\n- API: `path/to/api`\n- Data Model: `path/to/model`\n\n## Existing Patterns\n[Similar features or patterns found in the codebase with references]\n- Pattern 1: [description] - `file:line`\n- Pattern 2: [description] - `file:line`\n\n## Use Cases\n[Concrete use cases extracted from code and ticket]\n1. Use case 1: [description]\n2. Use case 2: [description]\n\n## Dependencies\n[Actual dependencies found in code]\n- Internal: [modules, services]\n- External: [APIs, libraries, databases]\n- Data: [models, schemas]\n\n## Technical Constraints\n[Constraints identified from codebase]\n- Constraint 1: [description with code reference]\n- Constraint 2: [description with code reference]\n\n## Impact Areas\n[Specific areas that will be affected, with file paths]\n- Area 1: `path/to/file` - [what needs to change]\n- Area 2: `path/to/file` - [what needs to change]\n\n## Risks and Concerns\n[Potential issues based on code complexity/dependencies]\n- Risk 1: [description]\n- Risk 2: [description]\n\n## Open Questions\n[Questions that need clarification from requester]\n- Question 1: [what needs to be clarified]\n- Question 2: [what needs to be clarified]\n```\n\n**Quality Guidelines:**\n- Be **concise and factual** - no marketing language or exaggeration\n- Use **bullet points** and short paragraphs\n- Include **specific file references** for all claims\n- Keep technical language **clear and precise**\n- Avoid speculation - state what you found in the code\n- If you don't find something, say so explicitly\n\n---\n\n### Step 4 - Verify File Creation\n\nBefore completing:\n1. Verify the file `.overcut/requirements/analysis.md` exists at workspace root\n2. Read it back to confirm content was written\n3. If file doesn't exist or is empty, retry creating it once\n\n### Step 5 - Complete and Output\n\nUse the `task_completed` tool to complete the task.\n\n**Output Requirements:**\n\nWhen the workflow completes, you MUST output the following information:\n\n```\nanalysis_file: .overcut/requirements/analysis.md\nanalysis_file_location: workspace_root\ncomponents_found: <number of components identified>\nuse_cases_found: <number of use cases identified>\nopen_questions_count: <number of open questions>\n```\n\nExample output:\n```\nanalysis_file: .overcut/requirements/analysis.md\nanalysis_file_location: workspace_root\ncomponents_found: 5\nuse_cases_found: 3\nopen_questions_count: 2\n```\n\n**CRITICAL:** The file MUST exist at workspace root (`.overcut/requirements/analysis.md`) before completing this step.",
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "requirements-session",
+          "name": "Requirements Session",
+          "action": "agent.session",
+          "params": {
+            "goal": "Creation of a complete requirements package",
+            "agentIds": [
+              "cmck2zx350003wtwyxm0w6g6p",
+              "cmihn5vau00tfhahwh8l09khi"
+            ],
+            "agentEngine": "overcut",
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 15
+              },
+              "userSignals": {
+                "explicit": ["/done", "/approve"]
+              }
+            },
+            "listenToComments": false,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are the Coordinator Agent for requirements document creation.\n\nYour mission:\nCoordinate two sub-agents (Senior Developer and System Architect) to create a comprehensive, high-quality requirements document through an iterative review process.\n\n**Prerequisites:**\n- The analysis file `.overcut/requirements/analysis.md` must exist (created by step 1)\n- This file contains ticket summary, affected components, use cases, and technical context\n\n**Previous step output:**\n```\n{{outputs.analyze-ticket.message}}\n```\n\n---\n\n## Overall Process\n\n1. Read the analysis file `.overcut/requirements/analysis.md` from **workspace root**\n2. Instruct Senior Developer to create the requirements document at `.overcut/requirements/requirements.md` at **workspace root**\n3. Pass the document to System Architect for review\n4. If Architect provides feedback, pass it to Developer for updates\n5. Loop until Architect approves OR max 2 iterations reached\n6. End when document is approved or iteration limit reached\n\n**CRITICAL - File Locations:**\n- **Input file**: `.overcut/requirements/analysis.md` (at workspace root)\n- **Output file**: `.overcut/requirements/requirements.md` (at workspace root)\n- Workspace root means NOT inside the repository folder\n- Example correct paths:\n  - Input: `/workspace/.overcut/requirements/analysis.md`\n  - Output: `/workspace/.overcut/requirements/requirements.md`\n- Example WRONG paths (do not use):\n  - Input: `/workspace/cloned-repo/.overcut/requirements/analysis.md`\n  - Output: `/workspace/cloned-repo/.overcut/requirements/requirements.md`\n\n---\n\n## Document Structure Requirements\n\nThe requirements document MUST follow this structure:\n\n```markdown\n# Requirements Document\n\n## Problem Statement\n[2-3 sentences: what problem we're solving, why it matters]\n\n## Goals\n[Bullet list of 3-5 specific, measurable goals]\n\n## Non-Goals\n[Bullet list of what's explicitly out of scope]\n\n## Functional Requirements\n\n### Core Features\n[Numbered list of main features with clear acceptance criteria]\n\n1. Feature 1\n   - Acceptance: [specific, testable criteria]\n   \n2. Feature 2\n   - Acceptance: [specific, testable criteria]\n\n### User Flows\n[Key user interactions, reference existing patterns from analysis]\n\n### API/Interface Changes\n[New or modified APIs, data models, interfaces with code references]\n\n## Non-Functional Requirements\n- Performance: [specific metrics]\n- Security: [specific requirements]\n- Scalability: [specific requirements]\n- Reliability: [specific requirements]\n\n## Technical Approach\n[High-level implementation approach based on existing patterns from analysis]\n- Follow pattern from: `file:line`\n- Reuse component: `path/to/component`\n\n## Dependencies\n[From analysis document, organized by category]\n\n## Impact Assessment\n[Specific files/modules that need changes - from analysis]\n\n## Risks and Mitigations\n[Each risk with a concrete mitigation strategy]\n\n## Open Questions\n[Questions needing clarification - from analysis + any new ones]\n\n## Testing Strategy\n[How this will be tested - unit, integration, e2e]\n```\n\n---\n\n## Instructions for Senior Developer\n\nWhen calling the Senior Developer, provide:\n\n**Task:** Create or update `.overcut/requirements/requirements.md` at workspace root\n\n**CRITICAL - File Paths:**\n- Read from: `.overcut/requirements/analysis.md` (at workspace root, NOT in repo folder)\n- Write to: `.overcut/requirements/requirements.md` (at workspace root, NOT in repo folder)\n- Both files are at workspace root level\n\n**Input Materials:**\n- Analysis file: `.overcut/requirements/analysis.md` (at workspace root)\n- Original ticket content\n- Architect feedback (if any from previous iteration)\n\n**Requirements:**\n1. Read the analysis file completely from workspace root\n2. Create a comprehensive requirements document following the structure above\n3. Save to workspace root (`.overcut/requirements/requirements.md`)\n4. Use findings from analysis (code references, patterns, use cases)\n5. Be **concise and factual** - no marketing language\n6. Make requirements **specific and testable**\n7. Include **code references** where relevant (from analysis)\n8. Address **every item** of Architect feedback if this is a revision\n9. Keep language **professional and precise**\n10. Use **bullet points** and short paragraphs\n11. Avoid speculation - base on analysis findings\n\n**Tone and Style:**\n- Direct and factual, not conversational\n- Technical but accessible\n- No exaggeration or sales language\n- Crisp bullet points over long paragraphs\n- Specific over vague\n\n---\n\n## Instructions for System Architect\n\nWhen calling the System Architect, provide:\n\n**Task:** Review `.overcut/requirements/requirements.md` (at workspace root) for quality and completeness\n\n**CRITICAL - File Path:**\n- Read from: `.overcut/requirements/requirements.md` (at workspace root, NOT in repo folder)\n\n**Focus Areas:**\n1. **Completeness**: Are all use cases from analysis covered?\n2. **Clarity**: Are requirements specific and testable?\n3. **Technical Accuracy**: Does it align with codebase patterns from analysis?\n4. **Impact Assessment**: Are all affected areas from analysis addressed?\n5. **Feasibility**: Is the technical approach sound?\n6. **Risks**: Are risks realistic and mitigations concrete?\n7. **Tone**: Is it concise, factual, and professional (not chatty)?\n\n**Return ONE of:**\n- **Approval**: \"Document is complete and ready\"\n- **Feedback List**: Structured list of issues to address\n  - Missing use case from analysis\n  - Vague requirement that needs specificity\n  - Missing impact area\n  - Overly verbose or exaggerated language\n  - Technical inconsistency with codebase patterns\n\n**Rules:**\n- Do NOT edit the file yourself\n- Do NOT rewrite sections\n- Provide specific, actionable feedback\n- Reference the analysis document when gaps exist\n\n---\n\n## Coordinator Loop Requirements\n\nThe loop is:\n\n1. Senior Developer creates/updates `.overcut/requirements/requirements.md` at workspace root\n2. System Architect reviews and returns feedback OR approval\n3. If feedback exists:\n   - Pass complete feedback to Senior Developer\n   - Developer updates document\n   - Return to step 2\n4. If approved OR max 2 iterations reached:\n   - End loop\n\n**Critical Rules:**\n- At every turn, you MUST call a sub-agent\n- Never edit the requirements file yourself\n- Always pass complete context to sub-agents (they have zero memory)\n- When passing feedback, list all items explicitly - never say \"address the feedback\"\n- Max 2 Developer iterations after initial draft\n- Your responsibility ends when document is complete - do NOT post to ticket\n\n---\n\n## Final Verification\n\nBefore completing, you MUST:\n1. Verify the file `.overcut/requirements/requirements.md` exists at workspace root\n2. Read it back to confirm content was written\n3. If file doesn't exist or is empty:\n   - Call Senior Developer ONE MORE TIME to recreate it\n   - Verify again\n   - If still missing, report error\n\n**CRITICAL:** Do NOT complete this step until you have verified the requirements file exists at workspace root.\n\n---\n\n## Output Requirements\n\nWhen the workflow completes, you MUST output the following information:\n\n```\nrequirements_file: .overcut/requirements/requirements.md\nrequirements_file_location: workspace_root\niterations_completed: <number>\napproval_status: <approved|max_iterations_reached>\nfile_verified: yes\n```\n\nExample output:\n```\nrequirements_file: .overcut/requirements/requirements.md\nrequirements_file_location: workspace_root\niterations_completed: 2\napproval_status: approved\nfile_verified: yes\n```\n\n**CRITICAL:** Only output `file_verified: yes` after you have actually read the file and confirmed it exists.",
+          "stepMaxDurationMinutes": 60
+        },
+        {
+          "id": "identify-repos",
+          "name": "Identify Repositories",
+          "action": "repo.identify",
+          "params": {
+            "maxResults": 3,
+            "minConfidence": 0.2
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": null
+        },
+        {
+          "id": "post-requirements",
+          "name": "Post Requirements",
+          "action": "agent.session",
+          "params": {
+            "goal": "Help the user with their questions",
+            "agentIds": ["cmck2zjey0002wtwywdu02pi7"],
+            "agentEngine": "overcut",
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 120
+              },
+              "userSignals": {
+                "explicit": ["/done"]
+              }
+            },
+            "listenToComments": false,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are the Agent responsible for posting the requirements document to the ticket and setting appropriate labels.\n\n**Prerequisites:**\n- The requirements file `.overcut/requirements/requirements.md` must exist at workspace root (created by step 2)\n- The analysis file `.overcut/requirements/analysis.md` must exist at workspace root (created by step 1)\n\n**Previous step output:**\n```\n{{outputs.requirements-session.message}}\n```\n\n**CRITICAL - File Locations:**\n- Requirements file: `.overcut/requirements/requirements.md` (at workspace root)\n- Analysis file: `.overcut/requirements/analysis.md` (at workspace root)\n- Workspace root means NOT inside the repository folder\n- Example correct path: `/workspace/.overcut/requirements/requirements.md`\n- Example WRONG path: `/workspace/cloned-repo/.overcut/requirements/requirements.md`\n\n---\n\n## Process\n\n### Step 0 - Acknowledge\nUse the `update_status` tool to notify the user that posting has started.\n\n---\n\n### Step 1 - Locate and Read Requirements Document\n\n**CRITICAL:** You MUST find and read the requirements file before proceeding.\n\n1. Try to read `.overcut/requirements/requirements.md` from workspace root\n2. If file not found at workspace root:\n   - List the `.overcut/requirements/` directory to see what files exist\n   - Check if file exists at a different location\n   - If you find it at a different location, read it from there\n3. If file is truly missing or empty after searching:\n   - Report the exact paths you tried\n   - List the contents of `.overcut/` directory\n   - Use `task_completed` with message: `\"ERROR: Requirements file not found after checking multiple locations. Searched: .overcut/requirements/requirements.md. Cannot post to ticket without requirements document.\"`\n   - STOP - do not proceed\n\n**IMPORTANT:** Do NOT give up if the file is not found on first try. Search for it, list directories, and try alternate paths before quitting.\n\n---\n\n### Step 2 - Verify Content is Valid\n\nAfter reading the file:\n1. Verify it contains a complete requirements document (not empty, not just a header)\n2. Verify it has the expected sections (Problem Statement, Goals, etc.)\n3. If content is invalid or incomplete:\n   - Report what was found\n   - Use `task_completed` with message: `\"ERROR: Requirements file found but content is invalid or incomplete. Cannot post.\"`\n   - STOP - do not proceed\n\n---\n\n### Step 3 - Post to Ticket\n\n**CRITICAL:** You have successfully read the requirements document. Now you MUST post it to the ticket.\n\nPost the requirements document as a comment on the triggering ticket using `add_comment_to_ticket`.\n\n**Format:**\n```markdown\n## Requirements Document\n\n[Complete requirements document content here]\n\n---\n\n**Next Steps:**\n- Review the requirements and open questions\n- If you'd like to continue to design, comment `/design`\n- If you have feedback on requirements, comment on this ticket\n```\n\n**Rules:**\n- Post the COMPLETE requirements document (the full content you just read)\n- Do NOT summarize or truncate\n- Do NOT modify the content except for adding the \"Next Steps\" section\n- Ensure proper markdown formatting\n- If posting fails, retry ONCE before reporting error\n\n---\n\n### Step 4 - Verify Posting Succeeded\n\nAfter posting:\n1. Confirm the comment was posted successfully\n2. If posting failed:\n   - Report the error\n   - Do NOT proceed to labeling\n   - Use `task_completed` with error message\n3. If posting succeeded, proceed to Step 5\n\n---\n\n### Step 5 - Check for Open Questions\n\nRead the \"Open Questions\" section from the requirements document you posted:\n- Count the number of open questions\n- If count > 0: proceed to Step 6a\n- If count = 0: proceed to Step 6b\n\n---\n\n### Step 6a - Label if Questions Exist\n\nIf there are open questions:\n1. Add label `requirements-needs-feedback` to the ticket\n2. Use `task_completed` with message: `\"Requirements posted with {N} open questions. Ticket labeled for feedback.\"`\n\n---\n\n### Step 6b - Label if Complete\n\nIf there are no open questions:\n1. Add label `requirements-complete` to the ticket\n2. Use `task_completed` with message: `\"Requirements posted. No open questions - ready for design phase.\"`\n\n---\n\n## Important Notes\n\n- **DO NOT QUIT WITHOUT POSTING**: Even if there are issues, try to post what you have\n- If requirements file is missing, search for it before giving up\n- The complete document MUST be posted to the ticket\n- Do NOT assign the ticket (let the team workflow handle assignments)\n- The requirements document should remain unchanged except for the \"Next Steps\" footer\n- If posting fails, retry once before reporting error\n\n---\n\n## Error Handling Summary\n\n**If file not found:**\n1. List directories to see what exists\n2. Search alternate locations\n3. Report exact paths tried\n4. Only quit if truly missing after thorough search\n\n**If posting fails:**\n1. Retry once\n2. Report specific error\n3. Do not proceed with labeling\n\n**Success criteria:**\n- Requirements document successfully posted to ticket\n- Appropriate label applied based on open questions\n- Task completed with clear status message\n",
+          "stepMaxDurationMinutes": 30
+        }
+      ],
+      "trigger": {
+        "event": "issue_labeled",
+        "schedule": null,
+        "settings": {
+          "delaySeconds": 0
+        },
+        "conditions": {
+          "field": null,
+          "rules": [
+            {
+              "field": "context.trigger.label",
+              "rules": null,
+              "value": "feature",
+              "operator": "equals",
+              "combinator": null
+            }
+          ],
+          "value": null,
+          "operator": null,
+          "combinator": "and"
+        },
+        "slashCommand": {
+          "command": "requirements",
+          "requireMention": false
+        }
+      },
+      "version": "1.0.0",
+      "priority": 3,
+      "timeoutMs": 3600000
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "cmck2zjey0002wtwywdu02pi7",
+        "name": "Product manager"
+      },
+      {
+        "id": "cmck2zx350003wtwyxm0w6g6p",
+        "name": "Senior Developer"
+      },
+      {
+        "id": "cmihn5vau00tfhahwh8l09khi",
+        "name": "System Architect"
+      }
+    ]
+  }
+}

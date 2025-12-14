@@ -41,11 +41,15 @@ Use AI to help you:
 
 ## 📚 Available Playbooks
 
+### Planning & Requirements
+
+- [Requirements Document Generation](./requirements-document-generation/) - Automatically generates comprehensive requirements documents from feature requests with codebase analysis and iterative review.
+- [Technical Design Proposal](./technical-design-proposal/) - Generate comprehensive technical design documents from requirements.
+
 ### Code Quality & Review
 
 - [Code Review](./code-review/) - Automated comprehensive code review with inline comments and suggestions.
 - [Auto Root Cause Analysis](./auto-root-cause-analysis/) - Automatically analyze bugs and suggest fixes when issues are labeled.
-- [Technical Design Proposal](./technical-design-proposal/) - Generate comprehensive technical design documents from requirements.
 - [Auto Changelog Reminder](./auto-changelog-reminder/) - Reminds developers to update changelog on PRs.
 - [Auto Docs Update on Merge](./auto-docs-update-on-merge/) - Automatically updates documentation when PRs are merged.
 
