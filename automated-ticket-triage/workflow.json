@@ -1,0 +1,108 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Automated Ticket Triage ",
+    "description": "Automatically triage tickets based on the title, description, labels, and metadata.",
+    "instructions": [
+      {
+        "description": "Overcut will automatically triage your issues every time you `create a new issue` or when you add a comment with the command `/triage`. Overcut will analyze issue content and apply appropriate labels, set priority levels, suggest assignees, and categorize based on content analysis.",
+        "action": "create_issue"
+      }
+    ],
+    "definition": {
+      "flow": [
+        {
+          "to": "triage-ticket",
+          "from": "git-clone",
+          "condition": null
+        },
+        {
+          "to": "identify-repos",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "git-clone",
+          "from": "identify-repos",
+          "condition": null
+        }
+      ],
+      "name": "Automated Ticket Triage ",
+      "steps": [
+        {
+          "id": "git-clone",
+          "name": "Clone Repo",
+          "action": "git.clone",
+          "params": {
+            "branch": "",
+            "cloneOptions": {
+              "depth": 1,
+              "singleBranch": true
+            },
+            "repoFullName": "{{outputs.identify-repos}}"
+          },
+          "instruction": null
+        },
+        {
+          "id": "triage-ticket",
+          "name": "Triage Ticket",
+          "action": "agent.session",
+          "params": {
+            "goal": "Coordinate and oversee the Automatic Ticket Triage process by guiding sub-agents to gather context, analyze tickets, and apply accurate, consistent classifications and updates.",
+            "agentIds": ["cme8qusyf000brwpy8w8mm0rq"],
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 120
+              },
+              "userSignals": {
+                "explicit": ["/done", "thanks"]
+              }
+            },
+            "listenToComments": true,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are an automated Ticket Triage Agent.\n\nTasks:\n1. Analyze title, description, labels, and metadata.\n2. Determine component, category, and priority. Apply only if confidence ≥0.75; otherwise add label `needs-human-triage`.\n3. Never downgrade a priority set by reporter.\n4. Search open issues to detect duplicates. If similarity ≥0.75, link as duplicate and comment with similarity score.\n5. Post a Triage Summary comment listing:\n   • chosen component, category, priority\n   • confidence scores\n   • duplicate linkage (if any)\n6. If required information is missing, comment requesting details and add `needs-info` label.\n7. Optional: suggest a break-down of subtasks in the summary comment\n\nGuardrails:\n• Redact tokens/secrets or personal data from all comments.\n• Writes must be idempotent – only update a field when the new value differs.\n• Log all actions in the summary comment."
+        },
+        {
+          "id": "identify-repos",
+          "name": "Identify Repositories",
+          "action": "repo.identify",
+          "params": {
+            "maxResults": 3,
+            "minConfidence": 0.2,
+            "identificationHints": "Give Priority to the component field."
+          },
+          "instruction": null
+        }
+      ],
+      "trigger": {
+        "event": "issue_opened",
+        "settings": {
+          "delaySeconds": 120
+        },
+        "conditions": {
+          "field": null,
+          "rules": [],
+          "value": null,
+          "operator": null,
+          "combinator": "and"
+        },
+        "slashCommand": {
+          "command": "triage",
+          "requireMention": false
+        }
+      },
+      "version": "1.0.0",
+      "priority": 1,
+      "timeoutMs": null
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "cme8qusyf000brwpy8w8mm0rq",
+        "name": "Product Manager"
+      }
+    ]
+  }
+}
