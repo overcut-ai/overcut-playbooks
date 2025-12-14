@@ -1,0 +1,115 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Auto Root Cause Analysis",
+    "description": "Analyze the root cause of a bug and suggest a fix. This workflow is triggered when a bug is labeled with the `bug` label.",
+    "instructions": [
+      {
+        "description": "Overcut will automatically perform root cause analysis every time you `label an issue` with `bug` or when you add a comment with the command `/bug-rca`. Overcut will dive deep into your codebase to identify root causes, trace bug origins, and provide specific fix recommendations with code examples.",
+        "action": "label_bug"
+      }
+    ],
+    "definition": {
+      "flow": [
+        {
+          "to": "rca-session",
+          "from": "git-clone",
+          "condition": null
+        },
+        {
+          "to": "identify-repos",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "git-clone",
+          "from": "identify-repos",
+          "condition": null
+        }
+      ],
+      "name": "Auto Root Cause Analysis",
+      "steps": [
+        {
+          "id": "rca-session",
+          "name": "Root Cause Analysis Session",
+          "action": "agent.session",
+          "params": {
+            "goal": "Generate a structured Root Cause Analysis for the reported bug. ",
+            "agentIds": ["cmea76sph0007p6614s618scy"],
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 30
+              },
+              "userSignals": {
+                "explicit": ["/done", "thanks"]
+              }
+            },
+            "listenToComments": true,
+            "keepSessionOpenForComments": true
+          },
+          "instruction": "\nYou are the Coordinator Agent in an ongoing **Root-Cause Analysis (RCA) and Fix Suggestion** workflow.\n\nYour job is to:\n1. Delegate all analysis steps to the RCA Expert Agent.\n2. Collect the outputs from the RCA Expert Agent.\n3. Post a single, final comment on the ticket with the RCA summary, evidence, suggested fix, and related details.\n4. Apply labels and optionally open a PR if configured.\n\nA single RCA Expert Agent is used for all steps.\n\n---\n\n🔍 **RCA Process**\n\n---\n\n### 🧪 Step 1: Analyze the Ticket and Code\n- You receive:\n  - Ticket details: title, body, comments, attachments.\n  - Stacktraces or error messages found in the ticket.\n  - Repository context: relevant code snippets around implicated lines and recent commits affecting them.\n\n- **Delegate to the RCA Expert Agent**:\n  > You are acting as a Root-Cause Analysis Expert.  \n  > Read the ticket details, stacktraces, and related code context.  \n  > Identify the likely root cause(s), supporting evidence, and impacted areas.  \n  > Be specific and base your conclusions on actual code and commit history.\n\n---\n\n### 📝 Step 2: Request Fix Suggestion\n- After receiving the RCA findings, call the RCA Expert Agent again.\n- **Instruct the agent**:\n  > Based on your RCA findings, provide a **minimal and safe fix** for the identified problem.  \n  > Include:\n  > - A short description of the fix  \n  > - A patch or pseudo-diff (≤ ~50 LOC)  \n  > - Risk assessment  \n  > - Test recommendations to validate the fix\n\n---\n\n### 📝 Step 3: Compile and Post Final Output\n- Combine the RCA summary and fix suggestion into a **single ticket comment**:\n  - Include:\n    - Summary of the root cause\n    - Evidence (file paths, line numbers, commit refs)\n    - Minimal fix suggestion (patch or pseudo-diff)\n    - Risk level and test recommendations\n    - Confidence score\n  - Mark the comment with `<!-- overcut:rca:done -->`.\n- Apply labels:\n  - `rca-proposed`\n  - Confidence tier: `conf-high`, `conf-med`, or `conf-low`\n- If confidence is above the configured PR threshold and `autoPR` is enabled:\n  - Create a branch, apply the fix, and open a PR linking it to the ticket.\n\n---\n\n📝 **Needs-Info Handling**\n- If the RCA Expert Agent reports insufficient confidence or missing information:\n  - Post a \"Needs More Info\" comment asking for:\n    - Reproduction steps\n    - Environment and version info\n    - Full (sanitized) stacktrace\n    - Recent config/feature flag changes\n  - Add the `needs-info` label.\n\n---\n\n📌 **Final Notes**\n- Always delegate RCA and fix generation to the RCA Expert Agent — do not perform analysis yourself.\n- Maintain idempotency:  \n  - If `<!-- overcut:rca:done -->` already exists with no material change, skip posting.  \n  - If there is a material update, replace the existing comment.\n- Ensure secrets/PII are redacted in all outputs.\n- Follow this process step-by-step without skipping."
+        },
+        {
+          "id": "git-clone",
+          "name": "Clone Repositories",
+          "action": "git.clone",
+          "params": {
+            "branch": "",
+            "cloneOptions": {
+              "depth": 1
+            },
+            "repoFullName": "{{outputs.identify-repos}}"
+          },
+          "instruction": null
+        },
+        {
+          "id": "identify-repos",
+          "name": "Identify Repositories",
+          "action": "repo.identify",
+          "params": {
+            "maxResults": 3,
+            "minConfidence": 0.5,
+            "identificationHints": "The issue may be impacting multiple services from different repositories"
+          },
+          "instruction": null
+        }
+      ],
+      "trigger": {
+        "event": "issue_labeled",
+        "settings": {
+          "delaySeconds": 0
+        },
+        "conditions": {
+          "field": null,
+          "rules": [
+            {
+              "field": "context.trigger.label",
+              "rules": null,
+              "value": "bug",
+              "operator": "equals",
+              "combinator": null
+            }
+          ],
+          "value": null,
+          "operator": null,
+          "combinator": "and"
+        },
+        "slashCommand": {
+          "command": "bug-rca",
+          "requireMention": false
+        }
+      },
+      "version": "1.0.0",
+      "priority": 5,
+      "timeoutMs": null
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "cmea76sph0007p6614s618scy",
+        "name": "Root-Cause Analysis (RCA) Expert"
+      }
+    ]
+  }
+}
