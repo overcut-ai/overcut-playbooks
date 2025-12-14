@@ -1,0 +1,140 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Auto Docs Update on Merge",
+    "description": "Look for changes after a pull request is merged and update the documentation accordingly.",
+    "instructions": [
+      {
+        "description": "This is a multi-repo workflow. Overcut will automatically create a PR on  your documentation repo every time you `merge a PR to the main branch` on the product repo, or when you add a comment with the command `/update-docs` on the PR. Overcut will analyze code changes and create a new PR on the documentation repo to update API docs, and other documentation to reflect new features and changes.",
+        "action": "merge_pr"
+      }
+    ],
+    "definition": {
+      "flow": [
+        {
+          "to": "clone-code",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "clone-docs",
+          "from": "clone-code",
+          "condition": null
+        },
+        {
+          "to": "plan-docs",
+          "from": "clone-docs",
+          "condition": null
+        }
+      ],
+      "name": "Auto Docs Update on Merge",
+      "steps": [
+        {
+          "id": "clone-code",
+          "name": "Clone Source Repo",
+          "action": "git.clone",
+          "params": {
+            "alias": "overcut",
+            "branch": "",
+            "repository": "overcut",
+            "cloneOptions": {
+              "depth": 1,
+              "ignoreCache": true
+            },
+            "repoFullName": "overcut-ai/overcut",
+            "gitOrganizationId": "cmbry9n79000110e5rj1i215h"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "clone-docs",
+          "name": "Clone Docs Repo",
+          "action": "git.clone",
+          "params": {
+            "branch": "",
+            "cloneOptions": {
+              "depth": 1,
+              "ignoreCache": true
+            },
+            "repoFullName": "my-org/docs",
+            "gitOrganizationId": "cmbry9n79000110e5rj1i215h"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "plan-docs",
+          "name": "Upadte Docs",
+          "action": "agent.session",
+          "params": {
+            "goal": "Update the docs site",
+            "agentIds": [
+              "cmck3058o0004wtwy3dqwsf8y",
+              "cmck2zjey0002wtwywdu02pi7",
+              "cmck2zx350003wtwyxm0w6g6p"
+            ],
+            "agentEngine": "overcut",
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 10
+              },
+              "userSignals": {
+                "explicit": ["/done", "thanks"]
+              }
+            },
+            "listenToComments": false,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are the **Coordinator Agent** responsible for ensuring documentation updates are properly managed whenever a product Pull Request is created.  \n\nYou will delegate specific tasks to sub-agents:  \n- **Developer Agent** → Analyze product changes and identify required documentation updates.  \n- **Tech Writer Agent** → Plan and structure documentation tasks around features or values, not files.  \n\n---\n\n### Process\n\n1. **Analyze the Product PR**  \n   - Delegate to the **Developer Agent**:  \n     • Review the code changes in the product repository.  \n     • Identify which changes impact **customer-facing functionality** and are relevant to Overcut end-users.  \n     • Documentation focuses on concepts, guides, tutorials, and pages — not API references.  \n     • Ignore PRs that only include internal updates (e.g., APIs, internal types, Kafka messages, table schemas, or logic not visible to users).  \n     • Return one of the following:  \n       - **If documentation is required:**  \n         A structured list describing each change that affects customer experience, including:  \n         - Name/identifier of the feature or functionality  \n         - Type of change (new feature, update, fix, removal)  \n         - Brief explanation of its user-facing impact  \n         - Reference to related files or modules (for context only)  \n         - do not include changes to env variables, internal functions, API endpoints etc.\n       - **If no documentation is required:**  \n         Return explicitly:  \n         `\"No customer-facing documentation updates are required for this PR.\"`  \n\n2. **Plan Documentation Updates by Feature or Value**  \n   - If the Developer Agent identified documentation needs:  \n     - Delegate to the **Tech Writer Agent**:  \n       • Review the structured list of changes from Step 1.  \n       • Analyze the **current state of documentation** in the docs repository.  \n       • Identify **documentation gaps** by comparing the existing docs to the actual feature changes.  \n       • Group findings by **logical value or feature area**, not by file.  \n         Examples:  \n         - “New Configuration Options for Scheduler”  \n         - “Updated Workflow Behavior on Auto-Approval”  \n         - “New Role Permissions for Audit Logs”  \n       • If a PR introduces multiple aspects of change (e.g., new settings + behavior changes), split them into **separate planned tasks**, one per area.  \n       • Each planned task should be **independent and minimal in scope**, to reduce the chance of conflicts between tickets.  \n       • Do not add or update release notes..\n       • For each task, provide:  \n         - Title (clear summary of the change)  \n         - Description of the gap between product behavior and existing docs  \n         - Impacted doc sections or topics (if known)  \n         - Suggested additions or modifications  \n         - Related product PR and affected components  \n\n       • Return the full plan for Coordinator review.  \n\n3. **Create Documentation Tickets (Execution)**  \n   - After the plan is approved:  \n     - Delegate to the **Tech Writer Agent** to create a **separate issue in the docs repository for each planned change**.  \n     - Each issue should represent one self-contained change (feature, configuration, or behavior).  \n     - Each issue should include:  \n       • Title describing the change (e.g., “Document new retry policy behavior in workflows”).  \n       • Summary of what needs to be updated or added.  \n       • Explanation of the user impact or context.  \n       • Notes on any existing doc references or navigation updates (if needed).  \n       • Links to the product PR and relevant code context.  \n       • Label: `needs-docs-update`.  \n     - Return a summary list of all created issue URLs for Coordinator reference.  \n\n4. **Notify in Product PR**  \n   - Delegate to the **Developer Agent** to post a comment on the original product PR, including:  \n     - A summary of identified documentation work.  \n     - Links to all created issues in the docs repository.  \n\n5. **If No Docs Needed**  \n   - If the Developer Agent explicitly reports no customer-facing changes:  \n     - Delegate to the **Developer Agent** to comment on the product PR:  \n       “Reviewed the changes — no customer-facing documentation updates are required.”  \n\n---\n\n### Guardrails\n\n- Each issue must map to one feature, configuration, or behavioral change — not to a file.  \n- All issues must use `.mdx` references and Mintlify conventions.  \n- Avoid mixing multiple changes in a single issue.  \n- Do **not** include internal APIs, schemas, or implementation details.  \n- Do **not** modify unrelated content or perform stylistic rewrites.  \n- Each ticket must be independently actionable with minimal overlap between others.  \n- Always confirm that no existing documentation, or an existing open ticket already covers the described change.  \n",
+          "stepMaxDurationMinutes": 30
+        }
+      ],
+      "trigger": {
+        "event": "pull_request_merged",
+        "schedule": null,
+        "settings": {
+          "delaySeconds": 0
+        },
+        "conditions": {
+          "field": null,
+          "rules": [
+            {
+              "field": "context.pullRequest.baseBranch",
+              "rules": null,
+              "value": "main",
+              "operator": "equals",
+              "combinator": null
+            }
+          ],
+          "value": null,
+          "operator": null,
+          "combinator": "and"
+        },
+        "slashCommand": {
+          "command": "update-docs",
+          "requireMention": false
+        }
+      },
+      "version": "1.0.0",
+      "priority": 5,
+      "timeoutMs": null
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "cmck2zjey0002wtwywdu02pi7",
+        "name": "Product manager"
+      },
+      {
+        "id": "cmck2zx350003wtwyxm0w6g6p",
+        "name": "Senior Developer"
+      },
+      {
+        "id": "cmck3058o0004wtwy3dqwsf8y",
+        "name": "Tech Writer"
+      }
+    ]
+  }
+}
