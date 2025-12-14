@@ -36,98 +36,21 @@ Use AI to help you:
 
 ### Code Quality & Review
 
-#### [Code Review](./code-review/)
-
-Automated comprehensive code review with inline comments and suggestions.
-
-- **Trigger**: PR opened or `/review` command
-- **Duration**: ~10-15 minutes
-- **Output**: Detailed PR review with inline comments
-
-#### [Auto Root Cause Analysis](./auto-root-cause-analysis/)
-
-Automatically analyze bugs and suggest fixes when issues are labeled.
-
-- **Trigger**: Issue labeled with `bug` or `/bug-rca` command
-- **Duration**: ~5-10 minutes
-- **Output**: RCA comment with suggested fix
-
-### Planning & Documentation
-
-#### [Technical Design Proposal](./technical-design-proposal/)
-
-Generate comprehensive technical design documents from requirements.
-
-- **Trigger**: Issue labeled with `needs-design` or `/design` command
-- **Duration**: ~10-15 minutes
-- **Output**: Design document with architecture diagrams
-
-#### [Auto Changelog Reminder](./auto-changelog-reminder/)
-
-Reminds developers to update changelog on PRs.
-
-- **Trigger**: PR opened
-- **Duration**: ~1 minute
-- **Output**: Comment reminder
-
-#### [Auto Docs Update on Merge](./auto-docs-update-on-merge/)
-
-Automatically updates documentation when PRs are merged.
-
-- **Trigger**: PR merged
-- **Duration**: ~5 minutes
-- **Output**: Updated documentation
+- [Code Review](./code-review/) - Automated comprehensive code review with inline comments and suggestions.
+- [Auto Root Cause Analysis](./auto-root-cause-analysis/) - Automatically analyze bugs and suggest fixes when issues are labeled.
+- [Technical Design Proposal](./technical-design-proposal/) - Generate comprehensive technical design documents from requirements.
+- [Auto Changelog Reminder](./auto-changelog-reminder/) - Reminds developers to update changelog on PRs.
+- [Auto Docs Update on Merge](./auto-docs-update-on-merge/) - Automatically updates documentation when PRs are merged.
 
 ### Collaboration
 
-#### [Automated Ticket Triage](./automated-ticket-triage/)
-
-Automatically categorize and prioritize new issues.
-
-- **Trigger**: Issue created
-- **Duration**: ~2-3 minutes
-- **Output**: Labels and priority assigned
+- [Automated Ticket Triage](./automated-ticket-triage/) - Automatically categorize and prioritize new issues.
 
 ### Migration & Refactoring
 
-#### [Migration Package](./migration-package/)
-
-**Complete multi-workflow system** for migrating code between architectures or frameworks.
-
-6 coordinated workflows that handle the full migration lifecycle:
-
-1. **Module Identification** - Analyze and map your codebase structure
-2. **Create Module Tickets** - Break down analysis into trackable tickets
-3. **Module Analysis** - Deep dive into each module
-4. **Code Migration Plan** - Create detailed implementation plans
-5. **Implementation Tracking** - Set up tickets and branches for execution
-6. **Work Package Implementation** - Execute migration based on the migration plan
-
-**Time**: Varies by project size (hours to days)
-**Output**: Fully tracked, tested migration with PRs and documentation
+- [Migration Package](./migration-package/) - Complete multi-workflow system for migrating code between architectures or frameworks.
 
 ## 🎨 Customization Guide
-
-### Understanding Prompt Files
-
-**IMPORTANT**: Prompt filenames match step IDs in `workflow.json`
-
-This naming convention enables AI-assisted workflow updates:
-
-- When you edit a prompt file, AI can automatically update the workflow
-- Bidirectional editing: change prompt → update workflow, or vice versa
-
-**Example**:
-
-```json
-// In workflow.json
-"steps": [{
-  "id": "code-review",  // ← Step ID
-  "instruction": "..."  // ← Content from code-review.md
-}]
-```
-
-**Prompt file must be**: `code-review.md` (not `step-1-code-review.md`)
 
 ### Editing Prompts
 
@@ -162,17 +85,39 @@ AI can help you:
 **Editing existing workflows:**
 
 ```
-"I edited code-review.md to focus on security. Update workflow.json to match."
-"Change the prepare-review-plan.md prompt to emphasize API changes, then update the workflow."
+- "I edited code-review.md to focus on security. Update workflow.json to match."
+- "Change the prepare-review-plan.md prompt to emphasize API changes, then update the workflow."
 ```
 
 **Creating new workflows:**
 
 ```
-"Adapt the code review workflow to focus on security issues"
-"Create a new workflow similar to root cause analysis but for performance issues"
-"Modify the design proposal workflow to include cost estimates"
+- "Adapt the code review workflow to focus on security issues"
+- "Create a new workflow similar to root cause analysis but for performance issues"
+- "Modify the design proposal workflow to include cost estimates"
+- "Modify the design proposal workflow to include cost estimates"
 ```
+
+### Understanding Prompt Files
+
+**IMPORTANT**: Prompt filenames match step IDs in `workflow.json`
+
+This naming convention enables AI-assisted workflow updates:
+
+- When you edit a prompt file, AI can automatically update the workflow
+- Bidirectional editing: change prompt → update workflow, or vice versa
+
+**Example**:
+
+```json
+// In workflow.json
+"steps": [{
+  "id": "code-review",  // ← Step ID
+  "instruction": "..."  // ← Content from code-review.md
+}]
+```
+
+**Prompt file must be**: `code-review.md` (not `step-1-code-review.md`)
 
 ## 🏗️ Workflow Structure
 
