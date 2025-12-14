@@ -1,0 +1,177 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Code Review",
+    "description": "Run a thorough code review of a pull request and provide feedback to the developer.",
+    "instructions": [
+      {
+        "description": "Overcut will automatically review your PRs every time you `open a new PR` or when you add a comment with the command `/review` on any PR. Overcut will analyze your code changes, check for bugs, suggest improvements, and provide detailed feedback with inline comments.",
+        "action": "create_pr"
+      }
+    ],
+    "definition": {
+      "flow": [
+        {
+          "to": "git-clone",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "prepare-review-plan",
+          "from": "git-clone",
+          "condition": null
+        },
+        {
+          "to": "code-review",
+          "from": "prepare-review-plan",
+          "condition": null
+        },
+        {
+          "to": "optimize-review-item",
+          "from": "code-review",
+          "condition": null
+        },
+        {
+          "to": "submit-review",
+          "from": "optimize-review-item",
+          "condition": null
+        }
+      ],
+      "name": "Code Review",
+      "steps": [
+        {
+          "id": "git-clone",
+          "name": "Clone Repo",
+          "action": "git.clone",
+          "params": {
+            "branch": "{{trigger.pullRequest.headBranch}}",
+            "cloneOptions": {
+              "depth": 1,
+              "filter": {
+                "type": "blob:none"
+              },
+              "singleBranch": true
+            },
+            "repoFullName": "{{trigger.repository.fullName}}"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "prepare-review-plan",
+          "name": "Prepare Review Plan",
+          "action": "agent.run",
+          "params": {
+            "agentId": "cmck2zx350003wtwyxm0w6g6p"
+          },
+          "instruction": "Role: Code Review Planner  \nGoal: Create a concise, intent-based review plan for the pull request.\n\n1. Use get_pull_request_diff to inspect all file diffs.  \n2. Identify the main *logical changes* or *intents* (e.g., new feature, refactor, schema update, test, doc, config).  \n3. Group related file changes under one intent.  \n4. For each intent, summarize:\n   • What was changed (1 short phrase)\n   • Why it matters for review (key concern)\n   • Optional: key files or modules (briefly)\n\nOutput format (one line per intent):\n1. [intent / feature] — [summary of what changed and what to review briefly]\n\nKeep the plan short and non-repetitive (max 5–8 items).  \nDo not restate every file or create detailed sub-bullets.  \nDo not review the code yet — just provide a compact list of review focuses.",
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "code-review",
+          "name": "Code Review",
+          "action": "agent.session",
+          "params": {
+            "goal": "Code Review",
+            "agentIds": ["cmfjcucnw001aldn5dqb89cv7"],
+            "agentEngine": "overcut",
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 10
+              },
+              "userSignals": {
+                "explicit": ["/done", "thanks"]
+              }
+            },
+            "listenToComments": false,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are the **Coordinator Agent** in an ongoing code review process.  \nYou are starting with a predefined list of review items, and your job is to:\n- For each review item: delegate to the **Code Reviewer** to ANALYZE and APPEND JSONL findings directly into `.overcut/review/scratchpad.jsonl`.  \n- The Reviewer should return only a short status summary to chat.\n\n---\n\n## Process\n\n### Step 0 - Acknowledge\nUpdate the user with the `update_status` tool with a message that you are starting the code review.\n\n---\n\n### Step 1 - Per-item Analysis to Scratchpad\nFor each item in the list of review items, delegate to **Code Reviewer** this entire message in full — you must pass the schema.\n\nYou are acting as a **Code Reviewer**.  \nAnalyze the following [task].  \nDo **NOT** post any PR comments and do **NOT** call `submit_review`.  \nProduce findings matching the JSONL schema (below).  \nAppend each finding as a JSON line to `.overcut/review/scratchpad.jsonl` (at the workspace root folder, not inside the repo folder).  \nReturn ONLY a short status line to chat: `{file} - {count} findings`.  \n\n> **Guidance**:\n> - Focus on correctness, security, performance, tests, APIs, and standards.  \n> - Keep summaries terse and user-facing.  \n> - Use local anchors (snippet + up to 3 lines of context + hunk header + approx lines).  \n> - Use `'blocker'` **only** for truly critical issues that would cause incorrect behavior or security risk.  \n> - **Ignore lint-only or trivial formatting changes** (e.g., whitespace, commas, semicolons, import order, quote styles).  \n> - Avoid adding low-confidence, speculative, or nitpick findings. Only include issues that are clearly justified and relevant to the PR changes.  \n\n**Schema for each finding**:\n```json\n{\n  \"file\": \"path/to/file\",\n  \"importance\": \"blocker|major|minor|nit\",\n  \"title\": \"Short handle\",\n  \"message\": \"1-2 sentence user-facing comment\",\n  \"suggested_fix\": \"Optional concrete guidance or patch\",\n  \"line\": \"\",\n  \"side\": \"RIGHT|LEFT|UNKNOWN\"\n}\n```\n\n---\n\n### Step 2 - Complete and return a summary\nUse the `task_completed` tool to complete the task and return a summary of the review.\n\n**Output Requirements**:\n\nWhen the workflow completes, you MUST output the following information:\n\n```\nreview_comments_found: <yes|no>\ntotal_findings: <number of findings>\nscratchpad_file: .overcut/review/scratchpad.jsonl\n```\n\nExample outputs:\n\n**If findings were created:**\n```\nreview_comments_found: yes\ntotal_findings: 12\nscratchpad_file: .overcut/review/scratchpad.jsonl\n```\n\n**If no findings were created:**\n```\nreview_comments_found: no\ntotal_findings: 0\nscratchpad_file: .overcut/review/scratchpad.jsonl\n```\n",
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "optimize-review-item",
+          "name": "Optimize Review Items",
+          "action": "agent.run",
+          "params": {
+            "agentId": "cmfjcucnw001aldn5dqb89cv7",
+            "agentEngine": "overcut"
+          },
+          "instruction": "You are acting as a **Code Review Optimizer**.  \nYou are given a list of review items on a PR.  \nYour goal is to produce a **minimal, high-quality** set of review items that focuses on meaningful issues — filtering out trivial, low-confidence, or irrelevant findings — so that the final review adds clear value without overwhelming developers.\n\n---\n\n## Step 0 – Acknowledge\nUse the `update_status` tool to notify the user that optimization has started.\n\n---\n\n## Step 1 – Check for Review Comments from Previous Step\n\n**Prerequisites**:\n- The previous step should have created `.overcut/review/scratchpad.jsonl` with review findings.\n- The previous step provides output indicating whether review comments were found.\n\n**Previous step output:**\n```\n{{outputs.code-review.message}}\n```\n\n**Action**:\n1. Check the `review_comments_found` value from the previous step's output.\n2. If `review_comments_found` is **\"no\"** or `total_findings` is **0**:\n   - Use the `task_completed` tool with message: `\"No review comments found from previous step. Skipping optimization.\"`\n   - Output the following:\n     ```\n     chunks_created: no\n     total_chunks: 0\n     ```\n   - **STOP here** - do not proceed to Step 2, Step 3, or Step 4.\n3. If `review_comments_found` is **\"yes\"** and `total_findings` > 0, proceed to Step 2.\n\n---\n\n## Step 2 – Dedupe and Prune\nRead `.overcut/review/scratchpad.jsonl` (from the workspace root, not inside the repo folder).  \nApply the following optimization and filtering rules:\n\n### Deduplication\n- Merge duplicates if:\n  - Same file **and** high summary similarity, **or**\n  - Same snippet hash.\n- When merging:\n  - Keep the highest **importance** and most **specific** description.\n\n### Pruning\nDrop or merge items based on these criteria:\n- **Ignore lint-only changes**:\n  - Skip findings that relate only to formatting, whitespace, import order, semicolons, trailing commas, quote style, or other stylistic diffs.\n  - If a finding points to a line that changed only in formatting (no logic), discard it.\n- **Drop no-op or trivial items** (e.g., “variable could be renamed,” “add blank line,” etc.).\n- **Drop low-confidence items** that lack clear reasoning or are speculative (“might,” “maybe,” “possibly”).\n- **Drop out-of-scope findings** that do not relate to the current PR changes, unless they are **critical** (security, correctness, or stability).\n- **Drop nitpicks** — small subjective preferences that don’t affect correctness, maintainability, or readability.\n- **Collapse repetitive housekeeping**:\n  - If multiple similar style issues appear in the same file (imports, spacing, etc.), collapse them into one summary note per file.\n\n### Noise Reduction\n- Prefer **fewer, higher-confidence** comments that reflect clear problems or improvements.\n- Each retained finding must represent a **distinct and meaningful insight**.\n- The goal is to make Overcut’s review **concise and high-signal**.\n\n---\n\n## Step 3 – Split into Chunks\nAfter pruning, split the optimized findings into chunks for downstream agents.\n\n### Chunking Rules\n- Default partitioning is by file — all findings for one file go in one chunk.\n- If a file has more than ~10 findings, split it into multiple smaller chunks.\n- If a chunk has fewer than 5 findings, merge it with an adjacent chunk so every chunk has at least 5 findings (unless the file has fewer overall).\n- Ensure every finding appears in **exactly one** chunk.\n\n**Outputs**:  \n- Write each chunk as a JSONL file named `.overcut/review/scratchpad.chunk{N}.jsonl`. (at the workspace root folder, not inside the repo folder)\n\n---\n\n## Step 4 - Return a summary\nUse the `task_completed` tool to complete the task and return a summary of the review.\nReturn to chat a short status: `\"kept={k} merged={m} dropped={d} chunks={c}\"`.\n\n**Output Requirements**:\n\nWhen the workflow completes, you MUST output the following information:\n\n```\nchunks_created: <yes|no>\ntotal_chunks: <number of chunk files created>\nkept_findings: <number of findings kept after optimization>\n```\n\nExample outputs:\n\n**If chunks were created:**\n```\nchunks_created: yes\ntotal_chunks: 3\nkept_findings: 8\n```\n\n**If no findings remained after optimization:**\n```\nchunks_created: no\ntotal_chunks: 0\nkept_findings: 0\n```\n",
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "submit-review",
+          "name": "Submit Review Results",
+          "action": "agent.session",
+          "params": {
+            "goal": "Write and Submit Review Comments",
+            "agentIds": [
+              "cmfjcucnw001aldn5dqb89cv7",
+              "cmck2zx350003wtwyxm0w6g6p",
+              "cmex5b4zf0001wvjvgnv9aced"
+            ],
+            "agentEngine": "overcut",
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 120
+              },
+              "userSignals": {
+                "explicit": ["/done", "thanks"]
+              }
+            },
+            "listenToComments": true,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are acting as a **Code Review Publisher**.  \nYour goal is to process all chunk files in the `.overcut/review/` folder (at the workspace root folder, not inside the repo folder), post PR comments, and submit the final review.\n\n## Process\n\n### Step 0 - Acknowledge\nUpdate the user with the update_status tool with a message that you are starting the process.\n\n---\n\n### Step 1 - Check for Review Comments from Previous Step\n\n**Prerequisites**:\n- The previous step (step-3-optimize-review-item) should have created `.overcut/review/scratchpad.chunk*.jsonl` files.\n- The previous step provides output indicating whether chunks were created.\n\n**Previous step output:**\n```\n{{outputs.optimize-review-item.message}}\n```\n\n**Action**:\n1. Check the `chunks_created` value from the previous step's output.\n2. If `chunks_created` is **\"no\"** or `total_chunks` is **0** or `kept_findings` is **0**:\n   - Use the `task_completed` tool with message: `\"Code review complete. No issues found - all changes look good! ✅\"`\n   - **STOP here** - do not proceed to Step 2, Step 3, Step 4, or Step 5.\n3. If `chunks_created` is **\"yes\"** and `total_chunks` > 0, proceed to Step 2.\n\n---\n\n### Step 2 - Discover and Sort Chunks\n- You have already identified chunk files in Step 1.\n- Sort them in ascending order (chunk1 → chunk2 → …).\n\n---\n\n## Step 3 – Process Each Chunk with the Sub-Agent\nFor each chunk file:\n- Delegate it to the **Code Reviewer** agent individually.\n- Use the following instructions when delegating:\n\nYou are a **Code Review Publisher**.  \nLoad findings from file `{chunkFile}`.  \nFor each finding:  \n- Resolve line numbers using `get_pull_request_diff_line_numbers`\n- If ambiguous: fallback to file-level comment.  \n\nPost the comments from the chunk file on the PR with `add_pull_request_review_thread` tool. \nInclude the importance level of the comment in the beginning of the comment in the format: `[IMPORTANCE]: {comment}`.\n\n**CRITICAL INSTRUCTIONS**:\n- ✅ **DO**: Add review comments using `add_pull_request_review_thread`\n- ❌ **DO NOT**: Call `submit_review` tool - the review will be submitted later by the coordinator\n- ❌ **DO NOT**: Review the PR or look for new issues - only post the existing comments from the chunk file\n- ❌ **DO NOT**: Submit or finalize anything - just add the comments as individual threads\n\nYour ONLY task is to add the comments as review threads. The coordinator will submit the final review in the next step.\n      \nReturn to chat only: `\"posted {count} comments from {chunkFile}\"`.\n\n---\n\n## Step 4 – Finalize and Submit the Review\nAfter all chunks are processed and all comments have been added in Step 3:\n\n**CRITICAL**: Do NOT re-add or re-post any comments. All comments were already posted by sub-agents in Step 3. Your ONLY job now is to submit the final review with a summary.\n\n**IMPORTANT**: If you reached this step, it means there ARE comments to submit (verified in Step 1). If for any reason there are no comments at this point, DO NOT try to submit dummy comments or create artificial review threads just to satisfy the API. Simply use `task_completed` with a confirmation message and exit gracefully.\n\n1. Aggregate totals (comments, files, blockers) by reading the chunk files - DO NOT re-post them.  \n2. Build an overall summary including:  \n   - Counts by **importance level**  \n   - 1–3 **key themes or patterns** observed  \n   - **Clear next steps** for the developer (actionable and concise)  \n3. Choose the appropriate review event:\n   - **`APPROVE`** – if no blockers were found.  \n   - **`COMMENT`** – if there are issues or suggestions, but none are blocking.  \n   - **`REQUEST_CHANGES`** – only if truly critical correctness or security issues are found.\n\n**CRITICAL INSTRUCTIONS**:\n- ❌ **DO NOT**: Call `add_pull_request_review_thread` - comments are already posted\n- ❌ **DO NOT**: Re-post or re-add any comments from the chunk files\n- ❌ **DO NOT**: Delegate to sub-agents for posting comments\n- ✅ **DO**: Only call `submit_review` tool once with the final summary and event\n- ✅ **DO**: Read chunk files only to build summary statistics\n\n🟢 **Do not block the PR** for stylistic or minor issues.  \nBlocking should occur **only for critical issues** that would cause incorrect behavior or security risk.\n\n✅ You **must** use the `submit_review` tool exactly once.  \n❌ Never skip the `submit_review` tool — without it, the user will not see the final review.  \n❌ Never call `submit_review` more than once - submit only at the very end.\n\n---\n\n## Step 5 - Confirm to user\nUse the task_completed tool to complete the task and return a summary of the review.\nReturn to chat a short status: `\"Review submitted: {event}. Total comments: {N} across {M} files.\"`.",
+          "stepMaxDurationMinutes": 30
+        }
+      ],
+      "trigger": {
+        "event": "pull_request_opened",
+        "schedule": null,
+        "settings": {
+          "delaySeconds": 0
+        },
+        "conditions": {
+          "field": null,
+          "rules": [
+            {
+              "field": "context.pullRequest.draft",
+              "rules": null,
+              "value": "false",
+              "operator": "equals",
+              "combinator": null
+            }
+          ],
+          "value": null,
+          "operator": null,
+          "combinator": "and"
+        },
+        "slashCommand": {
+          "command": "review",
+          "requireMention": false
+        }
+      },
+      "version": "1.0.0",
+      "priority": 1,
+      "timeoutMs": 3600000
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "cmck2zx350003wtwyxm0w6g6p",
+        "name": "Senior Developer"
+      },
+      {
+        "id": "cmex5b4zf0001wvjvgnv9aced",
+        "name": "Technical Writer"
+      },
+      {
+        "id": "cmfjcucnw001aldn5dqb89cv7",
+        "name": "Code Reviewer"
+      }
+    ]
+  }
+}
