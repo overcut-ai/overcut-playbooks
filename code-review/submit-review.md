@@ -69,29 +69,49 @@ Return to chat only: `"posted {count} comments from {chunkFile}"`.
 
 ---
 
-## Step 4 – Finalize and Submit the Review
+## Step 4 – Finalize and Submit the Review with a Sub-Agent
 
 After all chunks are processed and all comments have been added in Step 3:
 
-**CRITICAL**: Do NOT re-add or re-post any comments. All comments were already posted by sub-agents in Step 3. Your ONLY job now is to submit the final review with a summary.
+- Delegate this step to the **Code Reviewer** agent.
+- Use the following instructions when delegating:
 
-**IMPORTANT**: If you reached this step, it means there ARE comments to submit (verified in Step 1). If for any reason there are no comments at this point, DO NOT try to submit dummy comments or create artificial review threads just to satisfy the API. Simply use `task_completed` with a confirmation message and exit gracefully.
+You are a **Code Review Finalizer**.
 
-1. Aggregate totals (comments, files, blockers) by reading the chunk files - DO NOT re-post them.
-2. Build an overall summary including:
-   - Counts by **importance level**
-   - 1–3 **key themes or patterns** observed
-   - **Clear next steps** for the developer (actionable and concise)
-3. Choose the appropriate review event:
-   - **`APPROVE`** – if no blockers were found.
-   - **`COMMENT`** – if there are issues or suggestions, but none are blocking.
-   - **`REQUEST_CHANGES`** – only if truly critical correctness or security issues are found.
+Your task is to submit the final review with a comprehensive summary. All individual comments have already been posted by other agents in previous steps.
+
+**Instructions**:
+
+1. **Read all chunk files** from `.overcut/review/scratchpad.chunk*.jsonl` to gather statistics (from the workspace root folder, not inside the repo folder)
+
+   - Count total comments by **importance level** (BLOCKER, CRITICAL, MAJOR, MINOR, SUGGESTION, PRAISE)
+   - Identify affected files
+   - Note any blocking issues
+
+2. **Build a short summary** that includes:
+
+   - Total counts by **importance level**
+   - 1–3 **key themes or patterns** observed across the review
+   - **Clear, actionable next steps** for the developer (be concise and helpful)
+
+3. **Choose the appropriate review event**:
+
+   - **`APPROVE`** – if no blockers or critical issues were found
+   - **`COMMENT`** – if there are issues or suggestions, but none are blocking
+   - **`REQUEST_CHANGES`** – only if truly critical correctness or security issues are found
+
+4. **Call `submit_review` tool exactly once** with:
+
+   - The summary you built in step 2
+   - The event you chose in step 3
+
+5. In case you cannot call the `submit_review` tool, do not try to review or add new comments. just return a short status to chat: `"Cannot submit review. <reason>."`
 
 **CRITICAL INSTRUCTIONS**:
 
 - ❌ **DO NOT**: Call `add_pull_request_review_thread` - comments are already posted
 - ❌ **DO NOT**: Re-post or re-add any comments from the chunk files
-- ❌ **DO NOT**: Delegate to sub-agents for posting comments
+- ❌ **DO NOT**: Review the PR or look for new issues - only summarize existing findings
 - ✅ **DO**: Only call `submit_review` tool once with the final summary and event
 - ✅ **DO**: Read chunk files only to build summary statistics
 
@@ -101,6 +121,8 @@ Blocking should occur **only for critical issues** that would cause incorrect be
 ✅ You **must** use the `submit_review` tool exactly once.  
 ❌ Never skip the `submit_review` tool — without it, the user will not see the final review.  
 ❌ Never call `submit_review` more than once - submit only at the very end.
+
+Return to chat only: `"Review submitted: {event}. Total comments: {N} across {M} files."`
 
 ---
 
