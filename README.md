@@ -46,6 +46,10 @@ Use AI to help you:
 - [Requirements Document Generation](./requirements-document-generation/) - Automatically generates comprehensive requirements documents from feature requests with codebase analysis and iterative review.
 - [Technical Design Proposal](./technical-design-proposal/) - Generate comprehensive technical design documents from requirements.
 
+### Development & Implementation
+
+- [Create PR from Design](./create-pr-from-design/) - Automatically creates implementation pull requests from approved design documents with phased implementation, real-time progress tracking, and comprehensive testing.
+
 ### Code Quality & Review
 
 - [Code Review](./code-review/) - Automated comprehensive code review with inline comments and suggestions.
