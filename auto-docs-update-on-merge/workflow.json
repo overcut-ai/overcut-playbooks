@@ -34,15 +34,12 @@
           "name": "Clone Source Repo",
           "action": "git.clone",
           "params": {
-            "alias": "overcut",
             "branch": "",
-            "repository": "overcut",
             "cloneOptions": {
               "depth": 1,
-              "ignoreCache": true
+              "singleBranch": true
             },
-            "repoFullName": "overcut-ai/overcut",
-            "gitOrganizationId": "cmbry9n79000110e5rj1i215h"
+            "repoFullName": "{{trigger.repository.fullName}}"
           },
           "instruction": null,
           "stepMaxDurationMinutes": 30
@@ -55,10 +52,9 @@
             "branch": "",
             "cloneOptions": {
               "depth": 1,
-              "ignoreCache": true
+              "singleBranch": true
             },
-            "repoFullName": "my-org/docs",
-            "gitOrganizationId": "cmbry9n79000110e5rj1i215h"
+            "repoFullName": "my-org/docs"
           },
           "instruction": null,
           "stepMaxDurationMinutes": 30
