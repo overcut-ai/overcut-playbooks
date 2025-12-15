@@ -1,0 +1,100 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Fix Review Comments",
+    "definition": {
+      "flow": [
+        {
+          "to": "plan-fixes",
+          "from": "git-clone",
+          "condition": null
+        },
+        {
+          "to": "apply-fixes",
+          "from": "plan-fixes",
+          "condition": null
+        },
+        {
+          "to": "git-clone",
+          "from": "",
+          "condition": null
+        }
+      ],
+      "name": "Fix Review Comments",
+      "steps": [
+        {
+          "id": "git-clone",
+          "name": "Clone Repo",
+          "action": "git.clone",
+          "params": {
+            "branch": "{{trigger.pullRequest.headBranch}}",
+            "cloneOptions": {
+              "depth": 1
+            },
+            "repoFullName": "{{trigger.repository.fullName}}"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "plan-fixes",
+          "name": "Plan Fixes",
+          "action": "agent.run",
+          "params": {
+            "agentId": "cmhyh2izt004q2o3updb8ox6a"
+          },
+          "instruction": "Coordinator Instructions:\n\n1. Fetch all OPEN review threads on the current pull-request (exclude resolved / outdated).\n   For each thread collect: `thread_id`, file path, line range(s), author, and the entire comment history.\n\n2. For every thread:\n   a. Summarise the reviewer’s concern in 1-2 sentences.\n   b. Extract any concrete code suggestions or references.\n   c. Think critically: is this change necessary and safe?  \n      • If YES → mark as **ACTIONABLE**.  \n      • If NOT SURE → mark as **NEEDS_CONFIRMATION** and formulate a concise follow-up question for the reviewer.\n\n3. Group related actionable threads that can be resolved by the same code change (e.g., same variable rename in multiple files). Each group becomes a single **Plan Item**.\n\n4. Create an ordered **Implementation Plan** in Markdown task-list form:\n\n```\n### Implementation Plan\n\n- [ ] [PLAN-1] Refactor FooBar util\n  • Threads: #12, #18, #23  (provide the full ID so it can be used to locate the thread in the API)\n  • Files: src/utils/fooBar.ts (L10-25, 40-55)  \n  • Change: Rename `foo` → `bar`, update imports  \n  • Risk: Low – covered by existing tests  \n  • Validation: `npm test utils-fooBar`\n\n- [ ] [PLAN-2] Add null-check in UserService\n  • Threads: #30  \n  • Files: services/userService.ts (L78-85)  \n  • Change: Guard against undefined `user.email`  \n  • Risk: Medium – affects registration flow  \n  • Validation: run e2e auth tests\n```\n\n5. At the bottom add a **Summary** section: total threads analysed, items actionable, items needing confirmation.\n\n6. OUTPUT ONLY the Markdown plan & summary. Do NOT modify code or comment on PR yet.\n\nIf no actionable items are found, output `NO_ACTION_REQUIRED`.",
+          "stepMaxDurationMinutes": 10
+        },
+        {
+          "id": "apply-fixes",
+          "name": "Apply Fixes",
+          "action": "agent.session",
+          "params": {
+            "goal": "Apply fixes per the plan, run format & lint, commit changes, and update PR threads.",
+            "agentIds": [
+              "cmhyh2izt004q2o3updb8ox6a"
+            ],
+            "agentEngine": "overcut",
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 30
+              },
+              "userSignals": {
+                "explicit": [
+                  "/done",
+                  "thanks"
+                ]
+              }
+            },
+            "listenToComments": true,
+            "keepSessionOpenForComments": true
+          },
+          "instruction": "You are acting as a Developer Agent responsible for fixing issues identified in a code review.\n\nYour mission:\nAddress all code review feedback by implementing fixes, tracking progress via a PR comment with checkboxes, and updating that comment as each task is completed.\n\n**Prerequisites**: \n- An Implementation Plan has already been created following the process in previous step.\n- The plan includes structured tasks with thread IDs, file paths, changes, risk assessment, and validation steps\n\n------------------------------------------------------------\nOverall Process\n------------------------------------------------------------\n\nThe workflow consists of:\n1. Receive the pre-created Implementation Plan (from previous step)\n2. Post the plan as a PR comment with checkboxes\n3. Implement each fix one by one, commit, and push to remote branch\n4. Update the checkbox comment after completing each fix\n5. Respond to review threads as fixes are completed\n\n------------------------------------------------------------\n\n## Step 0 - Acknowledge\n\nUpdate the user with the status_update tool with a message that you are starting to address the code review feedback.\n\n------------------------------------------------------------\n\n## Step 1 - Receive Implementation Plan\n\n**Prerequisites**: The Implementation Plan has already been created by previous step.\n\nThe plan will be in the following format:\n\n```markdown\n### Implementation Plan\n\n- [ ] [PLAN-1] Task title\n  • Threads: #12, #18, #23\n  • Files: src/utils/fooBar.ts (L10-25, 40-55)\n  • Change: Description of the change\n  • Risk: Low/Medium/High – explanation\n  • Validation: How to test/verify\n\n- [ ] [PLAN-2] Another task title\n  • Threads: #30\n  • Files: services/userService.ts (L78-85)\n  • Change: Description of the change\n  • Risk: Medium – explanation\n  • Validation: How to test/verify\n```\n\n**Your job**: \n- Use this pre-created plan as the basis for tracking and implementing fixes\n- Keep the original detailed plan accessible throughout implementation for reference\n- The plan contains critical information (thread IDs, file paths, validation steps) needed for implementation\n\n------------------------------------------------------------\n\n## Step 2 - Post Implementation Plan as PR Comment\n\nCreate a new PR comment with the implementation plan.\n\nTake the Implementation Plan from Step 1 and post it as a PR comment with checkboxes.\n\n**Comment Format**:\n```markdown\n## 🔧 Implementation Plan\n\nAddressing code review feedback with the following tasks:\n\n- [ ] [PLAN-1] Refactor FooBar util\n- [ ] [PLAN-2] Add null-check in UserService\n\n---\n*This comment will be updated as tasks are completed.*\n```\n\n**Requirements**:\n- Use GitHub markdown checkbox format `- [ ]` for uncompleted items\n- Use GitHub markdown checkbox format `- [x]` for completed items\n- Show only the plan title and checkboxes, no other details\n- Store the comment ID from the response for future updates\n\n------------------------------------------------------------\n\n## Step 3 - Implement Fixes (Iterative)\n\nFor each task in the implementation plan:\n\n### 3.1 - Implement and Commit the Fix\n- Read the relevant code and review feedback\n- Make the necessary code changes using your tools\n- Ensure the fix addresses the review feedback completely\n- Test the changes if applicable (run relevant tests, check linter, etc.)\n- Commit the changes with a descriptive commit message that references the plan item (e.g., \"[PLAN-1] Refactor FooBar util\")\n\n### 3.2 - Push Commit to Remote Branch\n- Push the commit to the remote branch immediately after committing\n- This ensures the changes are visible on the PR for reviewers\n- Use `git push` to push to the remote branch\n\n### 3.3 - Update the Checkbox Comment\nAfter completing and pushing each task:\n- Use the `update_pull_request_comment` tool to update the implementation plan comment\n- Change the completed task's checkbox from `- [ ]` to `- [x]`\n- Add the commit short SHA in parentheses next to the completed task (plain text, no quotes or backticks)\n- Keep all other tasks unchanged\n\n**Example Update** (after completing PLAN-1):\n```markdown\n## 🔧 Implementation Plan\n\nAddressing code review feedback with the following tasks:\n\n- [x] [PLAN-1] Refactor FooBar util (fbfa8fd)\n- [ ] [PLAN-2] Add null-check in UserService\n\n---\n*This comment will be updated as tasks are completed.*\n```\n\n### 3.4 - Reply to Review Threads\nAfter completing each fix, reply to all associated review threads:\n- Get the thread IDs from the original Implementation Plan for the completed task\n- For example, if [PLAN-1] lists \"Threads: #12, #18, #23\", reply to threads #12, #18, and #23\n- Use the `add_pull_request_review_thread_reply` tool to reply to each thread\n- Briefly explain what was changed\n- Reference the plan item ID and commit SHA (e.g., \"Fixed in [PLAN-1] (fbfa8fd)\" - SHA in plain text, no quotes or backticks)\n\nExample reply:\n```\nFixed in [PLAN-1] (fbfa8fd). Renamed `foo` → `bar` and updated all imports. Tests passing. ✅\n```\n\n### 3.5 - Continue to Next Task\nRepeat steps 3.1-3.4 for each remaining task in the implementation plan.\n\n------------------------------------------------------------\n\n## Step 4 - Final Update and Summary\n\nAfter all tasks are completed:\n\n### 4.1 - Confirm to User\nUse the task_completed tool to complete the task and return a summary:\n```\nAll code review feedback has been addressed. {N} fixes implemented and tracked in PR comment.\n```\n\n------------------------------------------------------------\nCritical Requirements\n------------------------------------------------------------\n\n✅ **MUST DO**:\n- Post the implementation plan comment BEFORE starting any fixes\n- Commit each fix with a descriptive commit message\n- Push each commit to the remote branch immediately after committing\n- Update the checkbox comment after EACH completed task (not just at the end)\n- Add the commit short SHA in parentheses next to each completed task (plain text, no quotes or backticks) \n- Reply to all associated review threads after completing each fix using thread IDs from original plan\n- Use proper GitHub markdown checkbox syntax with [PLAN-X] identifiers\n- Keep the original detailed Implementation Plan accessible for reference throughout the workflow\n\n❌ **MUST NOT**:\n- Skip creating the initial implementation plan comment\n- Wait until all fixes are done before updating checkboxes\n- Create multiple tracking comments (use ONE comment and update it)\n- Leave tasks unchecked if they are completed\n- Skip replying to review threads after fixes\n- Add quotes or backticks to the commit SHA - this is not allowed (`fbfa8fd`)\n\n\n------------------------------------------------------------\nNotes\n------------------------------------------------------------\n\n- The checkbox comment serves as a real-time progress tracker for reviewers\n- The original detailed plan (from previous step) includes rich details: Threads, Files, Change, Risk, Validation\n- Keep the original plan accessible - you'll need it for thread IDs, validation steps, and file references\n- The PR comment shows only simplified checkboxes with commit SHAs for easy tracking\n- Push each commit immediately so reviewers can see changes on the PR in real-time\n- The thread IDs from the original plan are crucial for replying to the correct review comments\n- Updating after each task (not just at the end) provides transparency\n- Commit SHAs help reviewers verify exactly which commit addressed each item\n- If a task turns out to be more complex, you can update its description in the checkbox comment\n- If additional tasks are discovered during implementation, add them to the comment with the same format\n- The [PLAN-X] identifiers help track which plan items have been completed and cross-reference with the original plan",
+          "stepMaxDurationMinutes": 60
+        }
+      ],
+      "trigger": {
+        "event": "manual",
+        "schedule": null,
+        "settings": null,
+        "conditions": null,
+        "slashCommand": {
+          "command": "fix-review",
+          "requireMention": false
+        }
+      },
+      "version": "1.0.0",
+      "priority": 5,
+      "timeoutMs": 3600000
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "cmhyh2izt004q2o3updb8ox6a",
+        "name": "PR Review Fixer"
+      }
+    ]
+  }
+}

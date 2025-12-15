@@ -49,6 +49,7 @@ Use AI to help you:
 ### Code Quality & Review
 
 - [Code Review](./code-review/) - Automated comprehensive code review with inline comments and suggestions.
+- [Fix Review Comments](./fix-review-comments/) - Automatically addresses code review feedback with structured implementation plans and real-time progress tracking.
 - [Auto Root Cause Analysis](./auto-root-cause-analysis/) - Automatically analyze bugs and suggest fixes when issues are labeled.
 - [Auto Changelog Reminder](./auto-changelog-reminder/) - Reminds developers to update changelog on PRs.
 - [Auto Docs Update on Merge](./auto-docs-update-on-merge/) - Automatically updates documentation when PRs are merged.
