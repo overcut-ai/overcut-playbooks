@@ -1,0 +1,149 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Remediate CVEs",
+    "description": "Analyzes CVEs in your codebase, creates comprehensive remediation plans with context-aware risk assessment, and triggers implementation via slash command.",
+    "instructions": [
+      {
+        "description": "Overcut will automatically analyze CVEs when you label an issue with `security-vulnerability` or `cve`",
+        "action": "create_issue"
+      }
+    ],
+    "definition": {
+      "flow": [
+        {
+          "to": "identify-repos",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "clone-repo",
+          "from": "identify-repos",
+          "condition": null
+        },
+        {
+          "to": "analyze-cve-and-plan",
+          "from": "clone-repo",
+          "condition": null
+        },
+        {
+          "to": "post-remediation-plan",
+          "from": "analyze-cve-and-plan",
+          "condition": null
+        }
+      ],
+      "name": "Remediate CVEs",
+      "steps": [
+        {
+          "id": "identify-repos",
+          "name": "Identify Repositories",
+          "action": "repo.identify",
+          "params": {
+            "maxResults": 3,
+            "minConfidence": 0.2
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "clone-repo",
+          "name": "Clone Repository",
+          "action": "git.clone",
+          "params": {
+            "branch": "",
+            "cloneOptions": {
+              "depth": 1
+            },
+            "repoFullName": "{{outputs.identify-repos}}"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "analyze-cve-and-plan",
+          "name": "Analyze CVE and Create Plan",
+          "action": "agent.session",
+          "params": {
+            "goal": "Analyze CVE and create remediation plan",
+            "agentIds": [
+              "security-engineer-agent-id",
+              "senior-developer-agent-id"
+            ],
+            "agentEngine": "overcut",
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 30
+              },
+              "userSignals": {
+                "explicit": ["/done", "thanks"]
+              }
+            },
+            "listenToComments": false,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are the **Coordinator Agent** responsible for analyzing CVE security vulnerabilities and creating comprehensive remediation plans.\n\nYou will delegate specific tasks to specialized sub-agents:\n\n- **Security Engineer** → Parse CVE details, assess exploitability, evaluate remediation options, and provide security guidance\n- **Senior Developer** → Analyze dependency usage, trace vulnerable code paths, and assess implementation impact across the entire codebase\n\n---\n\n## Process\n\n### Step 1: Parse CVE Details\n\n- Delegate to the **Security Engineer**:\n  • Extract and validate CVE information from the issue:\n  - CVE ID (e.g., CVE-2024-12345)\n  - CVSS severity score and rating (Critical/High/Medium/Low)\n  - Vulnerability type (e.g., XSS, SQL Injection, RCE, DoS, Prototype Pollution)\n  - Description of the vulnerability\n  - Affected package/library and version ranges\n  - Links to official CVE databases (NVD, GitHub Advisory, etc.)\n    • If CVE information is incomplete or ambiguous:\n  - Search for official CVE details from NVD or GitHub Security Advisories\n  - Document any missing information that may be needed\n    • Return a structured summary of CVE details for use in subsequent steps\n\n### Step 2: Identify Affected Dependencies\n\n- Delegate to **Senior Developer**:\n  • Scan all dependency files across the codebase:\n  - Backend dependencies (package.json, requirements.txt, go.mod, Gemfile, pom.xml, etc.)\n  - Frontend dependencies (package.json, package-lock.json, yarn.lock, bower.json)\n  - Build tool dependencies (webpack, vite, gradle, maven)\n  - Container dependencies (Dockerfile, docker-compose.yml)\n  - Infrastructure as code (terraform, kubernetes manifests)\n    • Identify all instances of the vulnerable package and their versions\n    • Check both direct dependencies and transitive dependencies\n    • Document the dependency tree showing how vulnerable packages are included\n    • Check for vulnerable CDN references or vendored libraries\n    • Return:\n  - List of affected dependency files with paths\n  - Current version(s) of vulnerable package(s)\n  - Whether it's a direct or transitive dependency\n  - Which package manager lock files are affected\n  - All locations where the package appears (including duplicates in monorepos)\n\n### Step 3: Trace Vulnerable Code Usage\n\n- Delegate to **Senior Developer**:\n  • Search the entire codebase for imports/requires of the vulnerable package\n  - Backend code (services, controllers, utilities, middleware)\n  - Frontend code (components, pages, hooks, utilities)\n  - Build scripts and tooling\n  - Test files (integration, unit, e2e)\n    • Identify which modules, services, components, or scripts use the vulnerable package\n    • Document specific functions or APIs from the vulnerable package that are called\n    • Trace execution paths that could trigger the vulnerability:\n  - Server-side execution paths (API endpoints, background jobs, cron tasks)\n  - Client-side execution paths (user interactions, page loads, events)\n  - Build-time or CI/CD execution paths\n    • Identify any user inputs or external data that reach vulnerable code\n    • Check for server-side rendering (SSR) or static site generation (SSG) usage\n    • Return:\n  - File paths and line numbers where vulnerable code is used\n  - Context about what the code does and why the package is needed\n  - Data flow analysis showing how data reaches vulnerable functions\n  - Whether usage is runtime, build-time, or test-only\n\n### Step 4: Assess Actual Risk and Exploitability\n\n- Delegate to the **Security Engineer**:\n  • Analyze the vulnerability in the context of how it's actually used in the codebase:\n  - Is the vulnerable code path reachable in production?\n  - Are there any mitigating controls (input validation, sanitization, firewall rules)?\n  - What user privileges or conditions are needed to exploit it?\n  - Is user-supplied data passed to vulnerable functions?\n  - Are there network boundaries or architectural protections?\n    • Determine exploitability rating:\n  - **Directly Exploitable**: Vulnerable code is reachable with user input, no mitigations\n  - **Potentially Exploitable**: Vulnerable code is reachable but may require specific conditions\n  - **Limited Exposure**: Vulnerable code is used but with significant mitigations\n  - **Not Exploitable**: Vulnerable code is not reachable or completely protected\n    • Assess business impact:\n  - **Critical**: Data breach, system compromise, service disruption\n  - **High**: Potential for unauthorized access or data exposure\n  - **Medium**: Limited security impact or requires privileged access\n  - **Low**: Theoretical risk with minimal practical impact\n    • Return:\n  - Exploitability assessment with rationale\n  - Business impact assessment\n  - Risk level (Critical/High/Medium/Low) combining CVSS score with actual usage context\n  - Recommended urgency for remediation\n\n### Step 5: Evaluate Remediation Options\n\n- Delegate to **Security Engineer**:\n  • Research and evaluate multiple remediation approaches:\n\n  **Option A: Direct Dependency Update**\n\n  - Identify the latest patched version(s) of the vulnerable package\n  - Check if update is a patch, minor, or major version bump\n  - Review changelog and breaking changes\n  - Check compatibility with current codebase (Node version, other dependencies, etc.)\n  - Estimate effort: Low/Medium/High\n\n  **Option B: Alternative Package**\n\n  - Identify alternative packages that provide similar functionality\n  - Assess maturity, maintenance, and security track record\n  - Estimate migration effort and code changes required\n  - Check for feature parity\n  - Estimate effort: Medium/High\n\n  **Option C: Code Changes to Avoid Vulnerability**\n\n  - Identify ways to refactor code to not use vulnerable functionality\n  - Assess if vulnerable features can be removed or replaced\n  - Consider custom implementation of needed functionality\n  - Estimate effort: Medium/High\n\n  **Option D: Configuration or Environment Mitigation**\n\n  - WAF rules, network policies, or access controls\n  - Runtime protections (CSP headers, sandboxing, etc.)\n  - Feature flags to disable vulnerable code paths\n  - Note: Should be temporary and paired with proper fix\n  - Estimate effort: Low/Medium\n\n  **Option E: Workarounds**\n\n  - Monkey patching or wrapping vulnerable functions\n  - Input validation or sanitization before vulnerable code\n  - Note: Should be temporary only\n  - Estimate effort: Low/Medium\n\n  • For each option, document:\n\n  - Pros and cons\n  - Breaking changes or compatibility risks\n  - Performance impact\n  - Testing requirements\n  - Rollback strategy\n\n  • Return all evaluated options with detailed trade-off analysis\n\n### Step 6: Recommend Best Strategy\n\n- Delegate to **Security Engineer**:\n  • Based on the evaluated options, recommend the optimal remediation approach\n  • Consider factors:\n  - Speed of remediation vs. thoroughness\n  - Risk to production stability\n  - Effort required vs. security benefit\n  - Long-term maintainability\n    • Explain why the recommended approach is best\n    • Document why alternative approaches were not chosen\n    • Return:\n  - Primary recommendation with clear rationale\n  - Fallback option if primary approach encounters issues\n  - Timeline estimate (hours/days/weeks)\n\n### Step 7: Create Remediation Plan Document\n\n- Delegate to **Security Engineer**:\n  • Compile all findings into a structured remediation plan document\n  • Write the plan to `.overcut/cve/remediation-plan.md` in the workspace root (not inside the repo folder)\n  • Create the `.overcut/cve/` directory if it doesn't exist\n  • The plan must include:\n\n  **CVE Information Section**\n\n  - CVE ID and links to advisories\n  - CVSS score and severity\n  - Vulnerability type and description\n  - Affected package versions\n\n  **Impact Assessment Section**\n\n  - Dependencies found in codebase (with file paths)\n  - How vulnerable code is used (with code references)\n  - Exploitability analysis with reasoning\n  - Risk level (Critical/High/Medium/Low) with context\n  - Business impact assessment\n  - Affected services, components, or user flows\n\n  **Recommended Remediation Strategy Section**\n\n  - Proposed fix (e.g., \"Update express from 4.17.1 to 4.18.2\")\n  - Why this approach is recommended\n  - Breaking changes or compatibility concerns (if any)\n  - Expected effort and complexity\n  - Timeline estimate\n\n  **Alternative Options Section**\n\n  - List other approaches evaluated\n  - For each: brief description and reason it wasn't chosen\n\n  **Implementation Plan Section**\n\n  - Specific step-by-step instructions\n  - Files and dependencies that need changes\n  - Code changes required (if any beyond dependency update)\n  - Testing requirements:\n    • Existing tests that must pass\n    • New security tests to add\n    • Manual testing steps\n    • How to verify CVE is resolved\n  - Rollback plan if issues occur\n\n  • Use clear markdown formatting with headers, bullet points, and code blocks\n  • Be specific and actionable - avoid vague guidance\n  • Reference actual files, functions, and line numbers where relevant\n  • Write the complete plan to the file and confirm it was written successfully\n\n---\n\n## Output Requirements\n\nWhen the workflow completes, you MUST output the following information:\n\n```\nremediation_plan_file: .overcut/cve/remediation-plan.md\ncve_id: <CVE ID>\nrisk_level: <Critical|High|Medium|Low>\nrecommended_strategy: <brief one-line summary>\n```\n\nExample output:\n\n```\nremediation_plan_file: .overcut/cve/remediation-plan.md\ncve_id: CVE-2024-12345\nrisk_level: High\nrecommended_strategy: Update express from 4.17.1 to 4.18.2\n```\n\n**Important**: The remediation plan file must exist at the workspace root (`.overcut/cve/remediation-plan.md`), not inside the repository folder. The next step will read this file to post the plan to the issue.\n\n---\n\n## Guardrails\n\n- Always ground analysis in actual codebase usage - avoid generic CVE descriptions\n- Be honest about uncertainty - if exploitability is unclear, say so\n- Prioritize production stability - recommend safest approach even if slower\n- Consider transitive dependencies - trace full dependency trees\n- Check for multiple instances of vulnerable packages across monorepos\n- Check both runtime dependencies and dev/build dependencies\n- Document breaking changes explicitly - don't hide compatibility risks\n- Provide specific file paths, version numbers, and code references\n- If information is missing from the issue, search for official CVE details\n- Never recommend ignoring a CVE without clear evidence it's not exploitable\n- Include rollback plans for all recommendations\n- Ensure remediation plan is detailed enough for another engineer to implement\n- Pass complete context to sub-agents - they have no memory from previous calls\n- Consider the full stack: frontend, backend, infrastructure, build tools, CI/CD",
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "post-remediation-plan",
+          "name": "Post Remediation Plan",
+          "action": "agent.run",
+          "params": {
+            "agentId": "security-engineer-agent-id",
+            "agentEngine": "overcut"
+          },
+          "instruction": "You are the **Agent** responsible for posting the CVE remediation plan to the issue and triggering the implementation workflow.\n\n---\n\n## Mission\n\nPost the completed remediation plan as a comment on the triggering issue and automatically trigger the \"Create PR from Design\" workflow to implement the fix.\n\n---\n\n## Prerequisites\n\nThe previous step has completed the remediation plan analysis with the following output:\n\n```\n{{outputs.analyze-cve-and-plan.message}}\n```\n\nThe remediation plan has been written to `.overcut/cve/remediation-plan.md` in the workspace root.\n\n---\n\n## Process\n\n### Step 1: Post the Remediation Plan\n\n- Read the remediation plan from `.overcut/cve/remediation-plan.md`\n- Verify the file exists and contains the complete plan\n- If the file is missing or empty, report an error and do not proceed\n- Post a comment to the triggering issue with:\n  - A short title: \"🔒 CVE Remediation Plan\"\n  - The complete content from the `.overcut/cve/remediation-plan.md` file\n\n**Comment Format:**\n\n```markdown\n## 🔒 CVE Remediation Plan\n\n[ENTIRE CONTENT FROM .overcut/cve/remediation-plan.md]\n```\n\n**Important**:\n\n- Do not modify the plan content - post it exactly as written in the file\n- The plan should be properly formatted markdown from the previous step\n- This comment is for review purposes\n\n### Step 2: Trigger Implementation with Slash Command\n\n- Post a **separate comment** to the same issue with the `/pr` slash command\n- This comment should be short and simple\n\n**Comment Format:**\n\n```markdown\n/pr\n```\n\nOR\n\n```markdown\n/pr - Implement CVE remediation plan above\n```\n\n**CRITICAL**:\n\n- The `/pr` command must be at the very beginning of the comment\n- This should be a separate comment from the remediation plan\n- The `/pr` command will automatically trigger the \"Create PR from Design\" workflow\n- That workflow will read the remediation plan from the previous comment and implement the fix\n\n---\n\n## Rules\n\n- Always verify the remediation plan file exists before proceeding (`.overcut/cve/remediation-plan.md`)\n- Post two separate comments:\n  1. **First comment**: Remediation plan with title + complete file content\n  2. **Second comment**: Just the `/pr` slash command\n- Do not combine the plan and `/pr` command in a single comment\n- Do not modify or reformat the plan content - use it as-is from the file\n- The `/pr` command must be at the very beginning of the second comment\n- Verify both comments posted successfully\n- The `/pr` command will automatically trigger the \"Create PR from Design\" workflow",
+          "stepMaxDurationMinutes": 30
+        }
+      ],
+      "trigger": {
+        "event": "issue_labeled",
+        "schedule": null,
+        "settings": {
+          "delaySeconds": 0
+        },
+        "conditions": {
+          "field": null,
+          "rules": [
+            {
+              "field": "context.trigger.label",
+              "rules": null,
+              "value": "security-vulnerability",
+              "operator": "equals",
+              "combinator": null
+            },
+            {
+              "field": "context.trigger.label",
+              "rules": null,
+              "value": "cve",
+              "operator": "equals",
+              "combinator": null
+            }
+          ],
+          "value": null,
+          "operator": null,
+          "combinator": "or"
+        },
+        "slashCommand": {
+          "command": "remediate-cve",
+          "requireMention": false
+        }
+      },
+      "version": "1.0.0",
+      "priority": 5,
+      "timeoutMs": 3600000
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "security-engineer-agent-id",
+        "name": "Security Engineer"
+      },
+      {
+        "id": "senior-developer-agent-id",
+        "name": "Senior Developer"
+      }
+    ]
+  }
+}
