@@ -145,7 +145,7 @@ playbook-name/
 ├── README.md              # Documentation and usage guide
 ├── step-id-name.md        # Prompt for step (filename = step ID)
 ├── another-step-id.md     # Each prompt file matches its step ID
-├── special agents/        # (Optional) Specialized agent instructions
+├── special-agents/        # (Optional) Specialized agent instructions
 │   └── agent-name.md      # Instructions for configuring custom agents
 └── ...                    # More steps as needed
 ```
@@ -154,9 +154,9 @@ playbook-name/
 
 The prompt files are a human readable duplication of the workflow.json file. You can edit the prompt files to customize the workflow, but eventually you will need to update the `workflow.json` file before importing it into Overcut.
 
-### Special Agents Folder
+### special Agents Folder
 
-Some workflows require **specialized agents** with domain-specific expertise beyond generic developer roles. When a workflow needs agents like "Security Engineer" (for CVE analysis) or "Database Architect" (for schema migrations), you'll find detailed configuration instructions in the `special agents/` folder.
+Some workflows require **specialized agents** with domain-specific expertise beyond generic developer roles. When a workflow needs agents like "Security Engineer" (for CVE analysis) or "Database Architect" (for schema migrations), you'll find detailed configuration instructions in the `special-agents/` folder.
 
 These instructions help you create properly configured custom agents in Overcut with the right expertise, decision frameworks, and behavioral guidelines for the workflow's specific needs.
 

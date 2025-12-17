@@ -44,14 +44,14 @@ playbook-name/
 ├── README.md              # Following the standard template
 ├── step-1-description.md  # Prompt for each step
 ├── step-2-description.md
-├── special agents/        # (Optional) Specialized agent instructions
+├── special-agents/        # (Optional) Specialized agent instructions
 │   └── agent-name.md
 └── ...
 ```
 
-### Special Agents Folder
+### special Agents Folder
 
-Use the `special agents/` folder when your workflow requires **specialized agents with domain-specific expertise** that go beyond generic roles.
+Use the `special-agents/` folder when your workflow requires **specialized agents with domain-specific expertise** that go beyond generic roles.
 
 **When to use:**
 
@@ -73,11 +73,11 @@ remediate-cves/
 ├── README.md
 ├── analyze-cve-and-plan.md
 ├── post-remediation-plan.md
-└── special agents/
+└── special-agents/
     └── security-engineer-agent.md  # Specialized CVE analysis expertise
 ```
 
-The `special agents/` folder contains detailed instructions for configuring specialized agents in Overcut, including:
+The `special-agents/` folder contains detailed instructions for configuring specialized agents in Overcut, including:
 
 - Role identity and expertise areas
 - Key principles and behavioral guidelines
@@ -202,9 +202,9 @@ Use this structure for consistency:
 - ✅ Customization guide included
 - ✅ Prerequisites clearly stated
 
-### Special Agents (if applicable)
+### special-agents (if applicable)
 
-- ✅ Instructions placed in `special agents/` folder
+- ✅ Instructions placed in `special-agents/` folder
 - ✅ Only used for specialized domain expertise (not generic roles)
 - ✅ Clear role identity and expertise areas documented
 - ✅ Key principles and decision frameworks included
@@ -276,7 +276,7 @@ Before submitting, ensure:
 - [ ] All files follow the standard structure
 - [ ] README.md is complete and follows the template
 - [ ] Workflow has been tested in Overcut
-- [ ] Specialized agents (if any) documented in `special agents/` folder
+- [ ] Specialized agents (if any) documented in `special-agents/` folder
 - [ ] No sensitive data or credentials included
 - [ ] Commit messages are clear and descriptive
 - [ ] PR description explains the contribution

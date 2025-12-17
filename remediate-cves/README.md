@@ -30,7 +30,7 @@ Analyzes Common Vulnerabilities and Exposures (CVEs) in your codebase and create
 ## 🔧 Prerequisites
 
 - **Agents configured**:
-  - **Security Engineer** - Specialized agent for CVE analysis and remediation planning (see `special agents/security-engineer-agent.md` for configuration instructions)
+  - **Security Engineer** - Specialized agent for CVE analysis and remediation planning (see `special-agents/security-engineer-agent.md` for configuration instructions)
   - **Senior Developer** - General development agent for dependency analysis and code tracing
 - Security scanning tool reports (Dependabot, Snyk, Trivy, etc.) or manual CVE reports
 
@@ -145,7 +145,7 @@ The workflow posts a structured remediation plan that includes:
 
 ### Specialized Agents
 
-This workflow uses a **specialized Security Engineer agent**. See `special agents/security-engineer-agent.md` for detailed configuration instructions, including:
+This workflow uses a **specialized Security Engineer agent**. See `special-agents/security-engineer-agent.md` for detailed configuration instructions, including:
 
 - Role identity and security expertise areas
 - Key principles for context-aware risk assessment
