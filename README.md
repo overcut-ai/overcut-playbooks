@@ -58,6 +58,10 @@ Use AI to help you:
 - [Auto Changelog Reminder](./auto-changelog-reminder/) - Reminds developers to update changelog on PRs.
 - [Auto Docs Update on Merge](./auto-docs-update-on-merge/) - Automatically updates documentation when PRs are merged.
 
+### Security
+
+- [Remediate CVEs](./remediate-cves/) - Analyzes CVEs with context-aware risk assessment, evaluates multiple remediation strategies with trade-offs, and creates comprehensive implementation plans that automatically trigger PR creation.
+
 ### Collaboration
 
 - [Automated Ticket Triage](./automated-ticket-triage/) - Automatically categorize and prioritize new issues.
