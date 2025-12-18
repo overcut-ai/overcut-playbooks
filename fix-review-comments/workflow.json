@@ -52,19 +52,14 @@
           "action": "agent.session",
           "params": {
             "goal": "Apply fixes per the plan, run format & lint, commit changes, and update PR threads.",
-            "agentIds": [
-              "cmhyh2izt004q2o3updb8ox6a"
-            ],
+            "agentIds": ["cmhyh2izt004q2o3updb8ox6a"],
             "agentEngine": "overcut",
             "exitCriteria": {
               "timeLimit": {
                 "maxDurationMinutes": 30
               },
               "userSignals": {
-                "explicit": [
-                  "/done",
-                  "thanks"
-                ]
+                "explicit": ["/done", "thanks"]
               }
             },
             "listenToComments": true,
@@ -78,7 +73,13 @@
         "event": "manual",
         "schedule": null,
         "settings": null,
-        "conditions": null,
+        "conditions": {
+          "field": null,
+          "rules": [],
+          "value": null,
+          "operator": null,
+          "combinator": "and"
+        },
         "slashCommand": {
           "command": "fix-review",
           "requireMention": false
