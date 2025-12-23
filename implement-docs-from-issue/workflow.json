@@ -1,0 +1,186 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Implement Documentation from Issue",
+    "description": "Automatically implements documentation updates based on issues in the docs repository by analyzing the linked product PR and creating customer-facing documentation.",
+    "instructions": [
+      {
+        "description": "Overcut will automatically implement documentation every time you label an issue with `needs-docs-update` or when you add a comment with the command `/implement-docs`. Overcut will analyze the issue and linked product PR, plan the documentation structure, write customer-facing content, and create a pull request with the changes.",
+        "action": "create_issue"
+      }
+    ],
+    "definition": {
+      "flow": [
+        {
+          "to": "clone-docs",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "clone-product",
+          "from": "clone-docs",
+          "condition": null
+        },
+        {
+          "to": "analyze-issue",
+          "from": "clone-product",
+          "condition": null
+        },
+        {
+          "to": "plan-docs-structure",
+          "from": "analyze-issue",
+          "condition": null
+        },
+        {
+          "to": "implement-docs",
+          "from": "plan-docs-structure",
+          "condition": null
+        },
+        {
+          "to": "create-pr",
+          "from": "implement-docs",
+          "condition": null
+        }
+      ],
+      "name": "Implement Documentation from Issue",
+      "steps": [
+        {
+          "id": "clone-docs",
+          "name": "Clone Docs Repo",
+          "action": "git.clone",
+          "params": {
+            "branch": "main",
+            "cloneOptions": {
+              "depth": 1,
+              "singleBranch": true
+            },
+            "repoFullName": "{{trigger.repository.fullName}}"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "clone-product",
+          "name": "Clone Product Repo",
+          "action": "git.clone",
+          "params": {
+            "branch": "main",
+            "cloneOptions": {
+              "depth": 1,
+              "singleBranch": true
+            },
+            "repoFullName": "your-org/your-product-repo"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "analyze-issue",
+          "name": "Analyze Changes",
+          "action": "agent.run",
+          "params": {
+            "agentId": "SENIOR_DEVELOPER_AGENT_ID"
+          },
+          "instruction": "You are a Senior Developer tasked with analyzing what changed and needs documentation.\n\n### Process\n\n1. **Read the Issue - Define Scope**\n\n   - The issue defines the scope of what needs to be documented\n   - Extract exactly what the issue says needs documentation\n   - Get the linked product PR URL\n   - **Important**: Stay focused on what the issue describes - the PR is context, not the scope\n\n2. **Use Product PR as Knowledge Source**\n   - Review the PR title, description, and code changes\n   - Use the PR to understand **how** the feature works and technical details\n   - Focus ONLY on the parts related to the issue's scope\n   - **Note**: The PR may contain other features/changes - those may be handled by other documentation tickets\n   - Identify customer-facing aspects of what the issue describes\n   - Ignore internal APIs, backend logic, env variables, schemas\n\n### Output\n\nReturn a simple list of what's new:\n\n```json\n{\n  \"productPrLink\": \"URL of the product PR\",\n  \"whatChanged\": [\n    \"New workflow timeout configuration option\",\n    \"Updated behavior when workflow exceeds timeout\",\n    \"New error messages shown to users\"\n  ]\n}\n```\n\n### Constraints\n\n- **Scope is defined by the issue** - not by the entire PR\n- The PR is a source of knowledge, not the definition of scope\n- Only analyze what the issue specifically mentions\n- High level only - just list what changed for users\n- Customer-facing only\n- Don't plan structure or content yet - that's the next step",
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "plan-docs-structure",
+          "name": "Plan Documentation",
+          "action": "agent.session",
+          "params": {
+            "goal": "Plan documentation structure for each change",
+            "agentIds": ["TECH_WRITER_AGENT_ID"],
+            "agentEngine": "overcut",
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 10
+              },
+              "userSignals": {
+                "explicit": ["/done", "thanks"]
+              }
+            },
+            "listenToComments": false,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are the **Coordinator Agent** responsible for planning documentation structure.\n\nYou will delegate each change from the previous step to the **Tech Writer sub-agent** to plan where and how to document it.\n\n---\n\n## Process\n\n### Step 0 - Acknowledge\n\nUpdate the user with the `update_status` tool with a message that you are starting documentation planning.\n\n---\n\n### Step 1 - Per-item Planning to Scratchpad\n\nRead the analysis output from the previous step - it contains a list of changes under `whatChanged`.\n\nFor each change in the list, delegate to **Tech Writer** this entire message in full:\n\nYou are acting as a **Tech Writer**.  \nPlan the documentation for the following change: [change from list].\n\n**Your task:**\n\n1. **Check existing plans first**:\n   - Read `.overcut/docs-plan/scratchpad.jsonl` if it exists\n   - Review what has already been planned by previous iterations\n   - If this change is already covered by an existing plan item, skip it and return: `[change] - already planned`\n\n2. Review the docs repository structure and navigation\n3. Check `docs.json` to understand site organization\n4. Find related existing documentation\n5. Determine:\n\n   - Does this need a new page or update to existing pages?\n   - Which section does it belong in? (use-cases, integrations, quick-starts, reference, etc.)\n   - What specific files need to be created or modified?\n   - What sections should be added/updated?\n   - Does navigation need updates?\n\n6. **Balance and Proportionality**:\n\n   - **Assess actual importance**: Not every new feature deserves a new page or prominent placement\n   - **Consider user value**: Is this a major capability users will frequently use, or a minor enhancement?\n   - **Right-size the documentation**: A small config option needs a paragraph, not a page\n   - **Don't inflate because it's new**: New doesn't automatically mean important - evaluate real user impact\n   - **Prefer updates over new pages**: Often a section in an existing relevant page is more helpful than a standalone page\n   - **Think like a user**: Would users really navigate to a separate page for this, or expect to find it in context?\n\n7. **Avoid duplicates**: Before adding your plan, check again if a similar plan already exists in the scratchpad from this or previous iterations\n\n8. Append your plan as a JSON line to `.overcut/docs-plan/scratchpad.jsonl` (at the workspace root folder, not inside the repo folder)\n9. Return ONLY a short status line to chat: `[change] - planned` or `[change] - already planned` if skipped\n\n**Schema for each plan item**:\n\n```json\n{\n  \"change\": \"Description of the change being documented\",\n  \"action\": \"create|update\",\n  \"file\": \"path/to/file.mdx\",\n  \"purpose\": \"Brief description of why this file\",\n  \"sections\": [\"Section1\", \"Section2\"],\n  \"navigationUpdate\": true/false,\n  \"navigationPath\": \"Section in docs.json where this belongs\"\n}\n```\n\n> **Guidance**:\n>\n> - **Check for duplicates first**: Review the scratchpad to avoid planning the same thing twice\n> - Follow existing folder structure and naming conventions\n> - Use `.mdx` format\n> - Keep section names clear and concise\n> - Consider where users would logically look for this information\n> - **Balance is key**: Minor features should get minor documentation - don't create a new page for something that deserves a paragraph\n> - **Assess real value**: Is this a game-changing capability or a small enhancement? Document accordingly\n> - **Avoid documentation bloat**: A brief addition to an existing page is often better than a new standalone page\n\n---\n\n### Step 2 - Complete and return summary\n\nUse the `task_completed` tool to complete the task and return a summary.\n\n**Output Requirements**:\n\nWhen complete, you MUST output:\n\n```\ndocumentation_plan_created: yes\ntotal_items_planned: <number of plan items>\nscratchpad_file: .overcut/docs-plan/scratchpad.jsonl\n```\n\nExample output:\n\n```\ndocumentation_plan_created: yes\ntotal_items_planned: 3\nscratchpad_file: .overcut/docs-plan/scratchpad.jsonl\n```",
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "implement-docs",
+          "name": "Implement Documentation",
+          "action": "agent.session",
+          "params": {
+            "goal": "Implement documentation based on the plan",
+            "agentIds": ["TECH_WRITER_AGENT_ID", "SENIOR_DEVELOPER_AGENT_ID"],
+            "agentEngine": "overcut",
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 20
+              },
+              "userSignals": {
+                "explicit": ["/done", "thanks"]
+              }
+            },
+            "listenToComments": false,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are the **Coordinator Agent** responsible for implementing the documentation.\n\nYou will delegate each plan item from the scratchpad to the **Tech Writer sub-agent** to implement the actual content.\n\n---\n\n## Process\n\n### Step 0 - Acknowledge\n\nUpdate the user with the `update_status` tool with a message that you are starting documentation implementation.\n\n---\n\n### Step 1 - Per-item Implementation\n\nRead all plan items from `.overcut/docs-plan/scratchpad.jsonl`.\n\nFor each plan item, follow this two-step process:\n\n#### 1a. Tech Writer Creates Content\n\nDelegate to **Tech Writer** this entire message:\n\nYou are acting as a **Tech Writer**.\n\n**Context:**\n\n- **Issue scope**: [summary from the original issue - what needs to be documented]\n- **Product PR**: [link to product PR] - Use this to understand technical details\n- **Current task**: You are implementing documentation for the following specific change:\n\n```json\n[pass the full JSON plan item here]\n```\n\n**Your task:**\n\nIf `action` is \"create\":\n\n- Create the new `.mdx` file at the specified path\n- Add frontmatter (title, description)\n- Write clear, customer-facing content for each section listed\n- Use appropriate Mintlify components (CodeGroup, Card, Accordion, Tabs, etc.)\n- Include code examples and configuration snippets where helpful\n- Follow the tone and style of existing documentation\n\nIf `action` is \"update\":\n\n- Open the existing file\n- Add or update the specified sections\n- Preserve unrelated content\n- Maintain consistent formatting and style\n\nIf `navigationUpdate` is true:\n\n- Update `docs.json` to add the new page under the specified `navigationPath`\n\n**Important:**\n\n- Ensure all content is customer-facing (no internal implementation details)\n- **Do NOT commit the changes** - keep them as pending modifications for review\n- **Do NOT push anything** - no git push operations\n- **Do NOT create any PRs** - the PR will be created in a later step\n\nReturn a short status to chat: `[file] - created`\n\n> **Guidance**:\n>\n> - Match the tone of existing docs - professional, helpful, clear\n> - Use Mintlify conventions and components properly\n> - Keep content focused and concise\n> - Only implement what's in the plan\n\n#### 1b. Developer Verifies and Corrects\n\nAfter the Tech Writer completes, delegate to **Senior Developer** this entire message:\n\nYou are acting as a **Senior Developer**.\n\n**Context:**\n\n- **Issue scope**: [summary from the original issue - what needs to be documented]\n- **Product PR**: [link to product PR] - Reference this to verify technical accuracy\n- **Current task**: Review the documentation for this specific change:\n\n```json\n[pass the full JSON plan item here]\n```\n\n**Your task:**\n\n1. Look at the changed/modified file: `[file path]`\n2. Read the pending changes that were created by the Tech Writer\n3. Review the content for technical accuracy\n4. Check code examples and configuration snippets\n5. Verify that examples follow best practices\n6. Ensure no internal implementation details leaked in\n\n**Actions:**\n\n- If corrections are needed: Make them directly in the file\n- If everything is accurate: No changes needed\n\n**After review:**\n\n- **Commit the changes** with a clear commit message: `docs: [brief description of what was documented]`\n- This clears the pending changes before moving to the next task\n- Example: `docs: add workflow timeout configuration section`\n- **ONLY commit** - do NOT push, do NOT create branches, do NOT create PRs\n- The commits stay local until the final PR creation step\n\nReturn a short status to chat: `[file] - verified and committed` or `[file] - corrected and committed`\n\n---\n\n### Step 2 - Complete and return summary\n\nUse the `task_completed` tool to complete the task and return a summary.\n\n**Output Requirements**:\n\nWhen complete, you MUST output:\n\n```\ndocumentation_implemented: yes\nfiles_created: <number of new files>\nfiles_updated: <number of updated files>\nnavigation_updated: <yes|no>\n```\n\nExample output:\n\n```\ndocumentation_implemented: yes\nfiles_created: 1\nfiles_updated: 2\nnavigation_updated: yes\n```\n\n---\n\n### Constraints\n\n- Do **not** create the PR yet - that's the next step\n- Focus on content quality and completeness\n- Ensure all changes are ready for commit",
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "create-pr",
+          "name": "Create PR",
+          "action": "agent.run",
+          "params": {
+            "agentId": "TECH_WRITER_AGENT_ID"
+          },
+          "instruction": "You are a Tech Writer responsible for creating a documentation pull request.\n\n**Note**: All documentation changes have already been committed in the previous step. Your job is to create the branch, push, and create the PR.\n\n### Process\n\n1. **Create Branch**\n\n   - Create a new branch from the current state following naming conventions (e.g., `docs/feature-name` or `docs/issue-{{trigger.issue.number}}`)\n   - Use a descriptive name that indicates the documentation topic\n   - All commits from the implementation step are already in the current branch\n\n2. **Push Branch**\n\n   - Push the branch with all its commits to the docs repository\n   - All changes are already committed - just push them\n\n3. **Create Pull Request**\n\n   - Create a PR with:\n     - **Title**: Clear, descriptive (e.g., \"Document workflow timeout configuration\")\n     - **Description** including:\n       - Summary of documentation changes\n       - Link to the docs issue this addresses (e.g., \"Closes #{{trigger.issue.number}}\")\n       - Link to the product PR that introduced the feature (get this from the triggering ticket)\n       - List of files added/modified\n       - Any notes for reviewers\n     - **Labels**: Add relevant labels (e.g., `documentation`)\n\n4. **Update Original Issue**\n   - Comment on the docs issue with:\n     - Link to the created PR\n     - Brief summary of what was documented\n     - Request for review if needed\n\n### PR Description Template\n\n```markdown\n## Documentation Changes\n\n[Brief overview of what was documented]\n\n### Changes Made\n\n- Added new page: `path/to/file.mdx` - [description]\n- Updated existing page: `path/to/file.mdx` - [description]\n- Updated navigation to include [new section/page]\n\n### Related\n\n- Closes #[docs-issue-number]\n- Related product PR: [link-to-product-pr]\n\n### Review Notes\n\n[Any specific guidance for reviewers]\n```\n\n### Output\n\nProvide a summary of the PR creation:\n\n```markdown\n## PR Created\n\n- **Branch**: `[branch-name]`\n- **PR URL**: [link-to-pr]\n- **Issue Updated**: Commented on #[issue-number] with PR link\n\nThe documentation is ready for review.\n```\n\n### Constraints\n\n- All commits were already made in the implementation step\n- Use clear, descriptive branch and PR names\n- Link both the docs issue and product PR in the description\n- Add appropriate labels to the PR\n- Follow any PR templates if they exist in the repository\n- Ensure the PR is ready for review (no draft status unless requested)\n- Get the product PR link from the triggering ticket",
+          "stepMaxDurationMinutes": 30
+        }
+      ],
+      "trigger": {
+        "event": "issue_labeled",
+        "schedule": null,
+        "settings": {
+          "delaySeconds": 0
+        },
+        "conditions": {
+          "field": null,
+          "rules": [
+            {
+              "field": "context.trigger.label",
+              "rules": null,
+              "value": "needs-docs-update",
+              "operator": "equals",
+              "combinator": null
+            }
+          ],
+          "value": null,
+          "operator": null,
+          "combinator": "and"
+        },
+        "slashCommand": {
+          "command": "implement-docs",
+          "requireMention": false
+        }
+      },
+      "version": "1.0.0",
+      "priority": 5,
+      "timeoutMs": null
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "SENIOR_DEVELOPER_AGENT_ID",
+        "name": "Senior Developer"
+      },
+      {
+        "id": "TECH_WRITER_AGENT_ID",
+        "name": "Tech Writer"
+      }
+    ]
+  }
+}
+
