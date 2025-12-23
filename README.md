@@ -57,6 +57,7 @@ Use AI to help you:
 - [Auto Root Cause Analysis](./auto-root-cause-analysis/) - Automatically analyze bugs and suggest fixes when issues are labeled.
 - [Auto Changelog Reminder](./auto-changelog-reminder/) - Reminds developers to update changelog on PRs.
 - [Auto Docs Update on Merge](./auto-docs-update-on-merge/) - Automatically updates documentation when PRs are merged.
+- [Implement Documentation from Issue](./implement-docs-from-issue/) - Automatically implements documentation updates based on issues, analyzing product PRs and creating documentation pull requests following existing standards and structure.
 
 ### Security
 
