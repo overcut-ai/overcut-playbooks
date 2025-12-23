@@ -16,7 +16,9 @@ The previous step has completed the remediation plan analysis with the following
 {{outputs.analyze-cve-and-plan.message}}
 ```
 
-The remediation plan has been written to `.overcut/cve/remediation-plan.md` in the workspace root.
+The remediation plan has been written to `.overcut/cve/remediation-plan.md` at the **workspace root** (NOT inside the repository folder).
+
+**Important**: The file path is `.overcut/cve/remediation-plan.md` from the workspace root, NOT `<repo>/.overcut/cve/remediation-plan.md`.
 
 ---
 
@@ -24,7 +26,8 @@ The remediation plan has been written to `.overcut/cve/remediation-plan.md` in t
 
 ### Step 1: Post the Remediation Plan
 
-- Read the remediation plan from `.overcut/cve/remediation-plan.md`
+- Read the remediation plan from `.overcut/cve/remediation-plan.md` **at the workspace root** (NOT inside the repo folder)
+- The full path should be: workspace root → `.overcut/cve/remediation-plan.md`
 - Verify the file exists and contains the complete plan
 - If the file is missing or empty, report an error and do not proceed
 - Post a comment to the triggering issue with:
@@ -73,7 +76,9 @@ OR
 
 ## Rules
 
-- Always verify the remediation plan file exists before proceeding (`.overcut/cve/remediation-plan.md`)
+- **CRITICAL**: Always read the file from the workspace root (`.overcut/cve/remediation-plan.md`), NOT from inside the repository folder
+- The file location is: workspace root → `.overcut/cve/remediation-plan.md`
+- Always verify the remediation plan file exists before proceeding
 - Post two separate comments:
   1. **First comment**: Remediation plan with title + complete file content
   2. **Second comment**: Just the `/pr` slash command
