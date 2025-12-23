@@ -27,106 +27,190 @@ Update the user with the update_status tool with a message that you are starting
 1. Check the `chunks_created` value from the previous step's output.
 2. If `chunks_created` is **"no"** or `total_chunks` is **0** or `kept_findings` is **0**:
    - Use the `task_completed` tool with message: `"Code review complete. No issues found - all changes look good! ✅"`
-   - **STOP here** - do not proceed to Step 2, Step 3, Step 4, or Step 5.
+   - **STOP here** - do not proceed to Step 2, Step 3, or Step 4.
 3. If `chunks_created` is **"yes"** and `total_chunks` > 0, proceed to Step 2.
 
 ---
 
-### Step 2 - Discover and Sort Chunks
-
-- You have already identified chunk files in Step 1.
-- Sort them in ascending order (chunk1 → chunk2 → …).
-
----
-
-## Step 3 – Process Each Chunk with the Sub-Agent
+## Step 2 – Process Each Chunk with the Sub-Agent
 
 For each chunk file:
 
 - Delegate it to the **Code Reviewer** agent individually.
-- Use the following instructions when delegating:
-
-You are a **Code Review Publisher**.  
-Load findings from file `{chunkFile}`.  
-For each finding:
-
-- Resolve line numbers using `get_pull_request_diff_line_numbers`
-- If ambiguous: fallback to file-level comment.
-
-Post the comments from the chunk file on the PR with `add_pull_request_review_thread` tool.
-Include the importance level of the comment in the beginning of the comment in the format: `[IMPORTANCE]: {comment}`.
-
-**CRITICAL INSTRUCTIONS**:
-
-- ✅ **DO**: Add review comments using `add_pull_request_review_thread`
-- ❌ **DO NOT**: Call `submit_review` tool - the review will be submitted later by the coordinator
-- ❌ **DO NOT**: Review the PR or look for new issues - only post the existing comments from the chunk file
-- ❌ **DO NOT**: Submit or finalize anything - just add the comments as individual threads
-
-Your ONLY task is to add the comments as review threads. The coordinator will submit the final review in the next step.
-
-Return to chat only: `"posted {count} comments from {chunkFile}"`.
+- **Use the exact template below** when delegating to ensure full context is passed:
 
 ---
 
-## Step 4 – Finalize and Submit the Review with a Sub-Agent
+**DELEGATION TEMPLATE FOR STEP 2 (Post Comments):**
 
-After all chunks are processed and all comments have been added in Step 3:
+```
+You are a **Code Review Publisher**.
+
+## Your Mission
+
+Your task is to post review comments from a pre-processed chunk file to the pull request. All findings have already been analyzed and filtered - you are ONLY posting them, not conducting a new review.
+
+## Context
+
+- Chunk file to process: `{chunkFile}`
+- This is part of a multi-chunk review process
+- The coordinator will submit the final review after all chunks are processed
+- Your role is LIMITED to posting comments as individual threads
+
+## Instructions
+
+1. **Load findings** from file `{chunkFile}` (at the workspace root folder, not inside the repo folder)
+
+2. **For each finding in the chunk file**:
+   - Resolve line numbers using `get_pull_request_diff_line_numbers` tool
+   - If line numbers are ambiguous: fallback to file-level comment
+   - Post the comment using `add_pull_request_review_thread` tool
+   - Include the importance level at the beginning: `[IMPORTANCE]: {comment}`
+
+3. **Return to chat** only: `"posted {count} comments from {chunkFile}"`
+
+## CRITICAL RESTRICTIONS
+
+❌ **DO NOT** call `submit_review` tool - the review will be submitted later by the coordinator
+❌ **DO NOT** review the PR or look for new issues - only post the existing comments from the chunk file
+❌ **DO NOT** submit or finalize anything - just add the comments as individual threads
+❌ **DO NOT** add any comments that are not in the chunk file
+❌ **DO NOT** modify or editorialize the comments - post them as written
+
+✅ **DO** use `add_pull_request_review_thread` tool to post each comment
+✅ **DO** process every finding in the chunk file
+✅ **DO** return a simple status message when done
+
+## Why These Restrictions?
+
+The review process is split into phases:
+1. (Previous steps) Analysis and filtering → created chunk files
+2. (Your task) Post comments → add review threads WITHOUT submitting
+3. (Next step) Finalization → coordinator submits the final review with summary
+
+Submitting the review prematurely would prevent other chunks from being processed and would result in an incomplete review.
+
+## Expected Output
+
+Return only: `"posted {count} comments from {chunkFile}"`
+
+Do NOT include summaries, statistics, or additional commentary.
+```
+
+---
+
+## Step 3 – Finalize and Submit the Review with a Sub-Agent
+
+After all chunks are processed and all comments have been added in Step 2:
 
 - Delegate this step to the **Code Reviewer** agent.
-- Use the following instructions when delegating:
+- **Use the exact template below** when delegating to ensure full context is passed:
 
+---
+
+**DELEGATION TEMPLATE FOR STEP 3 (Submit Final Review):**
+
+```
 You are a **Code Review Finalizer**.
 
-Your task is to submit the final review with a comprehensive summary. All individual comments have already been posted by other agents in previous steps.
+## Your Mission
 
-**Instructions**:
+Your task is to submit the final review with a comprehensive summary. All individual comments have already been posted to the PR by other agents in previous steps. You will NOT post new comments - only submit the final review with a summary.
 
-1. **Read all chunk files** from `.overcut/review/scratchpad.chunk*.jsonl` to gather statistics (from the workspace root folder, not inside the repo folder)
+## Context
 
-   - Count total comments by **importance level** (BLOCKER, CRITICAL, MAJOR, MINOR, SUGGESTION, PRAISE)
-   - Identify affected files
-   - Note any blocking issues
+- All chunk files have been processed: `.overcut/review/scratchpad.chunk*.jsonl`
+- Individual review comments have already been posted to the PR
+- The PR is waiting for final review submission with summary
+- Location: workspace root folder, not inside the repo folder
 
-2. **Build a short summary** that includes:
+## Instructions
 
-   - Total counts by **importance level**
-   - 1–3 **key themes or patterns** observed across the review
-   - **Clear, actionable next steps** for the developer (be concise and helpful)
+### 1. Read All Chunk Files for Statistics
 
-3. **Choose the appropriate review event**:
+Read all files matching `.overcut/review/scratchpad.chunk*.jsonl` to gather:
 
-   - **`APPROVE`** – if no blockers or critical issues were found
-   - **`COMMENT`** – if there are issues or suggestions, but none are blocking
-   - **`REQUEST_CHANGES`** – only if truly critical correctness or security issues are found
+- **Count total comments** by importance level:
+  - BLOCKER
+  - CRITICAL
+  - MAJOR
+  - MINOR
+  - SUGGESTION
+  - PRAISE
+- **Identify affected files**
+- **Note any blocking issues**
 
-4. **Call `submit_review` tool exactly once** with:
+### 2. Build Final Summary
 
-   - The summary you built in step 2
-   - The event you chose in step 3
+Create a concise summary that includes:
 
-5. In case you cannot call the `submit_review` tool, do not try to review or add new comments. just return a short status to chat: `"Cannot submit review. <reason>."`
+- **Total counts by importance level** (e.g., "2 CRITICAL, 5 MAJOR, 3 MINOR")
+- **1–3 key themes or patterns** observed across the review (e.g., "Error handling gaps", "Missing validation")
+- **Clear, actionable next steps** for the developer (be concise and helpful)
 
-**CRITICAL INSTRUCTIONS**:
+### 3. Choose Review Event
 
-- ❌ **DO NOT**: Call `add_pull_request_review_thread` - comments are already posted
-- ❌ **DO NOT**: Re-post or re-add any comments from the chunk files
-- ❌ **DO NOT**: Review the PR or look for new issues - only summarize existing findings
-- ✅ **DO**: Only call `submit_review` tool once with the final summary and event
-- ✅ **DO**: Read chunk files only to build summary statistics
+Select the appropriate review event based on findings:
 
-🟢 **Do not block the PR** for stylistic or minor issues.  
-Blocking should occur **only for critical issues** that would cause incorrect behavior or security risk.
+- **`APPROVE`** – No blockers or critical issues found
+- **`COMMENT`** – Issues or suggestions present, but none are blocking
+- **`REQUEST_CHANGES`** – Only if truly critical correctness or security issues are found
 
-✅ You **must** use the `submit_review` tool exactly once.  
-❌ Never skip the `submit_review` tool — without it, the user will not see the final review.  
-❌ Never call `submit_review` more than once - submit only at the very end.
+**Important**: Do not block the PR for stylistic or minor issues. Blocking should occur **only for critical issues** that would cause incorrect behavior or security risk.
+
+### 4. Submit Review
+
+Call `submit_review` tool **exactly once** with:
+
+- The summary you built in step 2
+- The event you chose in step 3
+
+### 5. Handle Errors
+
+If you cannot call the `submit_review` tool:
+
+- Do NOT try to review or add new comments
+- Return a short status: `"Cannot submit review. <reason>."`
+
+### 6. Return Status
 
 Return to chat only: `"Review submitted: {event}. Total comments: {N} across {M} files."`
 
+## CRITICAL RESTRICTIONS
+
+❌ **DO NOT** call `add_pull_request_review_thread` - comments are already posted
+❌ **DO NOT** re-post or re-add any comments from the chunk files
+❌ **DO NOT** review the PR or look for new issues - only summarize existing findings
+❌ **DO NOT** call `submit_review` more than once - submit only at the very end
+❌ **DO NOT** skip the `submit_review` tool - without it, the user will not see the final review
+
+✅ **DO** call `submit_review` tool exactly once with the final summary and event
+✅ **DO** read chunk files only to build summary statistics
+✅ **DO** choose the review event thoughtfully based on severity
+✅ **DO** keep the summary concise and actionable
+
+## Why These Restrictions?
+
+The review process is split into phases:
+1. (Previous steps) Analysis and filtering → created chunk files
+2. (Previous step) Post comments → added all review threads to PR
+3. (Your task) Finalization → submit review with summary and approve/comment/request changes
+
+You are submitting the FINAL review. All comments are already on the PR. Your job is to:
+- Summarize what was found
+- Choose the appropriate review event (approve/comment/request changes)
+- Submit once and only once
+
+Adding new comments or re-posting existing ones would create duplicates and confuse the review.
+
+## Expected Output
+
+Return only: `"Review submitted: {event}. Total comments: {N} across {M} files."`
+```
+
 ---
 
-## Step 5 - Confirm to user
+## Step 4 - Confirm to user
 
 Use the task_completed tool to complete the task and return a summary of the review.
 Return to chat a short status: `"Review submitted: {event}. Total comments: {N} across {M} files."`.
