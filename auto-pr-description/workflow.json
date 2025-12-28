@@ -145,7 +145,7 @@
         }
       ],
       "version": "1.0.0",
-      "priority": 3,
+      "priority": 1,
       "timeoutMs": 900000
     }
   },

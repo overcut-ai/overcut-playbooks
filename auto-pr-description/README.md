@@ -202,9 +202,17 @@ Edit the instruction to recognize different issue reference formats:
 
 ## 🔗 Related Workflows
 
-- **Code Review** - Reviews code quality alongside description
+- **Code Review** - Reviews code quality alongside description. **Note**: This workflow runs after Auto PR Description (priority 1 vs 3), ensuring the PR description is generated first to provide context for reviewers.
 - **Auto Changelog Reminder** - Ensures changelog entries for user-facing changes
 - **Auto Docs Update on Merge** - Updates documentation when PRs merge
+
+## ⚙️ Execution Order
+
+This workflow has **priority 1** (highest priority) and runs **before** Code Review (priority 3). This ensures:
+
+- PR descriptions are generated first, providing context for code reviewers
+- Reviewers can see structured information about changes, issues, and testing requirements
+- The description is available when other workflows analyze the PR
 
 ## 📊 Output
 
