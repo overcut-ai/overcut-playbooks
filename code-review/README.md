@@ -103,8 +103,17 @@ Edit `submit-review.md` to:
 
 ## 🔗 Related Workflows
 
+- **Auto PR Description** - Generates structured PR descriptions. **Note**: This workflow runs before Code Review (priority 1 vs 3), so reviewers have the PR description available for context when reviewing code.
 - **Auto Root Cause Analysis** - Analyzes bugs found during review
 - **Technical Design Proposal** - Creates design docs before large implementations
+
+## ⚙️ Execution Order
+
+This workflow has **priority 3** and runs **after** Auto PR Description (priority 1). This ensures:
+
+- PR descriptions are generated first, providing context about changes, related issues, and testing requirements
+- Reviewers can reference the structured description when analyzing code
+- The review process has full context about the PR's purpose and scope
 
 ---
 
