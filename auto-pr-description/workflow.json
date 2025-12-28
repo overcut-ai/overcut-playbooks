@@ -1,0 +1,164 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Auto PR Description",
+    "description": "Automatically generate and update pull request descriptions based on code changes, commits, and related issues. Preserves user-written content outside auto-generated sections.",
+    "instructions": [
+      {
+        "description": "Overcut will automatically generate and update PR descriptions every time you `open a new PR`, when you `push new commits` to a PR, or when you add a comment with the command `/pr-description`. Overcut will analyze your code changes, extract issue links, summarize commits, and maintain a structured description while preserving your custom content.",
+        "action": "create_pr"
+      }
+    ],
+    "definition": {
+      "flow": [
+        {
+          "to": "git-clone",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "prepare-pr-description",
+          "from": "git-clone",
+          "condition": null
+        },
+        {
+          "to": "update-pr-description",
+          "from": "prepare-pr-description",
+          "condition": null
+        }
+      ],
+      "name": "Auto PR Description",
+      "steps": [
+        {
+          "id": "git-clone",
+          "name": "Clone Repo",
+          "action": "git.clone",
+          "params": {
+            "branch": "{{trigger.pullRequest.headBranch}}",
+            "cloneOptions": {
+              "depth": 1,
+              "filter": {
+                "type": "blob:none"
+              },
+              "singleBranch": true
+            },
+            "repoFullName": "{{trigger.repository.fullName}}"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "prepare-pr-description",
+          "name": "Prepare PR Description",
+          "action": "agent.run",
+          "params": {
+            "agentId": "cmck2zx350003wtwyxm0w6g6p",
+            "agentEngine": "overcut"
+          },
+          "instruction": "You are a **PR Description Analyst**. Your goal is to analyze a pull request and prepare structured content for the description.\n\n---\n\n## Process\n\n### Step 1: Gather PR Information\n\n1. Use `read_pull_request` to get:\n\n   - Current PR description (to understand existing content)\n   - PR title\n   - PR number\n   - Base and head branches\n\n2. Use `get_pull_request_diff` to analyze all code changes:\n\n   - Changed files and their paths\n   - Additions/deletions per file\n   - Status of each file (added, modified, deleted, renamed)\n\n3. Extract commits information:\n   - Get commit messages from the PR data (if available)\n   - If not available in PR data, use git commands in the cloned repo:\n     - Run `git log base..head --oneline` to get commit list\n     - Run `git log base..head --format=\"%H|%s|%b\"` to get full commit details\n   - Extract issue references from commit messages:\n     - Patterns: `Fixes #123`, `Closes #456`, `Resolves #789`, `Related to #101`, `#202`\n     - Also check PR title for issue numbers\n\n---\n\n### Step 2: Read Referenced Tickets for Context\n\n1. **Extract all issue references** from Step 1:\n\n   - Collect all unique issue numbers found in:\n     - Commit messages (all patterns: Fixes, Closes, Resolves, Related to, #)\n     - PR title (if it contains issue numbers)\n     - Current PR description (if it has issue links)\n\n2. **Read each referenced ticket** using `read_ticket`:\n\n   - For each unique issue number found, use `read_ticket` to get:\n     - Ticket title\n     - Ticket description/body\n     - Ticket labels (if available)\n     - Ticket status (if available)\n     - Any other relevant metadata\n\n3. **Store ticket context**:\n\n   - Create a mapping of issue numbers to their ticket details\n   - Extract key information from each ticket:\n     - What problem or feature the ticket describes\n     - Acceptance criteria or requirements\n     - Related context that helps understand the PR purpose\n   - Use this context to inform the analysis in later steps\n\n4. **Handle missing tickets**:\n   - If a ticket cannot be read (doesn't exist, no access, etc.):\n     - Note it in the metadata but continue processing\n     - Don't fail the workflow if some tickets are inaccessible\n     - Still include the issue reference in the output even if ticket details aren't available\n\n**Purpose**: Reading referenced tickets provides crucial context about:\n\n- Why the PR was created (what problem it solves)\n- What requirements or acceptance criteria it should meet\n- The broader context of the feature or bug fix\n- Related work or dependencies\n\nThis context will be used to:\n\n- Generate more accurate summaries\n- Better categorize changes\n- Create more relevant testing checklists\n- Understand the \"why\" behind the code changes\n\n---\n\n### Step 3: Analyze Changes\n\nAnalyze the code changes to identify:\n\n1. **Change Categories**:\n\n   - Group files by type of change:\n     - **Features**: New functionality, new components, new APIs\n     - **Bug Fixes**: Bug fixes, error handling improvements\n     - **Refactoring**: Code restructuring, cleanup, optimization\n     - **Tests**: Test files, test utilities, test infrastructure\n     - **Documentation**: Docs, README, comments\n     - **Configuration**: Config files, environment setup\n     - **Dependencies**: Package.json, lock files, dependency updates\n\n2. **Significant Changes**:\n\n   - Identify files with substantial changes (high additions/deletions)\n   - Identify new files (status: \"added\")\n   - Identify deleted files (status: \"deleted\")\n   - Identify renamed files (status: \"renamed\")\n   - Ignore trivial changes:\n     - Formatting-only changes\n     - Whitespace-only changes\n     - Import reordering\n     - Comment-only changes\n\n3. **Key Patterns**:\n   - Look for common patterns:\n     - New API endpoints or routes\n     - New UI components\n     - Database schema changes\n     - Configuration changes\n     - Test coverage additions\n\n---\n\n### Step 4: Generate Content Sections\n\nCreate structured content for each section:\n\n#### Summary (2-3 sentences)\n\n- High-level overview of what this PR does\n- Focus on the \"why\" and main purpose\n- Based on:\n  - PR title\n  - Most significant file changes\n  - Commit message patterns\n  - Change categories identified\n  - **Referenced ticket context** (from Step 2) - use ticket descriptions to understand the \"why\" and requirements\n\n**Example**: \"This PR adds support for workflow timeouts by implementing timeout configuration options and error handling. It includes validation to prevent invalid timeout values and updates the UI to display timeout status.\"\n\n#### Changes (Bullet list)\n\n- List key changes grouped by category\n- Be specific but concise\n- Focus on user-visible or significant changes\n- Format: `- [Category] Description of change`\n- Group related changes together\n\n**Example**:\n\n```\n- **Features**: Added workflow timeout configuration option\n- **Features**: Implemented timeout validation and error handling\n- **Bug Fixes**: Fixed issue where workflows would hang indefinitely\n- **Tests**: Added unit tests for timeout functionality\n- **Documentation**: Updated API docs with timeout parameters\n```\n\n#### Related Issues\n\n- Extract all issue references from:\n  - Commit messages (all patterns: Fixes, Closes, Resolves, Related to, #)\n  - PR title (if it contains issue numbers)\n  - Current PR description (if it has issue links)\n- Format each as: `- [Action] #issue-number`\n- If no issues found, set to empty/null\n\n**Example**:\n\n```\n- Closes #123\n- Fixes #456\n- Related to #789\n```\n\n#### Commits\n\n- List recent commits (last 10-15, or all if fewer)\n- Format: `- [short hash (7 chars)] Commit message`\n- If there are many commits, group related ones or summarize\n- If commits can't be retrieved, set to empty/null\n\n**Example**:\n\n```\n- a1b2c3d Add timeout configuration option\n- e4f5g6h Implement timeout validation\n- i7j8k9l Add tests for timeout functionality\n- m1n2o3p Update documentation\n```\n\n#### Testing Checklist\n\n- Generate practical testing steps based on the changes:\n  - **UI/UX changes**: Manual testing steps, visual verification\n  - **API changes**: Integration test verification, endpoint testing\n  - **Performance changes**: Performance benchmarks, load testing\n  - **Security changes**: Security testing, vulnerability checks\n  - **Configuration changes**: Configuration validation, edge cases\n- **Use ticket context** (from Step 2) to identify:\n  - Acceptance criteria from referenced tickets\n  - Specific test scenarios mentioned in ticket descriptions\n  - Edge cases or requirements that need verification\n- Use checkbox format: `- [ ] Test item`\n- Keep it practical and relevant to the changes\n- Focus on what a reviewer or tester should verify\n\n**Example**:\n\n```\n- [ ] Verify timeout configuration is applied correctly\n- [ ] Test timeout behavior with various timeout values\n- [ ] Verify error messages are displayed when timeout is exceeded\n- [ ] Test edge cases (zero timeout, very large timeout)\n- [ ] Verify timeout settings persist after page refresh\n```\n\n---\n\n### Step 5: Format and Output Description\n\nFormat the prepared content into the final markdown description that will be published to the PR.\n\n1. **Build the formatted description** following this structure:\n\n```markdown\n## Summary\n\n[Generated summary - 2-3 sentences]\n\n## Changes\n\n[Generated list of key changes]\n\n## Related Issues\n\n[Generated issue links, or omit section if none]\n\n## Commits\n\n[Generated commit list]\n\n## Testing\n\n[Generated testing checklist]\n```\n\n**Section Rules:**\n\n1. **Summary**: Always include, even if brief\n2. **Changes**: Always include, even if minimal\n3. **Related Issues**:\n   - Include only if there are issue references\n   - If empty, omit the entire section\n4. **Commits**:\n   - Include only if there are commits\n   - If empty, omit the entire section\n5. **Testing**: Always include, even if minimal\n\n**Formatting Guidelines:**\n\n- Use proper markdown formatting\n- Use `##` for section headers\n- Use `-` for bullet points\n- Use `- [ ]` for checklist items\n- Add blank lines between sections for readability\n- Ensure consistent spacing\n\n2. **Use `task_completed` tool** with:\n   - **Summary message**: A brief summary of what was prepared (e.g., \"Prepared PR description with summary, 5 changes, 2 related issues, and testing checklist\")\n\n**Output Requirements**:\n\nWhen the step completes, you MUST output the last message as the **Full formatted description**: Output the complete formatted markdown description as the last output.\n\n**Example output:**\n\n```\n## Summary\nThis PR adds support for workflow timeouts by implementing timeout configuration options and error handling. It includes validation to prevent invalid timeout values and updates the UI to display timeout status.\n\n## Changes\n- **Features**: Added workflow timeout configuration option\n- **Features**: Implemented timeout validation and error handling\n- **Bug Fixes**: Fixed issue where workflows would hang indefinitely\n- **Tests**: Added unit tests for timeout functionality\n- **Documentation**: Updated API docs with timeout parameters\n\n## Related Issues\n- Closes #123\n- Fixes #456\n\n## Commits\n- a1b2c3d Add timeout configuration option\n- e4f5g6h Implement timeout validation\n- i7j8k9l Add tests for timeout functionality\n\n## Testing\n- [ ] Verify timeout configuration is applied correctly\n- [ ] Test timeout behavior with various timeout values\n- [ ] Verify error messages are displayed when timeout is exceeded\n- [ ] Test edge cases (zero timeout, very large timeout)\n\n```\n\n**If PR has no changes or is empty:**\n\n```\nNo changes detected. PR description preparation skipped.\n```\n\n---\n\n## Quality Guidelines\n\n- **Be accurate**: Base descriptions on actual code changes, not assumptions\n- **Be concise**: Keep summaries and change lists brief but informative\n- **Be specific**: Avoid generic descriptions like \"updated files\"\n- **Focus on value**: Highlight what matters to reviewers and users\n- **Group logically**: Related changes should be grouped together\n- **Ignore noise**: Skip trivial formatting or whitespace-only changes\n\n---\n\n## Edge Cases\n\n- **Empty PR**: Return minimal description with just summary\n- **No commits**: Set commits to empty array, note in metadata\n- **No issues**: Set relatedIssues to empty array\n- **Very large PR**: Focus on most significant changes, summarize minor ones\n- **Only test files**: Still create description, note it's test-only\n- **Only documentation**: Still create description, note it's docs-only",
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "update-pr-description",
+          "name": "Update PR Description",
+          "action": "agent.session",
+          "params": {
+            "goal": "Update the pull request description with structured content while preserving user-written content outside the auto-generated section.",
+            "agentIds": [
+              "cmck2zx350003wtwyxm0w6g6p",
+              "cmex5b4zf0001wvjvgnv9aced"
+            ],
+            "agentEngine": "overcut",
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 10
+              },
+              "userSignals": {
+                "explicit": ["/done", "thanks"]
+              }
+            },
+            "listenToComments": false,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are a **PR Description Updater**. Your goal is to update the pull request description with structured content while preserving user-written content outside the auto-generated section.\n\n---\n\n## Critical Rules\n\n1. **Separator Markers**: All auto-generated content MUST be placed between these HTML comment markers:\n\n   ```\n   <!-- overcut:pr-description:start -->\n   [AUTO-GENERATED CONTENT HERE]\n   <!-- overcut:pr-description:end -->\n   ```\n\n2. **Content Preservation**:\n\n   - **PRESERVE** all content that appears BEFORE `<!-- overcut:pr-description:start -->`\n   - **REPLACE** everything between the start and end markers\n   - **PRESERVE** all content that appears AFTER `<!-- overcut:pr-description:end -->`\n   - If the markers don't exist, create them and place all auto-generated content between them\n\n3. **Idempotency**:\n   - Check if the description already contains up-to-date auto-generated content\n   - Compare the prepared content with existing content between markers\n   - Only update if there are differences or if markers don't exist\n   - If content is identical, skip the update\n\n---\n\n## Process\n\n### Step 1: Read Current PR Description\n\n1. Use `read_pull_request` to get the current PR description\n2. Parse the description to identify:\n   - Content before `<!-- overcut:pr-description:start -->` (if exists)\n   - Content between the markers (if exists)\n   - Content after `<!-- overcut:pr-description:end -->` (if exists)\n   - Whether markers exist\n\n---\n\n### Step 2: Get Prepared Description from Previous Step\n\n**Previous step output:**\n\n```\n{{outputs.prepare-pr-description.message}}\n```\n\nThe previous step outputs either:\n\n1. **A fully formatted markdown description** (without separator markers) - the complete auto-generated content\n2. **A skip message**: \"No changes detected. PR description preparation skipped.\"\n\n**If the output is the skip message:**\n\n- Check if markers exist in current description\n- If markers exist but are empty, remove them and preserve user content\n- If no markers exist, do nothing (preserve current description)\n- Use `task_completed` with message: \"No changes detected. Description is up-to-date.\"\n- Output:\n  ```\n  description_updated: no\n  reason: no_changes_detected\n  ```\n- **STOP here** - do not proceed to Step 3, 4, or 5\n\n**If the output is a formatted description:**\n\n- Extract the complete formatted description content\n- This includes all sections (Summary, Changes, Related Issues, Commits, Testing)\n- It does NOT include the separator markers - you will add those in Step 4\n- Proceed to Step 3\n\n---\n\n### Step 3: Extract Formatted Description\n\nThe previous step has already formatted the complete description. The output from previous step is the complete formatted description content:\n\n1. **The entire output from previous step is the formatted description**:\n\n   - It starts with `## Summary` (or the first section)\n   - It includes all sections (Summary, Changes, Related Issues, Commits, Testing)\n   - Sections that should be omitted (empty Related Issues or Commits) are already excluded\n   - It's already in its final markdown format\n\n2. **Use this formatted content directly** - no need to rebuild or parse:\n   - The entire message from the previous step is the formatted description\n\n---\n\n### Step 4: Assemble Final Description\n\nCombine all parts in this order:\n\n1. **User content before markers** (if exists)\n\n   - Preserve exactly as-is\n   - Include any leading whitespace/newlines\n\n2. **Auto-generated section** (from Step 3 - already formatted)\n\n   - Use the formatted description content extracted from the previous step\n   - Wrap it with the separator markers:\n     - Start with `<!-- overcut:pr-description:start -->`\n     - Add newline\n     - Add the formatted description content\n     - Add newline\n     - End with `<!-- overcut:pr-description:end -->`\n\n3. **User content after markers** (if exists)\n   - Preserve exactly as-is\n   - Include any trailing whitespace/newlines\n\n**If markers don't exist:**\n\n- Place all user content first (if any)\n- Add newline\n- Add the separator markers and formatted auto-generated section:\n  - `<!-- overcut:pr-description:start -->`\n  - Newline\n  - Formatted description content\n  - Newline\n  - `<!-- overcut:pr-description:end -->`\n- No trailing content\n\n**Edge Cases:**\n\n- **No existing description**: Use only the formatted auto-generated section wrapped in markers\n- **Only user content, no markers**: Add the formatted auto-generated section wrapped in markers at the end\n- **Only markers, no content**: Replace content between markers with the new formatted section\n- **Markers with old content**: Replace content between markers with the new formatted section\n\n---\n\n### Step 5: Compare and Update\n\n1. **Compare new description with current description**:\n\n   - If identical (ignoring whitespace differences), skip update\n   - If different, proceed to update\n\n2. **Use `update_pull_request` tool**:\n\n   - Set `description` to the new assembled description\n   - Include `explanation`: \"Updating PR description with auto-generated content\"\n\n3. **Verify update succeeded**:\n   - Re-read the PR to confirm the update\n   - Check that markers are preserved\n   - Check that user content outside markers is preserved\n\n---\n\n### Step 6: Output Results\n\nUse the `task_completed` tool to complete the task.\n\n**Output Requirements**:\n\nWhen the workflow completes, you MUST output the following information:\n\n```\ndescription_updated: <yes|no>\n```\n\n**Example outputs:**\n\n**If description was updated:**\n\n```\ndescription_updated: yes\n```\n\n**If description was already up-to-date:**\n\n```\ndescription_updated: no\n```\n\n**If no changes detected:**\n\n```\ndescription_updated: no\nreason: no_changes_detected\n```\n\n---\n\n## Quality Guidelines\n\n- **Preserve user content**: Never modify or remove content outside markers\n- **Maintain formatting**: Keep consistent markdown formatting\n- **Be idempotent**: Don't update if content is already current\n- **Handle edge cases**: Gracefully handle missing sections or empty data\n- **Verify updates**: Always confirm the update succeeded\n\n---\n\n## Edge Cases\n\n- **Empty prepared content**: Still create structure with minimal content\n- **Missing sections**: Omit sections that have no data (Related Issues, Commits)\n- **Very long content**: Keep sections concise, summarize if needed\n- **Special characters**: Escape markdown special characters properly\n- **Existing malformed markers**: Fix markers if they're malformed\n- **Update failure**: Report error but don't crash workflow",
+          "stepMaxDurationMinutes": 30
+        }
+      ],
+      "triggers": [
+        {
+          "event": "pull_request_opened",
+          "schedule": null,
+          "settings": {
+            "delaySeconds": 0
+          },
+          "conditions": {
+            "field": null,
+            "rules": [
+              {
+                "field": "context.pullRequest.draft",
+                "rules": null,
+                "value": "false",
+                "operator": "equals",
+                "combinator": null
+              }
+            ],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          }
+        },
+        {
+          "event": "pull_request_edited",
+          "schedule": null,
+          "settings": {
+            "delaySeconds": 0
+          },
+          "conditions": {
+            "field": null,
+            "rules": [
+              {
+                "field": "context.pullRequest.draft",
+                "rules": null,
+                "value": "false",
+                "operator": "equals",
+                "combinator": null
+              },
+              {
+                "field": "context.trigger.commitAdded",
+                "rules": null,
+                "value": "true",
+                "operator": "equals",
+                "combinator": null
+              }
+            ],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          }
+        },
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "pr-description",
+            "requireMention": false
+          }
+        }
+      ],
+      "version": "1.0.0",
+      "priority": 3,
+      "timeoutMs": 900000
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "cmck2zx350003wtwyxm0w6g6p",
+        "name": "Senior Developer"
+      },
+      {
+        "id": "cmex5b4zf0001wvjvgnv9aced",
+        "name": "Technical Writer"
+      }
+    ]
+  }
+}
