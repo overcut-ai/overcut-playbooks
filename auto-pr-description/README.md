@@ -24,9 +24,11 @@ Automatically generates and updates pull request descriptions based on code chan
 
 - **Consistency**: Ensures all PRs have structured, informative descriptions
 - **Time-saving**: Automatically extracts issue links, summarizes changes, and lists commits
+- **Context-aware**: Reads referenced tickets to understand requirements and generate accurate summaries
 - **Up-to-date**: Updates description when new commits are pushed
 - **Preservation**: Keeps your custom notes and context outside the auto-generated section
 - **Onboarding**: Helps new contributors understand what changed and how to test
+- **Better testing**: Uses ticket acceptance criteria to generate relevant testing checklists
 
 ## 🔧 Prerequisites
 
@@ -40,20 +42,22 @@ Automatically generates and updates pull request descriptions based on code chan
    - Duration: ~1 min
    - Uses shallow clone with blob filtering for efficiency
 
-2. **Prepare PR Description** (`agent.run`) - Analyzes PR and prepares structured content
+2. **Prepare PR Description** (`agent.run`) - Analyzes PR and prepares formatted description
 
    - Agent: Senior Developer
    - Duration: ~2-5 min
    - Analyzes code changes, extracts issues, summarizes commits
-   - Generates structured content: summary, changes, related issues, commits, testing checklist
-   - Outputs structured data for the next step
+   - **Reads referenced tickets** using `read_ticket` to gather context about requirements and acceptance criteria
+   - Generates formatted markdown description: summary, changes, related issues, commits, testing checklist
+   - Outputs complete formatted markdown description (ready to publish, without separator markers)
 
-3. **Update PR Description** (`agent.session`) - Updates description with prepared content
+3. **Update PR Description** (`agent.session`) - Updates description with formatted content
    - Agents: Senior Developer, Technical Writer
    - Duration: ~1-3 min (up to 10 min for complex cases)
-   - Identifies separator markers and preserves user content
-   - Assembles final description with auto-generated sections
-   - Updates PR description while preserving user-written content
+   - Receives formatted description from previous step
+   - Adds separator markers around the formatted content
+   - Preserves user content outside markers
+   - Updates PR description while maintaining proper formatting
 
 ```
 [Clone] → [Prepare Description] → [Update Description]
@@ -165,28 +169,38 @@ Edit the instruction to recognize different issue reference formats:
    - Gets current description (to preserve user content)
    - Analyzes code diff (files, additions, deletions)
    - Extracts commits and commit messages
+   - Identifies issue references from commits, PR title, and description
 
-2. **Analyzes changes:**
+2. **Reads referenced tickets for context:**
+
+   - Uses `read_ticket` to fetch details for each referenced issue
+   - Extracts ticket descriptions, acceptance criteria, and requirements
+   - Uses this context to understand the "why" behind the PR
+   - Handles missing/inaccessible tickets gracefully
+
+3. **Analyzes changes:**
 
    - Groups changes by type (features, fixes, refactors, etc.)
    - Identifies significant vs. trivial changes
-   - Extracts issue references from commits
+   - Uses ticket context to better understand the purpose
 
-3. **Generates structured content:**
+4. **Generates formatted description:**
 
-   - Creates summary based on code analysis
+   - Creates summary based on code analysis and ticket context
    - Lists key changes with context
    - Links related issues
    - Summarizes commits
-   - Generates relevant testing checklist
+   - Generates relevant testing checklist based on ticket acceptance criteria
 
-4. **Updates description:**
+5. **Updates description:**
 
-   - Preserves content outside markers
+   - Receives formatted markdown description from prepare step
+   - Adds separator markers around the formatted content
+   - Preserves user content outside markers
    - Replaces content between markers
    - Maintains proper formatting
 
-5. **Idempotency:**
+6. **Idempotency:**
    - Skips update if description is already current
    - Only updates when new commits or changes detected
 
@@ -219,9 +233,11 @@ This workflow has **priority 1** (highest priority) and runs **before** Code Rev
 The workflow outputs:
 
 - `description_updated`: Whether the description was updated (yes/no)
-- `commits_analyzed`: Number of commits analyzed
-- `issues_found`: Number of issue references found
-- `files_changed`: Number of files changed in the PR
+  - `yes`: Description was successfully updated
+  - `no`: Description was already up-to-date or no changes detected
+  - `no` with `reason: no_changes_detected`: PR had no changes to analyze
+
+**Note**: The prepare step outputs a complete formatted markdown description that is passed directly to the update step. The update step adds separator markers and preserves user content before publishing.
 
 ---
 
