@@ -163,24 +163,15 @@
           "stepMaxDurationMinutes": 30
         }
       ],
-      "trigger": {
-        "event": "manual",
-        "schedule": null,
-        "settings": {
-          "delaySeconds": 0
-        },
-        "conditions": {
-          "field": null,
-          "rules": [],
-          "value": null,
-          "operator": null,
-          "combinator": "and"
-        },
-        "slashCommand": {
-          "command": "pr",
-          "requireMention": false
+      "triggers": [
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "pr",
+            "requireMention": false
+          }
         }
-      },
+      ],
       "version": "1.0.0",
       "priority": 5,
       "timeoutMs": 14400000

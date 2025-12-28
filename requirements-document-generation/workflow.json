@@ -116,32 +116,37 @@
           "stepMaxDurationMinutes": 30
         }
       ],
-      "trigger": {
-        "event": "issue_labeled",
-        "schedule": null,
-        "settings": {
-          "delaySeconds": 0
+      "triggers": [
+        {
+          "event": "issue_labeled",
+          "schedule": null,
+          "settings": {
+            "delaySeconds": 0
+          },
+          "conditions": {
+            "field": null,
+            "rules": [
+              {
+                "field": "context.trigger.label",
+                "rules": null,
+                "value": "feature",
+                "operator": "equals",
+                "combinator": null
+              }
+            ],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          }
         },
-        "conditions": {
-          "field": null,
-          "rules": [
-            {
-              "field": "context.trigger.label",
-              "rules": null,
-              "value": "feature",
-              "operator": "equals",
-              "combinator": null
-            }
-          ],
-          "value": null,
-          "operator": null,
-          "combinator": "and"
-        },
-        "slashCommand": {
-          "command": "requirements",
-          "requireMention": false
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "requirements",
+            "requireMention": false
+          }
         }
-      },
+      ],
       "version": "1.0.0",
       "priority": 3,
       "timeoutMs": 3600000

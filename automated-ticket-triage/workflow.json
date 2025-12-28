@@ -75,23 +75,29 @@
           "instruction": null
         }
       ],
-      "trigger": {
-        "event": "issue_opened",
-        "settings": {
-          "delaySeconds": 120
+      "triggers": [
+        {
+          "event": "issue_opened",
+          "settings": {
+            "delaySeconds": 120
+          },
+          "conditions": {
+            "field": null,
+            "rules": [],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          },
+          "schedule": null
         },
-        "conditions": {
-          "field": null,
-          "rules": [],
-          "value": null,
-          "operator": null,
-          "combinator": "and"
-        },
-        "slashCommand": {
-          "command": "triage",
-          "requireMention": false
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "triage",
+            "requireMention": false
+          }
         }
-      },
+      ],
       "version": "1.0.0",
       "priority": 1,
       "timeoutMs": null

@@ -69,22 +69,15 @@
           "stepMaxDurationMinutes": 60
         }
       ],
-      "trigger": {
-        "event": "manual",
-        "schedule": null,
-        "settings": null,
-        "conditions": {
-          "field": null,
-          "rules": [],
-          "value": null,
-          "operator": null,
-          "combinator": "and"
-        },
-        "slashCommand": {
-          "command": "fix-review",
-          "requireMention": false
+      "triggers": [
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "fix-review",
+            "requireMention": false
+          }
         }
-      },
+      ],
       "version": "1.0.0",
       "priority": 5,
       "timeoutMs": 3600000
