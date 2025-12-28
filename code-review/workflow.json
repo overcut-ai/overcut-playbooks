@@ -127,32 +127,37 @@
           "stepMaxDurationMinutes": 30
         }
       ],
-      "trigger": {
-        "event": "pull_request_opened",
-        "schedule": null,
-        "settings": {
-          "delaySeconds": 0
+      "triggers": [
+        {
+          "event": "pull_request_opened",
+          "schedule": null,
+          "settings": {
+            "delaySeconds": 0
+          },
+          "conditions": {
+            "field": null,
+            "rules": [
+              {
+                "field": "context.pullRequest.draft",
+                "rules": null,
+                "value": "false",
+                "operator": "equals",
+                "combinator": null
+              }
+            ],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          }
         },
-        "conditions": {
-          "field": null,
-          "rules": [
-            {
-              "field": "context.pullRequest.draft",
-              "rules": null,
-              "value": "false",
-              "operator": "equals",
-              "combinator": null
-            }
-          ],
-          "value": null,
-          "operator": null,
-          "combinator": "and"
-        },
-        "slashCommand": {
-          "command": "review",
-          "requireMention": false
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "review",
+            "requireMention": false
+          }
         }
-      },
+      ],
       "version": "1.0.0",
       "priority": 1,
       "timeoutMs": 3600000

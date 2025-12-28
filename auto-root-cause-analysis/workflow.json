@@ -74,31 +74,37 @@
           "instruction": null
         }
       ],
-      "trigger": {
-        "event": "issue_labeled",
-        "settings": {
-          "delaySeconds": 0
+      "triggers": [
+        {
+          "event": "issue_labeled",
+          "settings": {
+            "delaySeconds": 0
+          },
+          "conditions": {
+            "field": null,
+            "rules": [
+              {
+                "field": "context.trigger.label",
+                "rules": null,
+                "value": "bug",
+                "operator": "equals",
+                "combinator": null
+              }
+            ],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          },
+          "schedule": null
         },
-        "conditions": {
-          "field": null,
-          "rules": [
-            {
-              "field": "context.trigger.label",
-              "rules": null,
-              "value": "bug",
-              "operator": "equals",
-              "combinator": null
-            }
-          ],
-          "value": null,
-          "operator": null,
-          "combinator": "and"
-        },
-        "slashCommand": {
-          "command": "bug-rca",
-          "requireMention": false
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "bug-rca",
+            "requireMention": false
+          }
         }
-      },
+      ],
       "version": "1.0.0",
       "priority": 5,
       "timeoutMs": null

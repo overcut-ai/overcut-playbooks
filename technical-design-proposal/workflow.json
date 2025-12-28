@@ -115,29 +115,35 @@
           "instruction": "You are the **Coordinator Agent**.  \nYour responsibility is to handle the post-processing of the generated design document.  \n\n### Process  \n1. Take the Markdown design content produced in the previous step.  \n2. Use `add_comment_to_ticket` to post it as a comment on the issue.  \n   - Append the note:  \n     > If you’d like a draft implementation branch, comment `/pr`.  \n3. Use `update_ticket` to assign the issue to its creator (`{{trigger.issue.user.login}}`).  \n4. Check the \"Open Questions\" section of the design:  \n   - If any open questions exist → add the label `design-needs-feedback`.  \n   - Otherwise → add the label `design-complete`.  \n\n### Constraints  \n- Ensure only one final comment is added (idempotent).  \n- Do not modify or truncate the generated Markdown content.  \n- Always append the `/pr` note at the end of the comment.  "
         }
       ],
-      "trigger": {
-        "event": "issue_labeled",
-        "settings": null,
-        "conditions": {
-          "field": null,
-          "rules": [
-            {
-              "field": "context.trigger.label",
-              "rules": null,
-              "value": "needs-design",
-              "operator": "equals",
-              "combinator": null
-            }
-          ],
-          "value": null,
-          "operator": null,
-          "combinator": "and"
+      "triggers": [
+        {
+          "event": "issue_labeled",
+          "settings": null,
+          "conditions": {
+            "field": null,
+            "rules": [
+              {
+                "field": "context.trigger.label",
+                "rules": null,
+                "value": "needs-design",
+                "operator": "equals",
+                "combinator": null
+              }
+            ],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          },
+          "schedule": null
         },
-        "slashCommand": {
-          "command": "design",
-          "requireMention": false
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "design",
+            "requireMention": false
+          }
         }
-      },
+      ],
       "version": "1.0.0",
       "priority": 3,
       "timeoutMs": null

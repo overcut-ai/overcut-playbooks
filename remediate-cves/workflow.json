@@ -96,39 +96,44 @@
           "stepMaxDurationMinutes": 30
         }
       ],
-      "trigger": {
-        "event": "issue_labeled",
-        "schedule": null,
-        "settings": {
-          "delaySeconds": 0
+      "triggers": [
+        {
+          "event": "issue_labeled",
+          "schedule": null,
+          "settings": {
+            "delaySeconds": 0
+          },
+          "conditions": {
+            "field": null,
+            "rules": [
+              {
+                "field": "context.trigger.label",
+                "rules": null,
+                "value": "security-vulnerability",
+                "operator": "equals",
+                "combinator": null
+              },
+              {
+                "field": "context.trigger.label",
+                "rules": null,
+                "value": "cve",
+                "operator": "equals",
+                "combinator": null
+              }
+            ],
+            "value": null,
+            "operator": null,
+            "combinator": "or"
+          }
         },
-        "conditions": {
-          "field": null,
-          "rules": [
-            {
-              "field": "context.trigger.label",
-              "rules": null,
-              "value": "security-vulnerability",
-              "operator": "equals",
-              "combinator": null
-            },
-            {
-              "field": "context.trigger.label",
-              "rules": null,
-              "value": "cve",
-              "operator": "equals",
-              "combinator": null
-            }
-          ],
-          "value": null,
-          "operator": null,
-          "combinator": "or"
-        },
-        "slashCommand": {
-          "command": "remediate-cve",
-          "requireMention": false
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "remediate-cve",
+            "requireMention": false
+          }
         }
-      },
+      ],
       "version": "1.0.0",
       "priority": 5,
       "timeoutMs": 3600000

@@ -86,32 +86,37 @@
           "stepMaxDurationMinutes": 30
         }
       ],
-      "trigger": {
-        "event": "pull_request_merged",
-        "schedule": null,
-        "settings": {
-          "delaySeconds": 0
+      "triggers": [
+        {
+          "event": "pull_request_merged",
+          "schedule": null,
+          "settings": {
+            "delaySeconds": 0
+          },
+          "conditions": {
+            "field": null,
+            "rules": [
+              {
+                "field": "context.pullRequest.baseBranch",
+                "rules": null,
+                "value": "main",
+                "operator": "equals",
+                "combinator": null
+              }
+            ],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          }
         },
-        "conditions": {
-          "field": null,
-          "rules": [
-            {
-              "field": "context.pullRequest.baseBranch",
-              "rules": null,
-              "value": "main",
-              "operator": "equals",
-              "combinator": null
-            }
-          ],
-          "value": null,
-          "operator": null,
-          "combinator": "and"
-        },
-        "slashCommand": {
-          "command": "update-docs",
-          "requireMention": false
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "update-docs",
+            "requireMention": false
+          }
         }
-      },
+      ],
       "version": "1.0.0",
       "priority": 5,
       "timeoutMs": null
