@@ -39,7 +39,7 @@
           "name": "Clone Repo",
           "action": "git.clone",
           "params": {
-            "branch": "main",
+            "branch": "",
             "cloneOptions": {
               "depth": 1,
               "filter": {
