@@ -79,10 +79,7 @@
                 "maxDurationMinutes": 15
               },
               "userSignals": {
-                "explicit": [
-                  "/done",
-                  "thanks"
-                ]
+                "explicit": ["/done", "thanks"]
               }
             },
             "listenToComments": false,
@@ -105,14 +102,29 @@
       ],
       "triggers": [
         {
-          "event": "schedule",
+          "event": "scheduled",
           "schedule": {
-            "cron": "0 2 * * *"
+            "cronExpression": "0 2 * * *",
+            "scheduleContextSettings": {
+              "type": "PerRepository",
+              "repositorySelector": {
+                "useForCode": true,
+                "namePattern": "",
+                "useForTickets": false,
+                "excludePattern": ""
+              }
+            }
           },
           "settings": {
             "delaySeconds": 0
           },
-          "conditions": null
+          "conditions": {
+            "field": null,
+            "rules": [],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          }
         },
         {
           "event": "manual",
