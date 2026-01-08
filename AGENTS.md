@@ -452,10 +452,11 @@ Before submitting a playbook, verify:
 
 Study these playbooks for patterns:
 
-- **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
-- **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
-- **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow
-- **Auto PR Description** (`auto-pr-description/`) - Simple single-step workflow
+- **Auto PR Description** (`auto-pr-description/`) - Simple, single-step workflow that generates polished summaries for new pull requests.
+- **Create PR from Design** (`create-pr-from-design/`) - Complex, multi-phase workflow that turns approved design docs into implementation branches and draft PRs.
+- **Migration Package** (`migration-package/`) - Another complex orchestration that coordinates analysis, code changes, and validation for large-scale migrations.
+- **Remediate CVEs** (`remediate-cves/`) - Demonstrates special-agent usage for security triage and remediation planning.
+- **Auto Update AGENTS.md** (`auto-update-agents-md/`) - Scheduled documentation maintenance workflow that reviews repository changes and refreshes this guide automatically.
 
 ## 🎯 Common Tasks
 
