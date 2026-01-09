@@ -2,7 +2,7 @@
   "_formatVersion": "1.0.0",
   "workflow": {
     "name": "Generate Technical Design Proposal",
-    "description": "Generate a technical design proposal for a given ticket based on the requirements and code context.",
+    "description": "Accelerate your planning phase by letting Overcut draft comprehensive technical design proposals. It analyzes ticket requirements and code context to generate detailed architecture and implementation plans.",
     "instructions": [
       {
         "description": "Overcut will automatically generate technical design proposals every time you label an issue with `needs-design` or when you add a comment with the command `/design`. Overcut will analyze requirements and generate comprehensive technical design proposals including architecture diagrams, implementation plans, and technical specifications.",

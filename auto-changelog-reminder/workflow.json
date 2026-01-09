@@ -2,7 +2,7 @@
   "_formatVersion": "1.0.0",
   "workflow": {
     "name": "Auto-Changelog Reminder",
-    "description": "Automatically check for changelog updates when a pull request is opened and provide a suggestion if the changelog is missing.",
+    "description": "Never miss a changelog entry. Overcut reminds developers to include changelog updates in their PRs and can even draft the entry for them, ensuring your release history is always accurate.",
     "instructions": [
       {
         "description": "Overcut will automatically check for changelog updates every time you `create a PR` or when you add a comment with the command `/changelog`. Overcut will analyze if your changes need changelog entries and suggest properly formatted changelog updates based on your code modifications.",

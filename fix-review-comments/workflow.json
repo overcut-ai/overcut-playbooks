@@ -2,6 +2,7 @@
   "_formatVersion": "1.0.0",
   "workflow": {
     "name": "Fix Review Comments",
+    "description": "Streamline your review process with automatic code fixes based on approved review comments directly from the PR. Overcut interprets feedback and implements changes, saving you time on back-and-forth iterations.",
     "definition": {
       "flow": [
         {

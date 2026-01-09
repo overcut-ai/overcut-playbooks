@@ -2,7 +2,7 @@
   "_formatVersion": "1.0.0",
   "workflow": {
     "name": "Auto Update AGENTS.md",
-    "description": "Automatically generates or updates the AGENTS.md file based on current repository state. Runs on a schedule to keep documentation synchronized with repository structure, patterns, and best practices. Works with any repository type (workflows, codebases, mixed, etc.).",
+    "description": "Keep your `AGENTS.md` file up to date with your repository standards via automated nightly schedule updates. Overcut analyzes your project structure and code patterns to ensure your AI agents always have accurate, up-to-date context.",
     "instructions": [
       {
         "description": "Overcut will automatically update the AGENTS.md file daily at 2:00 AM UTC. You can also trigger it manually using the `/update-agents-md` command. The workflow analyzes the repository structure, extracts patterns, and generates comprehensive documentation for AI agents working with the repository.",

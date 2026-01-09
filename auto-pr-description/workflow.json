@@ -2,7 +2,7 @@
   "_formatVersion": "1.0.0",
   "workflow": {
     "name": "Auto PR Description",
-    "description": "Automatically generate and update pull request descriptions based on code changes, commits, and related issues. Preserves user-written content outside auto-generated sections.",
+    "description": "Standardize your PRs and provide clear context instantly. Overcut analyzes your code changes to generate comprehensive, consistent Pull Request descriptions, ensuring every review starts with perfect clarity.",
     "instructions": [
       {
         "description": "Overcut will automatically generate and update PR descriptions every time you `open a new PR`, when you `push new commits` to a PR, or when you add a comment with the command `/pr-description`. Overcut will analyze your code changes, extract issue links, summarize commits, and maintain a structured description while preserving your custom content.",

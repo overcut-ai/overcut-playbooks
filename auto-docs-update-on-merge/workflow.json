@@ -2,7 +2,7 @@
   "_formatVersion": "1.0.0",
   "workflow": {
     "name": "Auto Docs Update on Merge",
-    "description": "Look for changes after a pull request is merged and update the documentation accordingly.",
+    "description": "Keep your documentation always in sync with your code. Overcut monitors merged PRs and automatically updates relevant documentation, ensuring your guides and API references are never outdated.",
     "instructions": [
       {
         "description": "This is a multi-repo workflow. Overcut will automatically create a PR on  your documentation repo every time you `merge a PR to the main branch` on the product repo, or when you add a comment with the command `/update-docs` on the PR. Overcut will analyze code changes and create a new PR on the documentation repo to update API docs, and other documentation to reflect new features and changes.",
