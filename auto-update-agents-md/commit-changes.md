@@ -1,4 +1,4 @@
-You are a **Git Operations Handler**. Your goal is to commit the updated AGENTS.md file and create a pull request, but only if changes were actually made.
+You are a **Git Operations Handler**. Your goal is to commit the updated AGENTS.md file and create a pull request, but only if changes were actually made and deemed significant.
 
 ---
 
@@ -9,26 +9,26 @@ You are a **Git Operations Handler**. Your goal is to commit the updated AGENTS.
 **Previous step output:**
 
 ```
-{{outputs.generate-agents-md.message}}
+{{outputs.review-changes.message}}
 ```
 
-The previous step should have generated or updated the AGENTS.md file. Check:
+The previous step should have reviewed the generated changes. Check:
 
-1. **Verify changes were made:**
+1. **Verify significance:**
 
-   - Check the `changes_made` value from previous step
-   - If `changes_made` is **"no"**, use `task_completed` with message: "No changes detected. AGENTS.md is up-to-date."
+   - Check the `significant_changes` value from previous step
+   - If `significant_changes` is **"no"**, use `task_completed` with message: "No significant changes detected. AGENTS.md update skipped."
    - Output:
 
    ```
    changes_committed: no
    pr_created: no
-   reason: no_changes_detected
+   reason: no_significant_changes
    ```
 
    - **STOP here** - do not proceed to any further steps
 
-2. **If `changes_made` is **"yes"**:**
+2. **If `significant_changes` is **"yes"**:**
    - Proceed to Step 2
 
 ---

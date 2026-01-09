@@ -64,11 +64,20 @@ Automatically generates or updates the `AGENTS.md` file in any repository based 
    - Writes file to repository (without committing)
    - Outputs whether changes were made
 
-4. **Create PR** (`agent.run`) - Creates a pull request with the updated AGENTS.md file
-   - Agent: Senior Developer
-   - Duration: ~2-5 min
-   - Checks if changes were made from previous step
-   - If no changes: exits immediately without creating PR
+ 4. **Review Changes** (`agent.run`) - Reviews the generated changes for significance
+    - Agent: Senior Developer
+    - Duration: ~2-3 min
+    - Analyzes the `git diff` of the `AGENTS.md` file
+    - Discards changes if they are purely stylistic, formatting-related, or minor
+    - Categorizes changes as Significant vs Insignificant
+    - Reverts the file (`git checkout`) if changes are discarded
+    - Outputs whether changes are significant
+
+ 5. **Create PR** (`agent.run`) - Creates a pull request with the updated AGENTS.md file
+    - Agent: Senior Developer
+    - Duration: ~2-5 min
+    - Checks if changes were deemed significant in the previous step
+    - If no significant changes: exits immediately without creating PR
    - If changes detected:
      - Creates a new branch (`docs/update-agents-md-<timestamp>`)
      - Commits the AGENTS.md file with descriptive message
@@ -77,7 +86,7 @@ Automatically generates or updates the `AGENTS.md` file in any repository based 
    - Handles cases where no changes are needed (skips PR creation)
 
 ```
-[Clone] → [Analyze Repository] → [Generate AGENTS.md] → [Create PR]
+[Clone] → [Analyze Repository] → [Generate AGENTS.md] → [Review Changes] → [Create PR]
 ```
 
 ## 📝 AGENTS.md Structure
@@ -122,6 +131,7 @@ The workflow uses three separate prompt files:
 
 - `analyze-repo.md` - Controls repository analysis and pattern extraction
 - `generate-agents-md.md` - Controls documentation generation logic
+- `review-changes.md` - Controls the significance filter logic
 - `commit-changes.md` - Controls branch creation, commit, and PR creation operations
 
 You can customize:
@@ -201,9 +211,14 @@ Edit analyze-repo.md to extract additional patterns or information from the repo
    - Writes file to repository (without committing)
    - Outputs whether changes were made
 
-4. **Creates pull request:**
-   - Checks if changes were made from previous step
-   - If no changes: exits without creating PR
+ 4. **Reviews changes:**
+   - Performs a Significance check on the `git diff`
+   - Discards noise (formatting, style, minor rewording)
+   - Reverts file if no significant updates are found
+
+ 5. **Creates pull request:**
+    - Checks significance from the review step
+    - If no significant changes: exits without creating PR
    - If changes detected:
      - Creates a new branch from default branch
      - Commits the AGENTS.md file
