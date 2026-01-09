@@ -2,7 +2,7 @@
   "_formatVersion": "1.0.0",
   "workflow": {
     "name": "Implement Documentation from Issue",
-    "description": "Automatically implements documentation updates based on issues in the docs repository by analyzing the linked product PR and creating customer-facing documentation.",
+    "description": "Keep your documentation up to date by clearing docs tickets automatically. Overcut uses full context from PRs to generate accurate updates that strictly adhere to your documentation standards.",
     "instructions": [
       {
         "description": "Overcut will automatically implement documentation every time you label an issue with `needs-docs-update` or when you add a comment with the command `/implement-docs`. Overcut will analyze the issue and linked product PR, plan the documentation structure, write customer-facing content, and create a pull request with the changes.",

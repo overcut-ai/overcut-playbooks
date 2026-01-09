@@ -2,7 +2,7 @@
   "_formatVersion": "1.0.0",
   "workflow": {
     "name": "Auto Root Cause Analysis",
-    "description": "Analyze the root cause of a bug and suggest a fix. This workflow is triggered when a bug is labeled with the `bug` label.",
+    "description": "Accelerate development by instantly diagnosing bugs with automated root cause analysis. Overcut helps clear your backlog by investigating code, pinpointing root causes with real context, and suggesting fixes to keep work moving forward.",
     "instructions": [
       {
         "description": "Overcut will automatically perform root cause analysis every time you `label an issue` with `bug` or when you add a comment with the command `/bug-rca`. Overcut will dive deep into your codebase to identify root causes, trace bug origins, and provide specific fix recommendations with code examples.",

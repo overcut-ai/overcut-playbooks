@@ -2,7 +2,7 @@
   "_formatVersion": "1.0.0",
   "workflow": {
     "name": "Automated Ticket Triage ",
-    "description": "Automatically triage tickets based on the title, description, labels, and metadata.",
+    "description": "Organize your backlog effortlessly. Overcut intelligently categorizes, labels, and prioritizes incoming tickets while detecting duplicates. It adds context to trigger downstream workflows and automatically delegates tasks to the right agents, ensuring efficient resolution.",
     "instructions": [
       {
         "description": "Overcut will automatically triage your issues every time you `create a new issue` or when you add a comment with the command `/triage`. Overcut will analyze issue content and apply appropriate labels, set priority levels, suggest assignees, and categorize based on content analysis.",

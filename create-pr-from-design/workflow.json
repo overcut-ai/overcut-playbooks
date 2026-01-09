@@ -2,6 +2,7 @@
   "_formatVersion": "1.0.0",
   "workflow": {
     "name": "Create PR from Design",
+    "description": "Accelerate your SDLC with a repeatable, spec-driven process that turns approved designs into code. Overcut automatically generates Pull Requests from design specs, helping you clear backlog tickets efficiently while ensuring strict adherence to approved requirements.",
     "definition": {
       "flow": [
         {

@@ -2,7 +2,7 @@
   "_formatVersion": "1.0.0",
   "workflow": {
     "name": "Code Review",
-    "description": "Run a thorough code review of a pull request and provide feedback to the developer.",
+    "description": "Elevate your code quality with AI-powered reviews. Overcut provides thorough, context-aware feedback on your PRs, catching bugs, security issues, and style violations before they merge.",
     "instructions": [
       {
         "description": "Overcut will automatically review your PRs every time you `open a new PR` or when you add a comment with the command `/review` on any PR. Overcut will analyze your code changes, check for bugs, suggest improvements, and provide detailed feedback with inline comments.",

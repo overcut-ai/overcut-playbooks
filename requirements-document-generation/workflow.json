@@ -2,6 +2,7 @@
   "_formatVersion": "1.0.0",
   "workflow": {
     "name": "Generate Requirements",
+    "description": "Automatically analyze feature requests against your codebase and generate full requirement documents. Overcut ensures specifications are comprehensive, feasible, and aligned with your team's standards and format.",
     "definition": {
       "flow": [
         {

@@ -2,7 +2,7 @@
   "_formatVersion": "1.0.0",
   "workflow": {
     "name": "Remediate CVEs",
-    "description": "Analyzes CVEs in your codebase, creates comprehensive remediation plans with context-aware risk assessment, and triggers implementation via slash command.",
+    "description": "Automatically suggest and create fixes for security issues pulled directly from your backlog. Overcut assesses risk in context and triggers implementation to resolve vulnerabilities efficiently.",
     "instructions": [
       {
         "description": "Overcut will automatically analyze CVEs when you label an issue with `security-vulnerability` or `cve`",
