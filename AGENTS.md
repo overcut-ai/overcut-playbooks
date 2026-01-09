@@ -14,6 +14,8 @@ This repository contains **Overcut Playbooks** - pre-built, customizable AI agen
 
 ## 🏗️ Repository Structure
 
+Current root-level playbooks: auto-changelog-reminder/, auto-docs-update-on-merge/, auto-pr-description/, auto-root-cause-analysis/, auto-update-agents-md/, automated-ticket-triage/, code-review/, create-pr-from-design/, fix-review-comments/, implement-docs-from-issue/, migration-package/, remediate-cves/, requirements-document-generation/, technical-design-proposal/.
+
 Each playbook must follow this structure:
 
 ```
@@ -452,10 +454,11 @@ Before submitting a playbook, verify:
 
 Study these playbooks for patterns:
 
-- **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
-- **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
-- **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow
-- **Auto PR Description** (`auto-pr-description/`) - Simple single-step workflow
+- **Simple automation**: `auto-changelog-reminder/`, `auto-pr-description/`
+- **Complex / multi-phase**: `create-pr-from-design/`, `migration-package/`
+- **Documentation-focused**: `requirements-document-generation/`, `technical-design-proposal/`
+- **Security-specialized**: `remediate-cves/` (demonstrates use of `special-agents/` for dedicated personas)
+- **Automation & maintenance**: `auto-update-agents-md/`, `auto-docs-update-on-merge/`, `auto-root-cause-analysis/`
 
 ## 🎯 Common Tasks
 
