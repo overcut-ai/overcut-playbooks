@@ -11,6 +11,9 @@ This repository contains **Overcut Playbooks** - pre-built, customizable AI agen
 - Overcut Workflow JSON format (version 1.0.0)
 - Markdown for prompts and documentation
 - Git for version control
+- Scheduled cron expressions and manual slash command triggers as common mechanisms
+- Built-in Git utility steps (e.g., `git.clone`) whenever repository context is required
+- Overcut agent orchestration actions such as `agent.run` and `agent.session`
 
 ## 🏗️ Repository Structure
 
@@ -26,6 +29,14 @@ playbook-name/
 │   └── agent-name.md      # Instructions for configuring custom agents
 └── ...                    # More steps as needed
 ```
+
+## 🧱 Repository Patterns & Best Practices
+
+- Use `lowercase-hyphen` naming for both directories and step IDs to keep references consistent
+- Maintain strict prompt ↔ step parity between `workflow.json` and the Markdown prompt files
+- Follow the README-first workflow design process using the emoji template to document the flow before implementation
+- Include Git utility steps (most commonly `git.clone`) whenever the workflow requires repository context or code access
+- Prefer pairing scheduled cron triggers with manual slash commands so workflows can run automatically and on-demand
 
 ## 🎯 Creating New Playbooks
 
@@ -78,6 +89,8 @@ Use this template structure:
 
 [Links to related playbooks]
 ```
+
+> **Reminder:** Keep the README.md, prompt files, and `workflow.json` synchronized so documentation, prompts, and implementation stay in parity.
 
 **README Requirements:**
 
@@ -217,6 +230,8 @@ The `workflow.json` file must follow this structure:
 - ✅ Specialized roles requiring domain-specific knowledge (e.g., Security Engineer, Database Architect)
 - ✅ Agents needing detailed behavioral guidelines or decision frameworks
 - ✅ Custom agent personas unique to this workflow
+
+_Workflows like `remediate-cves/` (and similar security-focused playbooks) are the canonical examples for how to capture richer persona guidance when deeper expertise is required._
 
 **When NOT to use:**
 
@@ -388,6 +403,8 @@ The `workflow.json` file must follow this structure:
 
 ### Triggers
 
+_Tip: Many workflows combine scheduled cron triggers with manual slash commands so they can run automatically and still be callable on-demand._
+
 **Automatic (Event-based):**
 
 ```json
@@ -452,10 +469,14 @@ Before submitting a playbook, verify:
 
 Study these playbooks for patterns:
 
-- **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
-- **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
-- **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow
-- **Auto PR Description** (`auto-pr-description/`) - Simple single-step workflow
+- **Simple:** `auto-pr-description/`
+- **Scheduled automation:** `auto-update-agents-md/`
+- **Review-focused:** `code-review/`, `fix-review-comments/`
+- **Complex multi-phase:** `create-pr-from-design/`
+- **Security-specialized:** `remediate-cves/`
+- **Planning/Docs:** `requirements-document-generation/`, `technical-design-proposal/`
+- **Meta automation:** `auto-docs-update-on-merge/`, `auto-root-cause-analysis/`, `automated-ticket-triage/`
+- **Large system/package:** `migration-package/`
 
 ## 🎯 Common Tasks
 
