@@ -450,12 +450,41 @@ Before submitting a playbook, verify:
 
 ## 📚 Reference Examples
 
-Study these playbooks for patterns:
+Study these playbooks to see how different workflow shapes and prompt strategies come together:
 
-- **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
-- **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
-- **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow
-- **Auto PR Description** (`auto-pr-description/`) - Simple single-step workflow
+### Simple Automations
+| Playbook | Why Study |
+| --- | --- |
+| `auto-changelog-reminder/` | Shows a lean reminder flow that keeps scope tight while still validating triggers and outputs. |
+| `auto-docs-update-on-merge/` | Demonstrates lightweight automation that reacts to merges and scopes edits safely. |
+| `auto-pr-description/` | Clearest example of a single-step agent with strong formatting requirements. |
+| `auto-update-agents-md/` | Illustrates repository-wide documentation refresh with guardrails for Markdown editing. |
+
+### Investigation & Routing
+| Playbook | Why Study |
+| --- | --- |
+| `auto-root-cause-analysis/` | Breaks down diagnostic questioning into structured prompts and exit criteria. |
+| `automated-ticket-triage/` | Highlights branching logic and data sanitation before filing/updating issues. |
+
+### Review & Multi-Phase Collaboration
+| Playbook | Why Study |
+| --- | --- |
+| `code-review/` | Great reference for orchestrating multiple reviewers via agent sessions. |
+| `fix-review-comments/` | Shows how to loop fixes back into the same PR with context carry-over. |
+| `create-pr-from-design/` | Full end-to-end pipeline from ingesting specs through PR validation. |
+
+### Documentation & Planning
+| Playbook | Why Study |
+| --- | --- |
+| `implement-docs-from-issue/` | Maps GitHub issue context into structured docs with tight feedback loops. |
+| `requirements-document-generation/` | Emphasizes gathering, normalizing, and presenting requirements with traceability. |
+| `technical-design-proposal/` | Model for multi-section technical writing and stakeholder-ready outputs. |
+| `migration-package/` | Blueprint-only guide demonstrating how to document a workflow before build-out. |
+
+### Specialized / Security
+| Playbook | Why Study |
+| --- | --- |
+| `remediate-cves/` | Shows how to embed special-agents guidance for security triage and fixes. |
 
 ## 🎯 Common Tasks
 
