@@ -12,6 +12,11 @@ This repository contains **Overcut Playbooks** - pre-built, customizable AI agen
 - Markdown for prompts and documentation
 - Git for version control
 
+**Repository Snapshot:**
+
+- 14 playbook directories at the root (e.g., `auto-changelog-reminder/`, `auto-docs-update-on-merge/`, `auto-pr-description/`, `auto-root-cause-analysis/`, `auto-update-agents-md/`, `automated-ticket-triage/`, `code-review/`, `create-pr-from-design/`, `fix-review-comments/`, `implement-docs-from-issue/`, `migration-package/`, `remediate-cves/`, `requirements-document-generation/`, `technical-design-proposal/`)
+- Shared documentation and assets at the root (`README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `LICENSE`, and Overcut logo SVGs)
+
 ## 🏗️ Repository Structure
 
 Each playbook must follow this structure:
@@ -452,10 +457,11 @@ Before submitting a playbook, verify:
 
 Study these playbooks for patterns:
 
-- **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
-- **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
-- **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow
-- **Auto PR Description** (`auto-pr-description/`) - Simple single-step workflow
+- **Auto PR Description** (`auto-pr-description/`) - Simple single-step workflow that showcases the baseline git.clone → agent.run pattern
+- **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow with planning, implementation, validation, and finalization phases
+- **Remediate CVEs** (`remediate-cves/`) - Specialized security workflow that uses `special-agents/` personas and risk-focused prompts
+- **Auto Update AGENTS.md** (`auto-update-agents-md/`) - Documentation automation workflow that performs repository analysis and only commits when diffs exist
+- **Migration Package** (`migration-package/`) - Documentation-only suite that aggregates multiple migration workflows and serves as an overview artifact
 
 ## 🎯 Common Tasks
 
