@@ -450,12 +450,14 @@ Before submitting a playbook, verify:
 
 ## 📚 Reference Examples
 
-Study these playbooks for patterns:
+The [repository README](./README.md) maintains the living catalog of all available playbooks; use the curated list below as quick inspiration for common patterns and categories:
 
-- **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
-- **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
-- **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow
-- **Auto PR Description** (`auto-pr-description/`) - Simple single-step workflow
+- **Code Review** (`code-review/`) – *Category: Collaborative code-quality workflow*; showcases multi-step review coordination with agent sessions.
+- **Remediate CVEs** (`remediate-cves/`) – *Category: Specialized security workflow*; demonstrates using domain-specific agents and guidance.
+- **Create PR from Design** (`create-pr-from-design/`) – *Category: Complex multi-phase workflow*; covers planning through validation with tightly sequenced steps.
+- **Auto PR Description** (`auto-pr-description/`) – *Category: Simple single-step workflow*; minimal example for straightforward automation tasks.
+- **Auto Update AGENTS.md** (`auto-update-agents-md/`) – *Category: Automation/meta-workflow*; inspects repos, syncs documentation, and commits updates automatically.
+- **Migration Package** (`migration-package/`) – *Category: Documentation-first template*; highlights README-centric contributions when no prompts or JSON are needed yet.
 
 ## 🎯 Common Tasks
 
