@@ -27,6 +27,8 @@ playbook-name/
 └── ...                    # More steps as needed
 ```
 
+> **Current Playbook Catalog (keep updated as folders change):** `auto-changelog-reminder`, `auto-docs-update-on-merge`, `auto-pr-description`, `auto-root-cause-analysis`, `auto-update-agents-md`, `automated-ticket-triage`, `code-review`, `create-pr-from-design`, `fix-review-comments`, `implement-docs-from-issue`, `migration-package`, `remediate-cves`, `requirements-document-generation`, `technical-design-proposal`
+
 ## 🎯 Creating New Playbooks
 
 Follow this **design-first approach** to ensure the workflow is well-planned before implementation:
@@ -77,6 +79,18 @@ Use this template structure:
 ## 🔗 Related Workflows
 
 [Links to related playbooks]
+
+## ⚠️ Edge Cases & Safeguards
+
+[Failure modes, guardrails, fallbacks, and rate-limit handling]
+
+## 📤 Outputs & Deliverables
+
+[Explicit list of files, PRs, reports, or tickets produced]
+
+## 📎 Appendices (Optional)
+
+[Reference tables, data dictionaries, glossary entries, or extended prompts]
 ```
 
 **README Requirements:**
@@ -87,6 +101,7 @@ Use this template structure:
 - Include customization guide
 - Document prerequisites clearly
 - Add related workflow links
+- Capture edge cases/safeguards, explicit outputs/deliverables, and appendices when extra reference material is helpful
 - Grammar and spelling checked
 
 **Purpose**: The README serves as the design document. It should clearly describe:
@@ -210,6 +225,15 @@ The `workflow.json` file must follow this structure:
 - Verify flow matches README sequence
 - Verify triggers match README description
 
+### Quality Gates & Significance Checks
+
+Include guardrail steps whenever a workflow can produce large diffs, commit to a repository, or take user-visible actions:
+
+- Add review or approval gates before applying code/doc changes, especially for automation that writes to `main` or opens pull requests.
+- Use agent-run significance checks (see `auto-update-agents-md`) to decide whether edits warrant a commit vs. skipping noisy updates.
+- Capture reviewer context (diff summaries, lint/test outcomes) so approvers can make quick decisions.
+- When in doubt, insert a final human-in-the-loop confirmation step before merge/apply actions.
+
 ### Step 5: Special Agents (If Needed)
 
 **When to use `special-agents/` folder:**
@@ -250,6 +274,8 @@ The `workflow.json` file must follow this structure:
 [Decision-making process]
 ```
 
+For a concrete reference, review `remediate-cves/special-agents/security-engineer-agent.md`, which demonstrates how to capture persona, principles, and analysis frameworks for a security-focused role.
+
 ## 🔄 Updating Existing Playbooks
 
 ### Updating Prompts
@@ -282,6 +308,10 @@ The `workflow.json` file must follow this structure:
 - Maintain valid JSON structure
 - Update README.md to reflect changes
 - Test workflow import in Overcut
+
+### Workflow Versioning
+
+Any change to prompts, flow, triggers, or automation logic requires bumping `workflow.definition.version` in `workflow.json` (e.g., `"version": "1.1.0"`). Document the update in README.md (changelog or NOTE) so downstream users know why the version changed and what behavior shifted.
 
 ## ✅ Quality Standards
 
