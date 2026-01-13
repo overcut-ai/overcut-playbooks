@@ -490,6 +490,14 @@ Study these playbooks to see how different workflow shapes and prompt strategies
 | `auto-pr-description/` | Clearest example of a single-step agent with strong formatting requirements. |
 | `auto-update-agents-md/` | Illustrates repository-wide documentation refresh with guardrails for Markdown editing. |
 
+### Maintenance Automations
+These workflows keep repository hygiene tasks on schedule with built-in significance checks or merge guards so they only commit meaningful changes.
+
+| Playbook | Why Study |
+| --- | --- |
+| `auto-update-agents-md/` | Runs on a cadence to refresh this handbook, pairing repo analysis with diff reviews so noisy edits are skipped. |
+| `auto-docs-update-on-merge/` | Watches for merged PRs and automatically regenerates documentation while confining edits to vetted paths. |
+
 ### Investigation & Routing
 | Playbook | Why Study |
 | --- | --- |
@@ -510,6 +518,13 @@ Study these playbooks to see how different workflow shapes and prompt strategies
 | `requirements-document-generation/` | Emphasizes gathering, normalizing, and presenting requirements with traceability. |
 | `technical-design-proposal/` | Model for multi-section technical writing and stakeholder-ready outputs. |
 | `migration-package/` | Blueprint-only guide demonstrating how to document a workflow before build-out. |
+
+### Blueprint / Planning-first Workflows
+These entries document future-state automation before any prompts or JSON exist, making them useful when you need stakeholder buy-in or a migration plan prior to implementation.
+
+| Playbook | Why Study |
+| --- | --- |
+| `migration-package/` | Captures a multi-workflow migration strategy, detailing phases, dependencies, and guardrails even though execution assets are intentionally deferred. |
 
 ### Specialized / Security
 | Playbook | Why Study |
