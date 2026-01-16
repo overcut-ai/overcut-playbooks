@@ -14,7 +14,7 @@ This repository contains **Overcut Playbooks** - pre-built, customizable AI agen
 
 ## 🏗️ Repository Structure
 
-Each playbook must follow this structure:
+Each playbook must follow this structure, and every workflow folder lives directly under the repository root in a flat layout (no nested folders). Playbook directories must use kebab-case naming (lowercase-with-hyphens) to stay consistent with step IDs and prompts.
 
 ```
 playbook-name/
@@ -452,10 +452,12 @@ Before submitting a playbook, verify:
 
 Study these playbooks for patterns:
 
-- **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
+- **Code Review** (`code-review/`) - Multi-agent session workflow coordinating planning, review, and follow-up steps
 - **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
 - **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow
 - **Auto PR Description** (`auto-pr-description/`) - Simple single-step workflow
+- **Auto Changelog Reminder** (`auto-changelog-reminder/`) - Lightweight reminder workflow that nudges contributors to update changelog entries
+- **Migration Package** (`migration-package/`) - Documentation-only placeholder that illustrates the design-first approach before prompts/JSON exist
 
 ## 🎯 Common Tasks
 
