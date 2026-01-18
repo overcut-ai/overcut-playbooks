@@ -8,9 +8,11 @@ This repository contains **Overcut Playbooks** - pre-built, customizable AI agen
 
 **Key Technologies:**
 
-- Overcut Workflow JSON format (version 1.0.0)
+- Overcut Workflow JSON 1.0.0
 - Markdown for prompts and documentation
 - Git for version control
+- Cron & slash-command triggers
+- Overcut agent actions (agent.run, agent.session, git.clone)
 
 ## 🏗️ Repository Structure
 
@@ -452,20 +454,18 @@ Before submitting a playbook, verify:
 
 Study these playbooks for patterns:
 
+### Simple
+- **Auto PR Description** (`auto-pr-description/`) - Single-step workflow that drafts pull request summaries
 - **Auto Changelog Reminder** (`auto-changelog-reminder/`) - Lightweight reminder workflow nudging contributors to update changelog entries
-- **Auto Docs Update on Merge** (`auto-docs-update-on-merge/`) - Event-triggered doc maintenance example showing end-to-end planning and execution
-- **Auto PR Description** (`auto-pr-description/`) - Simple single-step workflow that drafts PR summaries
-- **Auto Root Cause Analysis** (`auto-root-cause-analysis/`) - Incident-centric workflow that guides agents through RCA planning and write-up
+
+### Complex
+- **Create PR from Design** (`create-pr-from-design/`) - Multi-phase implementation workflow from design handoff to PR submission
 - **Auto Update AGENTS.md** (`auto-update-agents-md/`) - Scheduled documentation refresh pipeline that syncs guidance from repository analysis
-- **Automated Ticket Triage** (`automated-ticket-triage/`) - Intake workflow that categorizes and routes tickets using structured prompts
 - **Code Review** (`code-review/`) - Multi-agent session workflow coordinating planning, review, and follow-up steps
-- **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase implementation workflow from design handoff to PR submission
-- **Fix Review Comments** (`fix-review-comments/`) - Follow-up workflow that addresses reviewer feedback and prepares updates
-- **Implement Docs from Issue** (`implement-docs-from-issue/`) - Documentation workflow translating issue context into targeted doc changes
-- **Migration Package** (`migration-package/`) - Documentation-only placeholder illustrating the design-first approach before prompts/JSON exist
-- **Remediate CVEs** (`remediate-cves/`) - Security-focused workflow using specialized agent instructions
-- **Requirements Document Generation** (`requirements-document-generation/`) - Planning workflow for structured requirements authoring
-- **Technical Design Proposal** (`technical-design-proposal/`) - Multi-phase design workflow covering research, design writing, and validation
+
+### Specialized
+- **Remediate CVEs** (`remediate-cves/`) - Security-focused workflow that leverages special-agents instructions for remediation planning
+- **Migration Package** (`migration-package/`) - Design-first starter that illustrates documentation-only flow before prompts/JSON exist
 
 ## 🎯 Common Tasks
 
