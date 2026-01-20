@@ -135,6 +135,8 @@ Use this template structure:
 - Include examples when helpful
 - Handle error cases explicitly
 - Specify output format requirements
+- Preserve user-provided content outside the sections you are instructed to change unless explicitly told otherwise
+- Enforce structured, sectioned outputs (e.g., Summary/Changes/Testing, remediation plans with trade-off analysis) to match workflow expectations
 - Pass complete context between steps using `{{outputs.step-id.field}}` syntax
 - Reference the step's role in the overall workflow
 - Ensure prompts align with the README design
@@ -250,7 +252,17 @@ The `workflow.json` file must follow this structure:
 ## Analysis Framework
 
 [Decision-making process]
+
+## Red Flags
+
+[Warning signs or escalation triggers the agent must call out]
+
+## Mission
+
+[Definition of success, deliverables, and how the agent reports outcomes]
 ```
+
+Existing personas such as `remediate-cves/special-agents/security-engineer-agent.md` follow this richer template—use them as references when authoring new special agents.
 
 ## 🔄 Updating Existing Playbooks
 
@@ -304,6 +316,8 @@ The `workflow.json` file must follow this structure:
 - ✅ Include examples when helpful
 - ✅ Handle error cases explicitly
 - ✅ Specify output format requirements
+- ✅ Preserve user-provided content outside the requested changes unless explicitly told otherwise
+- ✅ Enforce structured, sectioned outputs that match the workflow's expectations
 - ✅ Pass complete context between steps using `{{outputs.step-id.field}}`
 - ✅ No sensitive data or credentials
 
@@ -371,6 +385,50 @@ The `workflow.json` file must follow this structure:
     }
   },
   "instruction": "[Content from step-id.md]"
+}
+```
+
+### Pull Request Operations
+
+Workflows like `auto-pr-description` read the current PR context before updating it:
+
+```json
+[
+  {
+    "id": "read-pr-context",
+    "name": "Read Pull Request",
+    "action": "read_pull_request",
+    "params": {
+      "pullRequestNumber": "{{trigger.pullRequest.number}}",
+      "repoFullName": "{{trigger.repository.fullName}}"
+    }
+  },
+  {
+    "id": "update-pr-description",
+    "name": "Update Pull Request Description",
+    "action": "update_pull_request",
+    "params": {
+      "pullRequestNumber": "{{trigger.pullRequest.number}}",
+      "repoFullName": "{{trigger.repository.fullName}}",
+      "description": "{{outputs.generate-description.prBody}}"
+    }
+  }
+]
+```
+
+### Completing Workflow Runs
+
+Many workflows finish by reporting results via `task_completed`:
+
+```json
+{
+  "id": "report-results",
+  "name": "Send Summary",
+  "action": "task_completed",
+  "params": {
+    "summary": "{{outputs.generate-description.summary}}",
+    "details": "{{outputs.generate-description.details}}"
+  }
 }
 ```
 
@@ -481,12 +539,16 @@ Study these playbooks for patterns:
 6. Validate JSON syntax and step ID ↔ filename matching
 7. Test workflow in Overcut
 
+_Note: Keep prompts idempotent and uphold the preservation/structured-output guarantees described above so repeated runs do not create conflicting edits._
+
 ### Task: Update Existing Prompt
 
 1. Edit the {step-id}.md file
 2. Update workflow.json: find step with matching id, update instruction field
 3. Verify filename still matches step ID
 4. Update README.md if step behavior changed significantly
+
+_Note: Ensure edits remain idempotent and continue to preserve user-provided content plus structured outputs so workflows can rerun safely._
 
 ### Task: Add Step to Existing Workflow
 
@@ -497,6 +559,8 @@ Study these playbooks for patterns:
 3. Add step to workflow.json with unique id matching the prompt filename
 4. Add flow connection in workflow.definition.flow
 5. Copy prompt content to step's instruction field in workflow.json
+
+_Note: New prompts must stay idempotent, preserve untouched user content, and deliver structured outputs that align with downstream expectations._
 
 ### Task: Fix Workflow Issues
 
