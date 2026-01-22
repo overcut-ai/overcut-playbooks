@@ -484,6 +484,7 @@ Many workflows finish by reporting results via `task_completed`:
 3. **Valid JSON**: Always validate JSON syntax before committing
 4. **Complete Documentation**: Every playbook must have a complete README.md
 5. **Tested Workflows**: Only submit workflows that have been tested in Overcut
+6. **Purposeful Changes Only**: Avoid stylistic-only or churn-inducing edits—updates must deliver clear, functional improvements per repository review policy.
 
 ## 📝 Output Reference Syntax
 
@@ -523,7 +524,9 @@ Study these playbooks for patterns:
 
 ### Specialized
 - **Remediate CVEs** (`remediate-cves/`) - Security-focused workflow that leverages special-agents instructions for remediation planning
-- **Migration Package** (`migration-package/`) - Design-first starter that illustrates documentation-only flow before prompts/JSON exist
+
+### Documentation-First
+- **Migration Package** (`migration-package/`) - README-driven scaffold that demonstrates the design-first process before prompts or workflow.json exist
 
 ## 🎯 Common Tasks
 
