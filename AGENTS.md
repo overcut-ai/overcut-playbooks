@@ -4,7 +4,7 @@ This file provides instructions for AI agents working with the Overcut Playbooks
 
 ## 📋 Project Overview
 
-This repository contains **Overcut Playbooks** - pre-built, customizable AI agent workflows for software development automation. Each playbook is a complete workflow that can be imported into [Overcut](https://overcut.ai) and customized for specific needs.
+This repository contains **Overcut Playbooks** - pre-built, customizable AI agent workflows for software development automation. Each playbook is a complete workflow that can be imported into [Overcut](https://overcut.ai) and customized for specific needs. The repository itself is a workflow-only documentation knowledge base: flat playbook directories under the root store Markdown prompts and workflow definitions with no runtime code checked in.
 
 **Key Technologies:**
 
@@ -136,6 +136,7 @@ Use this template structure:
 - Handle error cases explicitly
 - Specify output format requirements
 - Preserve user-provided content outside the sections you are instructed to change unless explicitly told otherwise
+- Keep prompts idempotent so reruns can detect existing edits and avoid overwriting user-authored sections; describe guardrails or markers that ensure safe repeated execution
 - Enforce structured, sectioned outputs (e.g., Summary/Changes/Testing, remediation plans with trade-off analysis) to match workflow expectations
 - Pass complete context between steps using `{{outputs.step-id.field}}` syntax
 - Reference the step's role in the overall workflow
@@ -230,6 +231,8 @@ The `workflow.json` file must follow this structure:
 
 **Special Agent File Structure:**
 
+Use the detailed persona at `remediate-cves/special-agents/security-engineer-agent.md` as the canonical template for the structure below.
+
 ```markdown
 # [Agent Name] Agent Instructions
 
@@ -262,7 +265,7 @@ The `workflow.json` file must follow this structure:
 [Definition of success, deliverables, and how the agent reports outcomes]
 ```
 
-Existing personas such as `remediate-cves/special-agents/security-engineer-agent.md` follow this richer template—use them as references when authoring new special agents.
+That security engineer persona demonstrates this richer template end-to-end—mirror its structure when authoring new special agents.
 
 ## 🔄 Updating Existing Playbooks
 
@@ -473,6 +476,20 @@ Many workflows finish by reporting results via `task_completed`:
   "slashCommand": {
     "command": "review",
     "requireMention": false
+  }
+}
+```
+
+**Scheduled (Cron-based Maintenance):**
+
+Workflows like `auto-update-agents-md` rely on scheduled triggers to run repository maintenance without a human-initiated event:
+
+```json
+{
+  "event": "schedule",
+  "schedule": {
+    "cron": "0 3 * * *",
+    "timezone": "UTC"
   }
 }
 ```
