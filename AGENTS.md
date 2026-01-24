@@ -18,6 +18,31 @@ This repository contains **Overcut Playbooks** - pre-built, customizable AI agen
 
 Each playbook must follow this structure, and every workflow folder lives directly under the repository root in a flat layout (no nested folders). Playbook directories must use kebab-case naming (lowercase-with-hyphens) to stay consistent with step IDs and prompts. The repository root also includes shared documentation like `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `LICENSE`, `.gitignore`, and SVG assets, so each playbook directory should sit alongside (not inside) these top-level files.
 
+**Top-level contents (January 2026):**
+
+- **Shared docs & assets**
+  - `README.md` – Repository overview and playbook catalog
+  - `AGENTS.md` – Canonical agent handbook (this file)
+  - `CONTRIBUTING.md` – Contribution workflow and review policy
+  - `LICENSE` – MIT-style license for the playbook library
+  - `.gitignore` – Git hygiene rules applied across every workflow
+  - `logo-overcut-black.svg`, `logo-overcut-white.svg` – Brand assets used in docs
+- **Playbook directories** (all kebab-case, one folder per workflow)
+  - `auto-changelog-reminder/` – Checks PRs for missing changelog entries
+  - `auto-docs-update-on-merge/` – Creates docs tickets whenever PRs merge to main
+  - `auto-pr-description/` – Drafts and maintains structured PR descriptions
+  - `auto-root-cause-analysis/` – Performs automated bug investigations with RCA expert agents
+  - `auto-update-agents-md/` – Scheduled pipeline that refreshes this guidance file
+  - `automated-ticket-triage/` – Classifies, prioritizes, and deduplicates new issues
+  - `code-review/` – Multi-agent review workflow covering planning through submission
+  - `create-pr-from-design/` – Converts approved designs into fully implemented PRs
+  - `fix-review-comments/` – Plans and applies fixes for open review threads with progress tracking
+  - `implement-docs-from-issue/` – Implements docs issues by analyzing linked product PRs
+  - `migration-package/` – Multi-workflow migration system spanning analysis to implementation
+  - `remediate-cves/` – Security-focused remediation planner with special-agent guidance
+  - `requirements-document-generation/` – Generates requirements documents from feature issues
+  - `technical-design-proposal/` – Produces architecture/design docs with diagrams before coding
+
 ```
 playbook-name/
 ├── workflow.json          # Complete workflow definition (REQUIRED)
@@ -531,19 +556,26 @@ Before submitting a playbook, verify:
 Study these playbooks for patterns:
 
 ### Simple
-- **Auto PR Description** (`auto-pr-description/`) - Single-step workflow that drafts pull request summaries
-- **Auto Changelog Reminder** (`auto-changelog-reminder/`) - Lightweight reminder workflow nudging contributors to update changelog entries
+- **Auto PR Description** (`auto-pr-description/`) - Single-step workflow that drafts and maintains structured pull request summaries using ticket context.
+- **Auto Changelog Reminder** (`auto-changelog-reminder/`) - Lightweight reminder workflow nudging contributors to update changelog entries for user-facing changes before merge.
+- **Automated Ticket Triage** (`automated-ticket-triage/`) - Issue-intake flow that categorizes, prioritizes, and deduplicates new tickets before routing them to downstream playbooks.
 
 ### Complex
-- **Create PR from Design** (`create-pr-from-design/`) - Multi-phase implementation workflow from design handoff to PR submission
-- **Auto Update AGENTS.md** (`auto-update-agents-md/`) - Scheduled documentation refresh pipeline that syncs guidance from repository analysis
-- **Code Review** (`code-review/`) - Multi-agent session workflow coordinating planning, review, and follow-up steps
+- **Create PR from Design** (`create-pr-from-design/`) - Multi-phase implementation workflow from design handoff to PR submission.
+- **Auto Update AGENTS.md** (`auto-update-agents-md/`) - Scheduled documentation refresh pipeline that syncs guidance from repository analysis.
+- **Code Review** (`code-review/`) - Multi-agent session workflow coordinating planning, review, and follow-up steps.
+- **Auto Docs Update on Merge** (`auto-docs-update-on-merge/`) - Multi-repository workflow that inspects merged PRs, files dedicated documentation issues, and keeps customer-facing docs in sync.
+- **Fix Review Comments** (`fix-review-comments/`) - Planning-plus-implementation loop that turns open review threads into tracked tasks, applies fixes, and updates reviewers in real time.
 
 ### Specialized
-- **Remediate CVEs** (`remediate-cves/`) - Security-focused workflow that leverages special-agents instructions for remediation planning
+- **Remediate CVEs** (`remediate-cves/`) - Security-focused workflow that leverages special-agents instructions for remediation planning.
+- **Auto Root Cause Analysis** (`auto-root-cause-analysis/`) - RCA expert-led investigation that parses bug issues, traces history, and proposes minimal, high-confidence fixes (optionally triggering auto-PRs).
 
 ### Documentation-First
-- **Migration Package** (`migration-package/`) - README-driven scaffold that demonstrates the design-first process before prompts or workflow.json exist
+- **Migration Package** (`migration-package/`) - Documentation-first blueprint that maps a six-workflow migration system before prompts or workflow.json files exist.
+- **Implement Documentation from Issue** (`implement-docs-from-issue/`) - Documentation execution pipeline that reads docs issues plus linked product PRs, plans page updates, and opens Mintlify-based PRs.
+- **Requirements Document Generation** (`requirements-document-generation/`) - Requirements gathering workflow that analyzes feature issues, drafts formal requirement docs, and posts them back for alignment.
+- **Technical Design Proposal** (`technical-design-proposal/`) - Design-first workflow that produces architecture docs with Mermaid diagrams, risks, and interactive Q&A before implementation.
 
 ## 🎯 Common Tasks
 
