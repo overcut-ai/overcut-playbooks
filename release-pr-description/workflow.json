@@ -1,0 +1,178 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Release PR Description",
+    "description": "Generate release-focused PR descriptions that emphasize features and user value. Overcut analyzes your code changes and synthesizes them into release notes format, grouping related commits into logical features, bug fixes, and improvements.",
+    "instructions": [
+      {
+        "description": "Overcut will automatically generate release notes when you open a PR targeting `main` branch, push new commits to such PRs, or add a comment with `/release-description`. Instead of listing individual commits, it groups changes by feature/functionality and focuses on user-facing value.",
+        "action": "create_pr"
+      }
+    ],
+    "definition": {
+      "flow": [
+        {
+          "to": "git-clone",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "prepare-release-description",
+          "from": "git-clone",
+          "condition": null
+        },
+        {
+          "to": "update-release-description",
+          "from": "prepare-release-description",
+          "condition": null
+        }
+      ],
+      "name": "Release PR Description",
+      "steps": [
+        {
+          "id": "git-clone",
+          "name": "Clone Repo",
+          "action": "git.clone",
+          "params": {
+            "branch": "{{trigger.pullRequest.headBranch}}",
+            "cloneOptions": {
+              "depth": 1,
+              "filter": {
+                "type": "blob:none"
+              },
+              "singleBranch": true
+            },
+            "repoFullName": "{{trigger.repository.fullName}}"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "prepare-release-description",
+          "name": "Prepare Release Description",
+          "action": "agent.run",
+          "params": {
+            "agentId": "cmck2zx350003wtwyxm0w6g6p",
+            "agentEngine": "overcut"
+          },
+          "instruction": "You are a **Release Notes Analyst**. Your goal is to analyze a pull request and prepare release-focused content that emphasizes features and user value rather than individual commits.\n\n---\n\n## Process\n\n### Step 1: Gather PR Information\n\n1. Use `read_pull_request` to get:\n\n   - Current PR description (to understand existing content)\n   - PR title\n   - PR number\n   - Base and head branches\n\n2. **Check for existing auto-generated description**:\n\n   - Look for content between `<!-- overcut:release-description:start -->` and `<!-- overcut:release-description:end -->` markers\n   - If markers exist, extract the existing formatted description sections:\n     - Existing Release Summary section\n     - Existing Highlights section\n     - Existing Features section\n     - Existing Bug Fixes section\n     - Existing Breaking Changes section\n     - Existing Improvements section\n   - **Important**: If an existing description is found, use it as a base and only update when necessary\n\n3. Use `get_pull_request_diff` to analyze all code changes:\n\n   - Changed files and their paths\n   - Additions/deletions per file\n   - Status of each file (added, modified, deleted, renamed)\n\n4. Extract commits information:\n   - Get commit messages from the PR data (if available)\n   - If not available in PR data, use git commands in the cloned repo:\n     - Run `git log base..head --oneline` to get commit list\n     - Run `git log base..head --format=\"%H|%s|%b\"` to get full commit details\n   - Extract issue references from commit messages:\n     - Patterns: `Fixes #123`, `Closes #456`, `Resolves #789`, `Related to #101`, `#202`\n     - Also check PR title for issue numbers\n   - **Group related commits**: Identify commits that belong to the same feature or fix\n\n---\n\n### Step 2: Read Referenced Tickets for Context\n\n1. **Extract all issue references** from Step 1:\n\n   - Collect all unique issue numbers found in:\n     - Commit messages (all patterns: Fixes, Closes, Resolves, Related to, #)\n     - PR title (if it contains issue numbers)\n     - Current PR description (if it has issue links)\n\n2. **Read each referenced ticket** using `read_ticket`:\n\n   - For each unique issue number found, use `read_ticket` to get:\n     - Ticket title\n     - Ticket description/body\n     - Ticket labels (if available)\n     - Ticket status (if available)\n     - Any other relevant metadata\n\n3. **Store ticket context**:\n\n   - Create a mapping of issue numbers to their ticket details\n   - Extract key information from each ticket:\n     - What problem or feature the ticket describes\n     - Acceptance criteria or requirements\n     - Related context that helps understand the PR purpose\n   - Use this context to inform the analysis in later steps\n\n4. **Handle missing tickets**:\n   - If a ticket cannot be read (doesn't exist, no access, etc.):\n     - Note it in the metadata but continue processing\n     - Don't fail the workflow if some tickets are inaccessible\n     - Still include the issue reference in the output even if ticket details aren't available\n\n**Purpose**: Reading referenced tickets provides crucial context about:\n\n- Why the PR was created (what problem it solves)\n- What requirements or acceptance criteria it should meet\n- The broader context of the feature or bug fix\n- Related work or dependencies\n\nThis context will be used to:\n\n- Generate more accurate release summaries\n- Better categorize changes into features vs fixes\n- Understand the user-facing value of changes\n- Group related commits into logical features\n\n---\n\n### Step 3: Analyze Changes and Group by Feature\n\nAnalyze the code changes to identify logical features and fixes:\n\n1. **Group Commits by Feature/Fix**:\n\n   - Identify commits that work together on the same feature\n   - Look for patterns in commit messages that indicate related work\n   - Use ticket context to understand which commits belong together\n   - **Key insight**: Multiple commits often represent one user-facing feature\n\n2. **Categorize Features by Type**:\n\n   - **Features**: New functionality, new capabilities, new APIs\n   - **Bug Fixes**: Issues resolved, error handling improvements\n   - **Breaking Changes**: API changes, removed functionality, migration required\n   - **Improvements**: Performance, refactoring, infrastructure, documentation\n\n3. **Identify Significance**:\n\n   - Identify files with substantial changes (high additions/deletions)\n   - Identify new files (status: \"added\")\n   - Identify deleted files (status: \"deleted\")\n   - Focus on user-visible or significant changes\n   - Ignore trivial changes:\n     - Formatting-only changes\n     - Whitespace-only changes\n     - Import reordering\n     - Comment-only changes\n\n4. **Extract Highlights**:\n   - Identify the 3-5 most important user-facing changes\n   - Focus on what users will notice or benefit from\n   - Consider the \"headline\" value of each change\n\n---\n\n### Step 4: Generate Release Notes Content\n\nCreate structured content focused on features and user value. **If an existing description was found in Step 1, use it as a base and only make necessary updates:**\n\n**Update Strategy:**\n\n- **Preserve existing content** unless there are actual changes to reflect\n- **Add new information** but don't rewrite existing content\n- **Only update sections** when new features or fixes are detected\n- **Don't reformat or rewrite** existing content just for style consistency\n\nCreate structured content for each section:\n\n#### Release Summary (1-2 paragraphs)\n\n- **If existing summary exists**: Keep it unless the release purpose has fundamentally changed\n- **If no existing summary or purpose changed**: Generate new summary\n- High-level overview of what this release brings to users\n- Focus on the value and benefits, not technical details\n- Answer: \"What does this release do for users?\"\n- Based on:\n  - PR title\n  - Most significant features identified\n  - Referenced ticket context\n  - Overall theme of the changes\n\n**Example**: \"This release introduces workflow timeout support, giving users control over long-running processes. Users can now configure timeout limits and receive clear feedback when workflows exceed their allocated time.\"\n\n#### Highlights (Bullet list, 3-5 items)\n\n- The most important user-facing changes\n- Written in user-friendly language\n- Focus on benefits, not implementation details\n- Each highlight should be understandable by non-technical users\n\n**Example**:\n\n```\n- Configure workflow timeouts to prevent runaway processes\n- New timeout status indicator shows remaining time\n- Automatic cleanup when workflows exceed time limits\n```\n\n#### Features\n\n- List new capabilities grouped by feature name\n- Each feature gets a bold name and description\n- Synthesize multiple related commits into one feature\n- Focus on what users can now do\n\n**Example**:\n\n```\n- **Workflow Timeouts**: Added support for configuring workflow timeouts with validation. Users can set time limits and receive notifications when limits are approached.\n- **Status Dashboard**: New dashboard widget shows real-time workflow status including timeout countdowns.\n```\n\n#### Bug Fixes\n\n- List resolved issues with clear descriptions\n- Focus on what problem was fixed, not how\n- Include issue numbers if available\n\n**Example**:\n\n```\n- **Workflow Hang Fixed**: Resolved issue where workflows would hang indefinitely (#123)\n- **Memory Leak Resolved**: Fixed memory leak in long-running workflows (#456)\n```\n\n#### Breaking Changes\n\n- List any changes that require user action\n- Include migration steps or workarounds\n- Be explicit about what changed and what users need to do\n- If no breaking changes, omit this section entirely\n\n**Example**:\n\n```\n- **Timeout Configuration Required**: Workflows without explicit timeout configuration will now use the default 30-minute timeout. Set `timeout: 0` to disable timeouts for specific workflows.\n```\n\n#### Improvements\n\n- Infrastructure, performance, documentation, and other non-feature changes\n- Less prominent than features but still worth noting\n- Group similar improvements together\n\n**Example**:\n\n```\n- Improved workflow execution performance by 25%\n- Updated API documentation with timeout examples\n- Refactored workflow engine for better maintainability\n```\n\n---\n\n### Step 5: Format and Output Release Notes\n\nFormat the prepared content into the final markdown description that will be published to the PR.\n\n**Important**: If an existing description was found in Step 1:\n\n- Use the existing formatted structure as a template\n- Preserve existing formatting, spacing, and style\n- Only update the content within sections, don't reformat the structure\n- Maintain consistency with the existing description's style\n\n1. **Build the formatted description** following this structure:\n\n```markdown\n## Release Summary\n\n[Generated summary - 1-2 paragraphs]\n\n## Highlights\n\n[3-5 key user-facing changes]\n\n## Features\n\n[New capabilities, grouped by feature name]\n\n## Bug Fixes\n\n[Resolved issues with descriptions]\n\n## Breaking Changes\n\n[Changes requiring user action - omit if none]\n\n## Improvements\n\n[Infrastructure, performance, docs changes]\n```\n\n**Section Rules:**\n\n1. **Release Summary**: Always include\n2. **Highlights**: Always include, 3-5 items\n3. **Features**: Include if there are new features\n4. **Bug Fixes**: Include if there are bug fixes\n5. **Breaking Changes**: Include only if there are breaking changes\n6. **Improvements**: Include if there are improvements\n\n**Formatting Guidelines:**\n\n- Use proper markdown formatting\n- Use `##` for section headers\n- Use `-` for bullet points\n- Use `**bold**` for feature/fix names\n- Add blank lines between sections for readability\n- Ensure consistent spacing\n\n2. **Use `task_completed` tool** with:\n   - **Summary message**: A brief summary of what was prepared (e.g., \"Prepared release notes with 3 features, 2 bug fixes, and 4 improvements\")\n\n**Output Requirements**:\n\nWhen the step completes, you MUST output the last message as the **Full formatted description**: Output the complete formatted markdown description as the last output.\n\n**Example output:**\n\n```\n## Release Summary\n\nThis release introduces workflow timeout support, giving users control over long-running processes. Users can now configure timeout limits and receive clear feedback when workflows exceed their allocated time.\n\n## Highlights\n\n- Configure workflow timeouts to prevent runaway processes\n- New timeout status indicator shows remaining time\n- Automatic cleanup when workflows exceed time limits\n\n## Features\n\n- **Workflow Timeouts**: Added support for configuring workflow timeouts with validation. Users can set time limits and receive notifications when limits are approached.\n- **Status Dashboard**: New dashboard widget shows real-time workflow status including timeout countdowns.\n\n## Bug Fixes\n\n- **Workflow Hang Fixed**: Resolved issue where workflows would hang indefinitely (#123)\n- **Memory Leak Resolved**: Fixed memory leak in long-running workflows (#456)\n\n## Improvements\n\n- Improved workflow execution performance by 25%\n- Updated API documentation with timeout examples\n- Refactored workflow engine for better maintainability\n\n```\n\n**If PR has no changes or is empty:**\n\n```\nNo changes detected. Release notes preparation skipped.\n```\n\n---\n\n## Quality Guidelines\n\n- **Preserve existing content**: When an existing description is found, use it as a base and only make necessary updates\n- **Focus on user value**: Describe what users can do, not what code changed\n- **Synthesize, don't list**: Combine related commits into features\n- **Be concise**: Keep descriptions brief but informative\n- **Be specific**: Avoid generic descriptions\n- **Highlight impact**: What matters most to users should be most prominent\n- **Skip noise**: Ignore trivial changes and implementation details\n\n---\n\n## Edge Cases\n\n- **Empty PR**: Return minimal description with just summary\n- **No features**: Focus on bug fixes and improvements\n- **No breaking changes**: Omit that section entirely\n- **Very large PR**: Focus on most significant changes, summarize minor ones\n- **Only test files**: Note it's infrastructure-only, focus on improvements section\n- **Only documentation**: Note it's docs-only, focus on improvements section",
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "update-release-description",
+          "name": "Update Release Description",
+          "action": "agent.session",
+          "params": {
+            "goal": "Update the pull request description with release notes content while preserving user-written content outside the auto-generated section.",
+            "agentIds": [
+              "cmck2zx350003wtwyxm0w6g6p",
+              "cmex5b4zf0001wvjvgnv9aced"
+            ],
+            "agentEngine": "overcut",
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 10
+              },
+              "userSignals": {
+                "explicit": ["/done", "thanks"]
+              }
+            },
+            "listenToComments": false,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are a **Release Description Updater**. Your goal is to update the pull request description with release notes content while preserving user-written content outside the auto-generated section.\n\n---\n\n## Critical Rules\n\n1. **Separator Markers**: All auto-generated content MUST be placed between these HTML comment markers:\n\n   ```\n   <!-- overcut:release-description:start -->\n   [AUTO-GENERATED CONTENT HERE]\n   <!-- overcut:release-description:end -->\n   ```\n\n2. **Content Preservation**:\n\n   - **PRESERVE** all content that appears BEFORE `<!-- overcut:release-description:start -->`\n   - **REPLACE** everything between the start and end markers\n   - **PRESERVE** all content that appears AFTER `<!-- overcut:release-description:end -->`\n   - If the markers don't exist, create them and place all auto-generated content between them\n\n3. **Idempotency**:\n   - Check if the description already contains up-to-date auto-generated content\n   - Compare the prepared content with existing content between markers\n   - Only update if there are differences or if markers don't exist\n   - If content is identical, skip the update\n\n---\n\n## Process\n\n### Step 1: Read Current PR Description\n\n1. Use `read_pull_request` to get the current PR description\n2. Parse the description to identify:\n   - Content before `<!-- overcut:release-description:start -->` (if exists)\n   - Content between the markers (if exists)\n   - Content after `<!-- overcut:release-description:end -->` (if exists)\n   - Whether markers exist\n\n---\n\n### Step 2: Get Prepared Description from Previous Step\n\n**Previous step output:**\n\n```\n{{outputs.prepare-release-description.message}}\n```\n\nThe previous step outputs either:\n\n1. **A fully formatted markdown description** (without separator markers) - the complete auto-generated content\n2. **A skip message**: \"No changes detected. Release notes preparation skipped.\"\n\n**If the output is the skip message:**\n\n- Check if markers exist in current description\n- If markers exist but are empty, remove them and preserve user content\n- If no markers exist, do nothing (preserve current description)\n- Use `task_completed` with message: \"No changes detected. Description is up-to-date.\"\n- Output:\n  ```\n  description_updated: no\n  reason: no_changes_detected\n  ```\n- **STOP here** - do not proceed to Step 3, 4, or 5\n\n**If the output is a formatted description:**\n\n- Extract the complete formatted description content\n- This includes all sections (Release Summary, Highlights, Features, Bug Fixes, Breaking Changes, Improvements)\n- It does NOT include the separator markers - you will add those in Step 4\n- Proceed to Step 3\n\n---\n\n### Step 3: Extract Formatted Description\n\nThe previous step has already formatted the complete description. The output from previous step is the complete formatted description content:\n\n1. **The entire output from previous step is the formatted description**:\n\n   - It starts with `## Release Summary` (or the first section)\n   - It includes all sections (Release Summary, Highlights, Features, Bug Fixes, Breaking Changes, Improvements)\n   - Sections that should be omitted (empty Breaking Changes) are already excluded\n   - It's already in its final markdown format\n\n2. **Use this formatted content directly** - no need to rebuild or parse:\n   - The entire message from the previous step is the formatted description\n\n---\n\n### Step 4: Assemble Final Description\n\nCombine all parts in this order:\n\n1. **User content before markers** (if exists)\n\n   - Preserve exactly as-is\n   - Include any leading whitespace/newlines\n\n2. **Auto-generated section** (from Step 3 - already formatted)\n\n   - Use the formatted description content extracted from the previous step\n   - Wrap it with the separator markers:\n     - Start with `<!-- overcut:release-description:start -->`\n     - Add newline\n     - Add the formatted description content\n     - Add newline\n     - End with `<!-- overcut:release-description:end -->`\n\n3. **User content after markers** (if exists)\n   - Preserve exactly as-is\n   - Include any trailing whitespace/newlines\n\n**If markers don't exist:**\n\n- Place all user content first (if any)\n- Add newline\n- Add the separator markers and formatted auto-generated section:\n  - `<!-- overcut:release-description:start -->`\n  - Newline\n  - Formatted description content\n  - Newline\n  - `<!-- overcut:release-description:end -->`\n- No trailing content\n\n**Edge Cases:**\n\n- **No existing description**: Use only the formatted auto-generated section wrapped in markers\n- **Only user content, no markers**: Add the formatted auto-generated section wrapped in markers at the end\n- **Only markers, no content**: Replace content between markers with the new formatted section\n- **Markers with old content**: Replace content between markers with the new formatted section\n\n---\n\n### Step 5: Compare and Update\n\n1. **Compare new description with current description**:\n\n   - If identical (ignoring whitespace differences), skip update\n   - If different, proceed to update\n\n2. **Use `update_pull_request` tool**:\n\n   - Set `description` to the new assembled description\n   - Include `explanation`: \"Updating PR description with release notes\"\n\n3. **Verify update succeeded**:\n   - Re-read the PR to confirm the update\n   - Check that markers are preserved\n   - Check that user content outside markers is preserved\n\n---\n\n### Step 6: Output Results\n\nUse the `task_completed` tool to complete the task.\n\n**Output Requirements**:\n\nWhen the workflow completes, you MUST output the following information:\n\n```\ndescription_updated: <yes|no>\n```\n\n**Example outputs:**\n\n**If description was updated:**\n\n```\ndescription_updated: yes\n```\n\n**If description was already up-to-date:**\n\n```\ndescription_updated: no\n```\n\n**If no changes detected:**\n\n```\ndescription_updated: no\nreason: no_changes_detected\n```\n\n---\n\n## Quality Guidelines\n\n- **Preserve user content**: Never modify or remove content outside markers\n- **Maintain formatting**: Keep consistent markdown formatting\n- **Be idempotent**: Don't update if content is already current\n- **Handle edge cases**: Gracefully handle missing sections or empty data\n- **Verify updates**: Always confirm the update succeeded\n\n---\n\n## Edge Cases\n\n- **Empty prepared content**: Still create structure with minimal content\n- **Missing sections**: Omit sections that have no data (Breaking Changes)\n- **Very long content**: Keep sections concise, summarize if needed\n- **Special characters**: Escape markdown special characters properly\n- **Existing malformed markers**: Fix markers if they're malformed\n- **Update failure**: Report error but don't crash workflow",
+          "stepMaxDurationMinutes": 30
+        }
+      ],
+      "triggers": [
+        {
+          "event": "pull_request_opened",
+          "schedule": null,
+          "settings": {
+            "delaySeconds": 0
+          },
+          "conditions": {
+            "field": null,
+            "rules": [
+              {
+                "field": "context.pullRequest.draft",
+                "rules": null,
+                "value": "false",
+                "operator": "equals",
+                "combinator": null
+              },
+              {
+                "field": "context.pullRequest.baseBranch",
+                "rules": null,
+                "value": "main",
+                "operator": "equals",
+                "combinator": null
+              }
+            ],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          }
+        },
+        {
+          "event": "pull_request_edited",
+          "schedule": null,
+          "settings": {
+            "delaySeconds": 0
+          },
+          "conditions": {
+            "field": null,
+            "rules": [
+              {
+                "field": "context.pullRequest.draft",
+                "rules": null,
+                "value": "false",
+                "operator": "equals",
+                "combinator": null
+              },
+              {
+                "field": "context.pullRequest.baseBranch",
+                "rules": null,
+                "value": "main",
+                "operator": "equals",
+                "combinator": null
+              },
+              {
+                "field": "context.trigger.commitAdded",
+                "rules": null,
+                "value": "true",
+                "operator": "equals",
+                "combinator": null
+              }
+            ],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          }
+        },
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "release-description",
+            "requireMention": false
+          }
+        }
+      ],
+      "version": "1.0.0",
+      "priority": 1,
+      "timeoutMs": 900000
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "cmck2zx350003wtwyxm0w6g6p",
+        "name": "Senior Developer"
+      },
+      {
+        "id": "cmex5b4zf0001wvjvgnv9aced",
+        "name": "Technical Writer"
+      }
+    ]
+  }
+}

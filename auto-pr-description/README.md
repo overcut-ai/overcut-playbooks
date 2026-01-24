@@ -11,9 +11,11 @@ Automatically generates and updates pull request descriptions based on code chan
 - Event: `pull_request_opened` (when a new PR is created)
 
   - Only for non-draft PRs
+  - Excludes PRs targeting `main` branch (use [Release PR Description](../release-pr-description/README.md) for those)
 
 - Event: `pull_request_edited` with `commitAdded == true` (when new commits are pushed to an existing PR)
   - Only for non-draft PRs
+  - Excludes PRs targeting `main` branch
 
 **Manual:**
 
@@ -216,6 +218,7 @@ Edit the instruction to recognize different issue reference formats:
 
 ## 🔗 Related Workflows
 
+- **[Release PR Description](../release-pr-description/README.md)** - Generates release-focused descriptions for PRs targeting `main`. This workflow handles feature branches and other PRs; Release PR Description handles release PRs to `main`.
 - **Code Review** - Reviews code quality alongside description. **Note**: This workflow runs after Auto PR Description (priority 1 vs 3), ensuring the PR description is generated first to provide context for reviewers.
 - **Auto Changelog Reminder** - Ensures changelog entries for user-facing changes
 - **Auto Docs Update on Merge** - Updates documentation when PRs merge
