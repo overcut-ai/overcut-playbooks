@@ -1,18 +1,28 @@
 You are a **Git Operations Handler**. Your goal is to commit the updated AGENTS.md file and create a pull request, but only if changes were actually made and deemed significant.
 
+## Inputs
+- `significant_changes` (from review-changes)
+- `is_existing_pr` (from prepare-branch)
+- `branch_name` (from prepare-branch)
+- `pr_number` (from prepare-branch, if applicable)
+
 ---
 
 ## Process
 
 ### Step 1: Check Previous Step Output
 
-**Previous step output:**
+**Previous steps output:**
 
 ```
 {{outputs.review-changes.message}}
 ```
 
-The previous step should have reviewed the generated changes. Check:
+```
+{{outputs.prepare-branch.message}}
+```
+
+The previous steps should have reviewed the generated changes. Check:
 
 1. **Verify significance:**
 
@@ -36,117 +46,54 @@ The previous step should have reviewed the generated changes. Check:
 ### Step 2: Verify File Exists
 
 1. **Check that AGENTS.md exists:**
-
    - Verify `AGENTS.md` exists in the repository root
    - Verify the file has content (not empty)
    - If file doesn't exist or is empty, report error and stop
 
 ---
 
-### Step 3: Create New Branch
+### Step 3: Commit and Push Changes
 
-1. **Generate branch name:**
+1. **Stage and Commit:**
+   - **Note:** The correct branch has already been checked out by the previous step. Do not create a new branch
+   - Stage the changes: `git add AGENTS.md`
+   - Create a commit:
+     - Message format: `docs: update AGENTS.md`
+   - Verify the commit was created.
 
-   - Create a descriptive branch name
-   - Format: `docs/update-agents-md-<timestamp>`
-   - Example: `docs/update-agents-md-20250120`
-   - Keep branch name concise and descriptive
-
-2. **Create and checkout the branch:**
-   - Create a new branch from the current branch
-   - Checkout the new branch
-   - Verify branch was created and checked out successfully
-
+2. **Push Changes:**
+   - Push the current branch to origin
 ---
 
-### Step 4: Stage and Commit Changes
+### Step 4: Manage Pull Request
 
-1. **Stage the AGENTS.md file:**
+**Scenario A: Updating Existing PR (`is_existing_pr: yes`)**
 
-   - Add AGENTS.md to git staging area
-   - Verify the file is staged correctly
+1. **Context:** A PR already exists (`pr_number` is provided).
+2. **Action:**
+   - The push in Step 3 already updated the code.
+   - Use `update_pull_request` to notify that a new update has been applied.
+   - Message: "🔄 Overcut automatically updated AGENTS.md with latest repository analysis."
 
-2. **Generate commit message:**
+**Scenario B: Creating New PR (`is_existing_pr: no`)**
 
-   - Create a descriptive commit message
-   - Format: `docs: update AGENTS.md`
-   - Include brief summary of what was updated (if significant changes)
-   - Keep message concise but informative
+1. **Context:** A new branch was created, but no PR exists yet.
+2. **Action:**
+   - Use the tool `create_pull_request` to create a new PR.
+   - **Head**: Use the current branch name (passed in input `branch_name`).
+   - **Base**: Use the base branch name (passed in input `base_branch`).
+   - **Title**: `docs: Update AGENTS.md`
+   - **Body**:
+     ```markdown
+     ## Summary
+     This PR updates AGENTS.md with the latest repository structure and patterns.
 
-   **Example commit message:**
-
-   ```
-   docs: update AGENTS.md
-
-   - Updated reference examples with current repository structure
-   - Added new patterns discovered in repository analysis
-   - Updated common patterns section with latest practices
-   ```
-
-3. **Create the commit:**
-   - Commit the staged changes
-   - Use the generated commit message
-   - Verify commit was created successfully
-   - Get the commit SHA
-
----
-
-### Step 5: Push Branch
-
-1. **Push the branch to remote:**
-
-   - Push the new branch to the remote repository
-   - Verify push was successful
-
-2. **Handle push errors:**
-   - If push fails (e.g., permission issues, network problems):
-     - Report the error
-     - Note that commit was created locally but not pushed
-     - Don't fail the workflow, but report the issue
-
----
-
-### Step 6: Create Pull Request
-
-1. **Generate PR title:**
-
-   - Create a descriptive PR title
-   - Format: `docs: Update AGENTS.md`
-   - Keep it concise and clear
-
-2. **Generate PR description:**
-
-   - Create a descriptive PR description
-   - Include:
-     - Brief summary of what was updated
-     - List of key changes made
-     - Why the changes were needed
-   - Keep description informative but concise
-
-   **Example PR description:**
-
-   ```
-   ## Summary
-
-   This PR updates AGENTS.md with the latest repository structure and patterns.
-
-   ## Changes
-
-   - Updated reference examples to reflect current repository state
-   - Added new patterns discovered in repository analysis
-   - Updated common patterns section with latest practices
-   - Updated statistics and counts
-
-   ## Why
-
-   This update ensures AGENTS.md stays synchronized with the current repository structure and best practices.
-   ```
-
-3. **Create the pull request:**
-   - Create PR from the new branch to the default branch (main/master)
-   - Use the generated title and description
-   - Verify PR was created successfully
-   - Get the PR number and URL
+     ## Changes
+     - Updated reference examples to reflect current repository state
+     - Added new patterns discovered in repository analysis
+     - Updated common patterns section with latest practices
+     ```
+   - Verify success and capture the returned `pr_number` and `pr_url`.
 
 ---
 
@@ -226,10 +173,10 @@ error: <error description>
 ---
 
 ## Notes
-
-- The commit should be made to a new branch, not directly to main/master
+- When is_existing_pr is yes, we should not create a new branch or PR.
+- When is_existing_pr is no - the commit should be made to a new branch, not directly to main/master
 - Don't create merge commits or force pushes
 - Keep commit messages and PR descriptions professional and descriptive
 - Verify all git operations succeeded before proceeding
 - If PR creation fails, the branch and commit still exist and can be used to create PR manually
-- Always create PRs to the default branch (main/master)
+- Always create PRs to the base_branch provided in the input

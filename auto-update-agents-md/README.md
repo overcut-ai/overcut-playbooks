@@ -39,7 +39,16 @@ Automatically generates or updates the `AGENTS.md` file in any repository based 
    - Uses shallow clone with blob filtering for efficiency
    - Clones the default branch (usually `main` or `master`)
 
-2. **Analyze Repository** (`agent.run`) - Analyzes repository structure and patterns
+2. **Prepare Branch** (`agent.run`) - Setups the working branch for documentation updates
+
+   - Agent: Senior Developer
+   - Duration: ~2 min
+   - Searches for an existing open Pull Request related to `AGENTS.md` updates
+   - If an open PR is found, switches to that branch to use it as a baseline
+   - If no PR exists, creates a new feature branch from the default branch
+   - Ensures the workflow makes incremental updates to existing drafts instead of creating duplicate PRs
+
+3. **Analyze Repository** (`agent.run`) - Analyzes repository structure and patterns
 
    - Agent: Senior Developer
    - Duration: ~5-10 min
@@ -51,7 +60,7 @@ Automatically generates or updates the `AGENTS.md` file in any repository based 
    - Reads existing AGENTS.md (if present) to understand current structure
    - Outputs structured analysis data for documentation generation
 
-3. **Generate AGENTS.md** (`agent.session`) - Generates or updates the AGENTS.md file
+4. **Generate AGENTS.md** (`agent.session`) - Generates or updates the AGENTS.md file
 
    - Agents: Senior Developer, Technical Writer
    - Duration: ~5-10 min (up to 15 min for complex updates)
@@ -64,29 +73,30 @@ Automatically generates or updates the `AGENTS.md` file in any repository based 
    - Writes file to repository (without committing)
    - Outputs whether changes were made
 
- 4. **Review Changes** (`agent.run`) - Reviews the generated changes for significance
-    - Agent: Senior Developer
-    - Duration: ~2-3 min
-    - Analyzes the `git diff` of the `AGENTS.md` file
-    - Discards changes if they are purely stylistic, formatting-related, or minor
-    - Categorizes changes as Significant vs Insignificant
-    - Reverts the file (`git checkout`) if changes are discarded
-    - Outputs whether changes are significant
+5. **Review Changes** (`agent.run`) - Reviews the generated changes for significance
 
- 5. **Create PR** (`agent.run`) - Creates a pull request with the updated AGENTS.md file
-    - Agent: Senior Developer
-    - Duration: ~2-5 min
-    - Checks if changes were deemed significant in the previous step
-    - If no significant changes: exits immediately without creating PR
+   - Agent: Senior Developer
+   - Duration: ~2-3 min
+   - Analyzes the `git diff` of the `AGENTS.md` file
+   - Discards changes if they are purely stylistic, formatting-related, or minor
+   - Categorizes changes as Significant vs Insignificant
+   - Reverts the file (`git checkout`) if changes are discarded
+   - Outputs whether changes are significant
+
+6. **Commit Changes** (`agent.run`) - Commits the updated AGENTS.md and manages the PR
+
+   - Agent: Senior Developer
+   - Duration: ~2-5 min
+   - Checks if changes were deemed significant in the previous step
+   - If no significant changes: exits immediately
    - If changes detected:
-     - Creates a new branch (`docs/update-agents-md-<timestamp>`)
-     - Commits the AGENTS.md file with descriptive message
+     - Commits the `AGENTS.md` file to the current branch
      - Pushes the branch to remote
-     - Creates a pull request with title and description
-   - Handles cases where no changes are needed (skips PR creation)
+     - If an existing PR was found: Updates the PR and notifies the user
+     - If no PR existed: Creates a new pull request with detailed summary
 
 ```
-[Clone] → [Analyze Repository] → [Generate AGENTS.md] → [Review Changes] → [Create PR]
+[Clone] → [Prepare Branch] → [Analyze Repository] → [Generate AGENTS.md] → [Review Changes] → [Commit Changes]
 ```
 
 ## 📝 AGENTS.md Structure
@@ -127,12 +137,13 @@ Common schedule patterns:
 
 ### Step Prompts
 
-The workflow uses three separate prompt files:
+The workflow uses following prompt files:
 
+- `prepare-branch.md` - Controls branch selection and existing PR detection
 - `analyze-repo.md` - Controls repository analysis and pattern extraction
 - `generate-agents-md.md` - Controls documentation generation logic
 - `review-changes.md` - Controls the significance filter logic
-- `commit-changes.md` - Controls branch creation, commit, and PR creation operations
+- `commit-changes.md` - Controls commit and PR management operations
 
 You can customize:
 
@@ -174,12 +185,15 @@ Edit analyze-repo.md to extract additional patterns or information from the repo
 ## 🔍 How It Works
 
 1. **Clones repository:**
-
    - Gets the latest state of the main branch
-   - Ensures analysis is based on current codebase
 
-2. **Analyzes repository structure:**
+2. **Prepares working branch:**
+   - Searches for open PRs with the `docs/update-agents-md-` prefix.
+   - If found, checks out and pulls the latest from that branch.
+   - If not found, creates a new timestamped feature branch.
+   - This ensures the workflow builds on current drafts rather than creating duplicate PRs.
 
+3. **Analyzes repository structure:**
    - Scans repository directories and files
    - Reads workflow.json files (if present) to extract:
      - Step patterns and actions
@@ -199,8 +213,7 @@ Edit analyze-repo.md to extract additional patterns or information from the repo
      - What sections to preserve
      - What sections to update
 
-3. **Generates AGENTS.md:**
-
+4. **Generates AGENTS.md:**
    - Uses analysis data to build comprehensive documentation
    - Compares with existing AGENTS.md (if exists) to determine if updates are needed
    - Only makes changes when necessary (avoids unnecessary PRs)
@@ -211,25 +224,22 @@ Edit analyze-repo.md to extract additional patterns or information from the repo
    - Writes file to repository (without committing)
    - Outputs whether changes were made
 
- 4. **Reviews changes:**
+5. **Reviews changes:**
    - Performs a Significance check on the `git diff`
    - Discards noise (formatting, style, minor rewording)
    - Reverts file if no significant updates are found
 
- 5. **Creates pull request:**
-    - Checks significance from the review step
-    - If no significant changes: exits without creating PR
+6. **Finalizes changes:**
+   - Checks significance from the review step
+   - If no significant changes: exits without committing
    - If changes detected:
-     - Creates a new branch from default branch
-     - Commits the AGENTS.md file
-     - Pushes branch to remote
-     - Creates pull request with descriptive title and description
+     - Commits the updated `AGENTS.md` to the current branch.
+     - Pushes the branch to remote origin.
+     - Automatically updates any existing open Pull Request or creates a new one if necessary.
    - Handles errors gracefully
 
 ## 🚨 Edge Cases Handled
 
-- **Empty repository**: Generates minimal documentation structure
-- **AGENTS.md doesn't exist**: Creates new file from scratch
 - **No changes detected**: Skips PR creation, reports success
 - **Git errors**: Reports error but doesn't fail workflow
 - **PR creation fails**: Reports error, branch and commit still exist locally
@@ -294,6 +304,3 @@ pr_url: null
 reason: no_changes_detected
 ```
 
----
-
-_Part of the [Overcut Playbooks](../README.md) collection_
