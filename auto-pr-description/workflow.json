@@ -100,6 +100,13 @@
                 "value": "false",
                 "operator": "equals",
                 "combinator": null
+              },
+              {
+                "field": "context.pullRequest.baseBranch",
+                "rules": null,
+                "value": "main",
+                "operator": "not_equals",
+                "combinator": null
               }
             ],
             "value": null,
@@ -128,6 +135,13 @@
                 "rules": null,
                 "value": "true",
                 "operator": "equals",
+                "combinator": null
+              },
+              {
+                "field": "context.pullRequest.baseBranch",
+                "rules": null,
+                "value": "main",
+                "operator": "not_equals",
                 "combinator": null
               }
             ],
