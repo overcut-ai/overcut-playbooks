@@ -4,7 +4,7 @@ This file provides instructions for AI agents working with the Overcut Playbooks
 
 ## 📋 Project Overview
 
-This repository contains **Overcut Playbooks** - pre-built, customizable AI agent workflows for software development automation. Each playbook is a complete workflow that can be imported into [Overcut](https://overcut.ai) and customized for specific needs.
+This repository contains **Overcut Playbooks** - pre-built, customizable AI agent workflows for software development automation. Each playbook is a complete workflow that can be imported into [Overcut](https://overcut.ai) and customized for specific needs. The repository root also houses shared documentation (AGENTS.md, README.md, CONTRIBUTING.md, CLAUDE.md, LICENSE) and branding assets that support every playbook.
 
 **Key Technologies:**
 
@@ -14,7 +14,7 @@ This repository contains **Overcut Playbooks** - pre-built, customizable AI agen
 
 ## 🏗️ Repository Structure
 
-Each playbook must follow this structure:
+Root-level docs (AGENTS.md, README.md, CONTRIBUTING.md, CLAUDE.md, LICENSE) plus branding assets provide shared guidance, and each playbook must follow this structure:
 
 ```
 playbook-name/
@@ -417,6 +417,20 @@ The `workflow.json` file must follow this structure:
 }
 ```
 
+**Scheduled (Cron-based):** Use this when workflows need to run on a cadence (e.g., `auto-update-agents-md` refreshing documentation).
+
+```json
+{
+  "event": "schedule",
+  "schedule": {
+    "cron": "0 6 * * 1"
+  },
+  "metadata": {
+    "description": "Weekly docs refresh"
+  }
+}
+```
+
 ## 🚨 Critical Rules
 
 1. **Filename-ID Matching**: Prompt filenames MUST match step IDs exactly (case-sensitive, kebab-case)
@@ -452,10 +466,10 @@ Before submitting a playbook, verify:
 
 Study these playbooks for patterns:
 
-- **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
-- **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
-- **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow
-- **Auto PR Description** (`auto-pr-description/`) - Simple single-step workflow
+- **Auto PR Description** (`auto-pr-description/`) - Simple, single-step workflow focused on PR copywriting
+- **Code Review** (`code-review/`) - Complex multi-step workflow showcasing agent sessions and coordination
+- **Auto Update AGENTS.md** (`auto-update-agents-md/`) - Documentation-centric workflow that demonstrates scheduled cron execution
+- **Remediate CVEs** (`remediate-cves/`) - Specialized security-focused agents example
 
 ## 🎯 Common Tasks
 
