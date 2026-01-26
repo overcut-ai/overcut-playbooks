@@ -23,7 +23,7 @@ From the triggering issue and previous steps:
 1. Pull the latest changes from origin for the current branch.
 
 2. Create a new implementation branch:
-   - Branch name: `prbuilder/<slug>` where slug is derived from the issue title
+   - Branch name: `prbuilder/<slug>` where slug is derived from the issue title (keep it up to 50 characters for clarity)
    - Create from the current branch (the cloned branch)
    - Verify branch creation succeeded
 
@@ -36,7 +36,7 @@ From the triggering issue and previous steps:
    - Check if a PR already exists for this branch, if it does, update it
    - Title: `[DRAFT] <issue_title>`
    - Body: Initial description (use template below)
-   - Mark as **draft** 
+   - Mark as **draft**
    - Base branch: The branch that was cloned
    - This PR will be updated with progress in the next steps
 
@@ -135,4 +135,3 @@ base_branch: main
 • Output all required information for the next step.
 • Do NOT implement any code - that's the next step's responsibility.
 • Verify branch and PR creation succeeded before completing.
-
