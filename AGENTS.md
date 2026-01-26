@@ -4,7 +4,7 @@ This file provides instructions for AI agents working with the Overcut Playbooks
 
 ## 📋 Project Overview
 
-This repository contains **Overcut Playbooks** - pre-built, customizable AI agent workflows for software development automation. Each playbook is a complete workflow that can be imported into [Overcut](https://overcut.ai) and customized for specific needs. The repository root also houses shared documentation (AGENTS.md, README.md, CONTRIBUTING.md, CLAUDE.md, LICENSE) and branding assets that support every playbook.
+This repository contains **Overcut Playbooks** - pre-built, customizable AI agent workflows for software development automation. Each playbook is a complete workflow that can be imported into [Overcut](https://overcut.ai) and customized for specific needs. The repository root also houses shared documentation (AGENTS.md, README.md, CONTRIBUTING.md, CLAUDE.md, LICENSE) and branding assets (`logo-overcut-*.svg`) that support every playbook.
 
 **Key Technologies:**
 
@@ -26,6 +26,8 @@ playbook-name/
 │   └── agent-name.md      # Instructions for configuring custom agents
 └── ...                    # More steps as needed
 ```
+
+Expect a roster of kebab-case directories at the repository root (e.g., `auto-pr-description/`, `code-review/`, `requirements-document-generation/`, `auto-changelog-reminder/`). Each folder follows this structure, and only complex or domain-heavy workflows include the optional `special-agents/` subfolder for tailored personas.
 
 ## 🎯 Creating New Playbooks
 
@@ -87,6 +89,7 @@ Use this template structure:
 - Include customization guide
 - Document prerequisites clearly
 - Add related workflow links
+- Explicitly describe triggers (automatic PR events, issue labels, or schedules) and note planned step durations/timeboxes so executions remain predictable
 - Grammar and spelling checked
 
 **Purpose**: The README serves as the design document. It should clearly describe:
@@ -287,6 +290,7 @@ The `workflow.json` file must follow this structure:
 
 ### Workflow Files (workflow.json)
 
+- ✅ Designed to be idempotent—rerunning the workflow should not create conflicting artifacts
 - ✅ Valid JSON syntax (no trailing commas, proper escaping)
 - ✅ Complete step definitions (id, name, action, params, instruction)
 - ✅ Clear step names and descriptions
@@ -466,10 +470,11 @@ Before submitting a playbook, verify:
 
 Study these playbooks for patterns:
 
-- **Auto PR Description** (`auto-pr-description/`) - Simple, single-step workflow focused on PR copywriting
-- **Code Review** (`code-review/`) - Complex multi-step workflow showcasing agent sessions and coordination
-- **Auto Update AGENTS.md** (`auto-update-agents-md/`) - Documentation-centric workflow that demonstrates scheduled cron execution
-- **Remediate CVEs** (`remediate-cves/`) - Specialized security-focused agents example
+- **Simple**: `auto-changelog-reminder/` and `auto-pr-description/` show lightweight flows centered on a single deliverable
+- **Documentation-focused**: `auto-update-agents-md/`, `implement-docs-from-issue/`, and `requirements-document-generation/` highlight scheduled and ad-hoc documentation refresh workflows
+- **Complex / Multi-step**: `code-review/` and `create-pr-from-design/` demonstrate chaining git operations with multiple agent runs and sessions
+- **Specialized / Security**: `remediate-cves/` showcases how to introduce domain-specific special agents
+- **Release-specific variants**: Compare `release-pr-description/` with `auto-pr-description/` to see how similar flows adapt to milestone-driven triggers
 
 ## 🎯 Common Tasks
 
