@@ -12,6 +12,14 @@ This repository contains **Overcut Playbooks** - pre-built, customizable AI agen
 - Markdown for prompts and documentation
 - Git for version control
 
+**Key Repository Patterns:**
+
+- **Design-first planning** keeps every playbook grounded in an approved README before prompts or workflow.json are implemented
+- **Strict filename-to-step-ID matching** enforces that each prompt file name equals the workflow step ID (kebab-case only)
+- **Complete documentation requirements** ensure every README covers triggers, step breakdowns, prerequisites, customization guidance, and related workflows
+- **Special-agents reserved for specialists** limit the `special-agents/` folder to deep domain personas that need tailored instructions
+- **Structured triggers and actions** pair `git.clone` preparation steps with `agent.run` or `agent.session` executions, passing context via `{{outputs.step-id.field}}`
+
 ## 🏗️ Repository Structure
 
 Root-level docs (AGENTS.md, README.md, CONTRIBUTING.md, CLAUDE.md, LICENSE) plus branding assets provide shared guidance, and each playbook must follow this structure:
@@ -470,11 +478,11 @@ Before submitting a playbook, verify:
 
 Study these playbooks for patterns:
 
-- **Simple**: `auto-changelog-reminder/` and `auto-pr-description/` show lightweight flows centered on a single deliverable
-- **Documentation-focused**: `auto-update-agents-md/`, `implement-docs-from-issue/`, and `requirements-document-generation/` highlight scheduled and ad-hoc documentation refresh workflows
+- **Simple / Focused**: `auto-changelog-reminder/` demonstrates a lightweight reminder workflow centered on a single deliverable
+- **Documentation-Centric**: `auto-update-agents-md/`, `implement-docs-from-issue/`, and `requirements-document-generation/` highlight scheduled and ad-hoc documentation refresh workflows
 - **Complex / Multi-step**: `code-review/` and `create-pr-from-design/` demonstrate chaining git operations with multiple agent runs and sessions
-- **Specialized / Security**: `remediate-cves/` showcases how to introduce domain-specific special agents
-- **Release-specific variants**: Compare `release-pr-description/` with `auto-pr-description/` to see how similar flows adapt to milestone-driven triggers
+- **Specialized / Security**: `remediate-cves/` shows how to introduce a `special-agents/` folder for domain-specific expertise
+- **Release Variants**: Compare `release-pr-description/` with `auto-pr-description/` to see how similar flows adapt to milestone-driven triggers
 
 ## 🎯 Common Tasks
 
