@@ -4,7 +4,7 @@ This file provides instructions for AI agents working with the Overcut Playbooks
 
 ## 📋 Project Overview
 
-This repository contains **Overcut Playbooks** - pre-built, customizable AI agent workflows for software development automation. Each playbook is a complete workflow that can be imported into [Overcut](https://overcut.ai) and customized for specific needs. The repository root also houses shared documentation (AGENTS.md, README.md, CONTRIBUTING.md, CLAUDE.md, LICENSE) and branding assets (`logo-overcut-*.svg`) that support every playbook.
+This repository contains **Overcut Playbooks** - pre-built, customizable AI agent workflows for software development automation. Each playbook is a complete workflow that can be imported into [Overcut](https://overcut.ai) and customized for specific needs. The repository root also houses shared documentation (AGENTS.md, README.md, CONTRIBUTING.md, CLAUDE.md, LICENSE) and branding assets (`logo-overcut-*.svg`) that support every playbook. The root README.md catalogs every playbook and is the first stop for exploring existing workflows or planning new additions.
 
 **Key Technologies:**
 
@@ -22,7 +22,7 @@ This repository contains **Overcut Playbooks** - pre-built, customizable AI agen
 
 ## 🏗️ Repository Structure
 
-Root-level docs (AGENTS.md, README.md, CONTRIBUTING.md, CLAUDE.md, LICENSE) plus branding assets provide shared guidance, and each playbook must follow this structure:
+Root-level docs (AGENTS.md, README.md, CONTRIBUTING.md, CLAUDE.md, LICENSE) plus branding assets provide shared guidance, and each playbook must follow this structure. The root README.md doubles as the living catalog of every playbook, so consult it first when exploring the repository or planning to add a workflow:
 
 ```
 playbook-name/
@@ -228,6 +228,8 @@ The `workflow.json` file must follow this structure:
 - ✅ Specialized roles requiring domain-specific knowledge (e.g., Security Engineer, Database Architect)
 - ✅ Agents needing detailed behavioral guidelines or decision frameworks
 - ✅ Custom agent personas unique to this workflow
+
+_Example: `remediate-cves/special-agents/security-engineer-agent.md` defines a dedicated Security Engineer persona for the CVE remediation workflow._
 
 **When NOT to use:**
 
@@ -482,6 +484,7 @@ Study these playbooks for patterns:
 - **Documentation-Centric**: `auto-update-agents-md/`, `implement-docs-from-issue/`, and `requirements-document-generation/` highlight scheduled and ad-hoc documentation refresh workflows
 - **Complex / Multi-step**: `code-review/` and `create-pr-from-design/` demonstrate chaining git operations with multiple agent runs and sessions
 - **Specialized / Security**: `remediate-cves/` shows how to introduce a `special-agents/` folder for domain-specific expertise
+- **Doc-only Placeholder**: `migration-package/README.md` demonstrates how to document a planned workflow even before prompts or workflow definitions exist
 - **Release Variants**: Compare `release-pr-description/` with `auto-pr-description/` to see how similar flows adapt to milestone-driven triggers
 
 ## 🎯 Common Tasks
