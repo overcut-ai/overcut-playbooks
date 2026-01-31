@@ -160,7 +160,7 @@
       ],
       "version": "1.0.0",
       "priority": 3,
-      "timeoutMs": 3600000
+      "timeoutMs": 7200000
     }
   },
   "refs": {
