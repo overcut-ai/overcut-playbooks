@@ -4,13 +4,14 @@ This file provides instructions for AI agents working with the Overcut Playbooks
 
 ## 📋 Project Overview
 
-This repository contains **Overcut Playbooks** - pre-built, customizable AI agent workflows for software development automation. Each playbook is a complete workflow that can be imported into [Overcut](https://overcut.ai) and customized for specific needs. The repository root also houses shared documentation (AGENTS.md, README.md, CONTRIBUTING.md, CLAUDE.md, LICENSE) and branding assets (`logo-overcut-*.svg`) that support every playbook. The root README.md catalogs every playbook and is the first stop for exploring existing workflows or planning new additions.
+This repository contains **Overcut Playbooks** - pre-built, customizable AI agent workflows for software development automation. Each playbook is a complete workflow that can be imported into [Overcut](https://overcut.ai) and customized for specific needs. The repository root also houses shared documentation (AGENTS.md, README.md, CONTRIBUTING.md, CLAUDE.md, LICENSE) and branding assets (`logo-overcut-*.svg`) that support every playbook. The root README.md catalogs every playbook and is the first stop for exploring existing workflows or planning new additions. This is a **mixed** repository containing both documentation and executable workflow assets, so expect Markdown references alongside Overcut workflow definitions in every playbook directory.
 
 **Key Technologies:**
 
 - Overcut Workflow JSON format (version 1.0.0)
 - Markdown for prompts and documentation
 - Git for version control
+- Agent personas (Senior Developer, Technical Writer, Code Reviewer, Security Engineer, etc.)
 
 **Key Repository Patterns:**
 
@@ -19,6 +20,7 @@ This repository contains **Overcut Playbooks** - pre-built, customizable AI agen
 - **Complete documentation requirements** ensure every README covers triggers, step breakdowns, prerequisites, customization guidance, and related workflows
 - **Special-agents reserved for specialists** limit the `special-agents/` folder to deep domain personas that need tailored instructions
 - **Structured triggers and actions** pair `git.clone` preparation steps with `agent.run` or `agent.session` executions, passing context via `{{outputs.step-id.field}}`
+- **Significance-filtered context** keeps prompts focused by explicitly highlighting the most relevant outputs when chaining steps
 
 ## 🏗️ Repository Structure
 
