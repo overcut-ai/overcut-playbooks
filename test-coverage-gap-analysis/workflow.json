@@ -1,0 +1,120 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Test Coverage Gap Analysis",
+    "description": "Identifies test coverage gaps using targeted search strategies (git history, critical paths, core logic), checks each gap against open issues and PRs, and creates up to 3 actionable GitHub issues per run. Designed for large repos \u2014 never scans all files or runs test suites.",
+    "instructions": [
+      {
+        "description": "Overcut will analyze your repository for test coverage gaps every Monday at 4:00 AM UTC. It uses git history and targeted file searches to find untested code, checks for existing issues/PRs to avoid duplicates, and creates up to 3 prioritized issues per run. You can also trigger it manually using the `/test-coverage` command.",
+        "action": "schedule"
+      }
+    ],
+    "definition": {
+      "flow": [
+        {
+          "to": "git-clone",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "find-coverage-gaps",
+          "from": "git-clone",
+          "condition": null
+        },
+        {
+          "to": "create-coverage-issues",
+          "from": "find-coverage-gaps",
+          "condition": null
+        }
+      ],
+      "name": "Test Coverage Gap Analysis",
+      "steps": [
+        {
+          "id": "git-clone",
+          "name": "Clone Repo",
+          "action": "git.clone",
+          "params": {
+            "branch": "",
+            "cloneOptions": {
+              "depth": 1,
+              "filter": {
+                "type": "blob:none"
+              },
+              "singleBranch": true
+            },
+            "repoFullName": "{{trigger.repository.fullName}}"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 30
+        },
+        {
+          "id": "find-coverage-gaps",
+          "name": "Find Coverage Gaps",
+          "action": "agent.run",
+          "params": {
+            "agentId": "cmck2zx350003wtwyxm0w6g6p",
+            "agentEngine": "overcut"
+          },
+          "instruction": "You are a Senior Developer finding test coverage gaps in the repository.\n\n## Goal\n\nFind 3 source files with missing tests, poor test coverage, or no coverage at all \u2014 that are not already tracked by open issues or PRs. A gap can be a file with no test file, a file whose test file only covers a fraction of its functionality, or a critical file with shallow/trivial tests. Stop as soon as you have 3. Do not exhaustively scan the codebase.\n\n## Process\n\n### Step 1 - Detect Language and Test Framework\n\n1. Check the repository root for configuration files to determine the tech stack:\n   - `package.json` \u2192 JavaScript/TypeScript (look for jest, vitest, mocha, etc.)\n   - `pytest.ini`, `pyproject.toml`, `setup.cfg` \u2192 Python (pytest, unittest)\n   - `go.mod` \u2192 Go (go test)\n   - `pom.xml`, `build.gradle` \u2192 Java (JUnit, TestNG)\n   - `Cargo.toml` \u2192 Rust (cargo test)\n   - `Gemfile` \u2192 Ruby (RSpec, minitest)\n2. Identify the test directory convention (e.g., `__tests__/`, `tests/`, `test/`, `*_test.go`, `*.spec.ts`).\n3. Note the naming conventions used for test files in the project.\n\n### Step 2 - Search for Gaps Using Targeted Strategies\n\nDo NOT scan all files. Use these two strategies in order. For each candidate, immediately validate it against open issues/PRs (Step 3) before moving on. Stop as soon as you have collected **3 confirmed gaps**.\n\n**Strategy A \u2014 Recently Changed Files (Git History)**\n\n1. Run `git log --oneline --name-only -n 50` (or similar) to get files touched in the last ~50 commits.\n2. Focus on source files (not tests, configs, docs, or lock files).\n3. For each recently changed source file, check if a corresponding test file exists. If a test file exists, quickly skim it \u2014 does it only have 1-2 trivial tests for a large source file? That still counts as a gap (poor coverage).\n4. Recently changed files without adequate tests are high-value gaps \u2014 they represent active code that developers are modifying without test safety nets.\n\n**Strategy B \u2014 Understand the Repo and Explore Important Areas**\n\nIf Strategy A hasn't yielded 3 gaps yet, build a high-level understanding of the repository and use it to find gaps:\n\n1. **Map the repo structure:** Scan the top-level and first-level directories to understand how the codebase is organized (e.g., `src/auth/`, `src/api/`, `src/billing/`, `lib/utils/`, `services/`). Look at directory names, README, and entry points to identify the major areas/modules.\n\n2. **Identify the important areas:** Based on what you see, determine which areas are most important \u2014 areas that handle core business logic, user-facing functionality, data processing, integrations, security, or payments. Rank them by likely impact.\n\n3. **Sample 1-2 candidates from each important area:** For each area, pick the 1-2 most important-looking source files (largest files, files with names suggesting core logic like `service`, `handler`, `controller`, `manager`, `processor`). Check if they have a corresponding test file. If they do, quickly skim the test file \u2014 if it only has shallow or trivial tests relative to the source file's complexity, that's still a gap.\n\n4. **Expand within areas if needed:** If the initial 1-2 candidates from an area all have good tests, check a few more files in that same area before moving to the next area. Continue until you have 3 confirmed gaps or have checked all important areas.\n\n### Step 3 - Validate Each Candidate (Inline)\n\nFor EACH candidate gap found in Step 2, **before adding it to your list**, do the following:\n\n1. **Check open issues:** Search for existing issues using a short keyword query with the filename or module name + \"test\" (e.g., `auth service test`). Check only the top 5-10 results. If an open issue already tracks adding tests for this file, skip it and continue searching.\n\n2. **Check open PRs:** Search for open PRs that mention the file or module name + \"test\". Check only the top 5 results. If a PR is already adding tests for this file, skip it.\n\n3. **If not tracked:** Add it to your confirmed gaps list with:\n   - File path\n   - Gap type: `no tests`, `poor coverage` (test file exists but covers very little), or `missing coverage` (test file exists but key areas are untested)\n   - Priority level (critical/high/medium/low \u2014 see classification below)\n   - Reason it needs tests or better tests (1 sentence)\n   - Approximate line count\n\n**Stop searching as soon as you have 3 confirmed gaps.**\n\nPerformance Constraint:\n- Do NOT scan or read all open issues/PRs.\n- Use SHORT keyword queries and check ONLY the top results returned.\n- Do not iterate through the entire issue or PR list under any circumstance.\n\n### Priority Classification\n\nWhen assigning priority to a gap, use these categories:\n\n**Critical** \u2014 Authentication, authorization, payments, billing, data integrity, security, encryption, user data handling (PII/GDPR).\n\n**High** \u2014 Core business logic, API endpoints, controllers, data access layers, external service integrations, state management.\n\n**Medium** \u2014 Utility functions, helpers, middleware, formatters, shared libraries.\n\n**Low** \u2014 Configuration, constants, simple DTOs, logging setup, build tooling.\n\nWhen unsure, assign one level lower rather than higher.\n\n### Step 4 - Produce Output\n\nIf you found gaps (1-3), output:\n\n```\n## Coverage Gaps Found\n\n**Issues to create:** [count, 1-3]\n\n1. `path/to/file.ts` (~XXX lines) \u2014 [no tests / poor coverage / missing coverage] \u2014 [one sentence: why this needs tests]\n2. ...\n3. ...\n```\n\nIf you found zero gaps after trying all strategies, output:\n\n```\n## No New Coverage Issues Needed\n\n**Reason:** [All examined files have adequate tests / All gaps already tracked by open issues or PRs]\n**Issues to create:** 0\n```\n\n## Important Constraints\n\n- **Maximum 3 gaps** \u2014 stop searching once you have 3 confirmed (not-already-tracked) gaps.\n- **Do NOT run test suites or coverage tools** \u2014 this is a structural analysis only (file existence, git history, naming patterns, test file skimming). Running tests is too slow for large repos.\n- **Do NOT scan all source files** \u2014 use the targeted strategies above.\n- **Do NOT create issues or PRs** \u2014 only find and report gaps. The next step handles issue creation.\n- **Exclude from analysis:** test files themselves, type definition files (`.d.ts`), generated code, vendored dependencies (`vendor/`, `node_modules/`), lock files, config-only files, migration files.\n- **File line counts** should be approximate \u2014 use `wc -l` or similar.\n- **Be explicit about \"Issues to create\" count** \u2014 the next step uses this to decide whether to proceed.",
+          "stepMaxDurationMinutes": 15
+        },
+        {
+          "id": "create-coverage-issues",
+          "name": "Create Coverage Issues",
+          "action": "agent.run",
+          "params": {
+            "agentId": "cmck2zx350003wtwyxm0w6g6p",
+            "agentEngine": "overcut"
+          },
+          "instruction": "You are a Senior Developer creating issues for test coverage gaps.\n\n## Goal\n\nCreate well-structured issues for each coverage gap selected in the previous step.\n\n## Input\n\nThe previous step (`find-coverage-gaps`) produced a list of selected coverage gaps:\n\n ```\n {{outputs.find-coverage-gaps.message}}\n ```\n\n## Process\n\n### Step 0 - Check if There's Work to Do\n\n1. Read the output from the previous step.\n2. If it says \"Issues to create: 0\" or \"No New Coverage Issues Needed\", call `task_completed` with a summary stating no issues were needed and why. **Stop here.**\n\n### Step 1 - Create Issues\n\nFor each selected gap (up to 3):\n\n1. **Read the source file(s)** to understand what the code does \u2014 its public API, key functions, edge cases, and dependencies.\n\n2. **Create an issue** with this structure:\n\n   **Title:** `Add test coverage: [module or file name]`\n\n   **Body:**\n   ```\n   ## Overview\n\n   [1-2 sentences: what this file/module does and why it needs test coverage]\n\n   ## Why This Matters\n\n   [1-2 sentences: the risk of not having tests \u2014 e.g., \"This handles authentication tokens. Bugs here could lead to unauthorized access going undetected.\"]\n\n   ## Files Needing Tests\n\n   - `path/to/file.ts` (~XXX lines)\n   - `path/to/other-file.ts` (~XXX lines) *(if grouped)*\n\n   ## Suggested Test Cases\n\n   - [ ] [Test case 1: describe what to test and expected behavior]\n   - [ ] [Test case 2: ...]\n   - [ ] [Test case 3: ...]\n   - [ ] [Edge case: describe edge case]\n   - [ ] [Error case: describe error handling to test]\n   ```\n\n3. **Apply labels:** `test-coverage`, `testing`\n\n### Step 2 - Complete Task\n\nCall `task_completed` with a summary that includes:\n- Number of issues created\n- For each issue: title and link to the created issue\n\n## Important Constraints\n\n- **Do NOT create more than 3 issues** \u2014 respect the limit from the previous step.\n- **Suggest realistic test cases** based on actually reading the source code. Do not generate generic test cases.\n- **Keep issue bodies concise** \u2014 aim for clarity, not length.\n- **Do NOT post comments on existing issues** \u2014 only create new ones.",
+          "stepMaxDurationMinutes": 10
+        }
+      ],
+      "triggers": [
+        {
+          "event": "scheduled",
+          "schedule": {
+            "cronExpression": "0 4 * * 1",
+            "scheduleContextSettings": {
+              "type": "PerRepository",
+              "repositorySelector": {
+                "useForCode": true,
+                "namePattern": "",
+                "useForTickets": false,
+                "excludePattern": ""
+              }
+            }
+          },
+          "settings": {
+            "delaySeconds": 0
+          },
+          "conditions": {
+            "field": null,
+            "rules": [],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          }
+        },
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "test-coverage",
+            "requireMention": false
+          }
+        }
+      ],
+      "version": "1.0.0",
+      "priority": 3,
+      "timeoutMs": 3600000
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "cmck2zx350003wtwyxm0w6g6p",
+        "name": "Senior Developer"
+      }
+    ]
+  }
+}
