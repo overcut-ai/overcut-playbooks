@@ -57,7 +57,7 @@ Use the `update_status` tool to notify the user that optimization has started.
 
 **Prerequisites**:
 
-- The previous step should have created `.overcut/review/scratchpad.jsonl` with review findings.
+- The previous step should have created `/workspace/.overcut/review/scratchpad.jsonl` with review findings.
 - The previous step provides output indicating whether review comments were found.
 
 **Previous step output:**
