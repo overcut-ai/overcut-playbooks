@@ -135,3 +135,7 @@ base_branch: main
 • Output all required information for the next step.
 • Do NOT implement any code - that's the next step's responsibility.
 • Verify branch and PR creation succeeded before completing.
+
+---
+Implementation Plan: 
+{{outputs.planning}}
