@@ -45,6 +45,7 @@ Use AI to help you:
 
 - [Requirements Document Generation](./requirements-document-generation/) - Automatically generates comprehensive requirements documents from feature requests with codebase analysis and iterative review.
 - [Technical Design Proposal](./technical-design-proposal/) - Generate comprehensive technical design documents from requirements.
+- [Break Down Ticket](./break-down-ticket/) - Automatically decomposes large tickets into smaller, independently implementable sub-tickets with clear scope, acceptance criteria, and dependencies.
 
 ### Development & Implementation
 
@@ -55,11 +56,13 @@ Use AI to help you:
 - [Code Review](./code-review/) - Automated comprehensive code review with inline comments and suggestions.
 - [Fix Review Comments](./fix-review-comments/) - Automatically addresses code review feedback with structured implementation plans and real-time progress tracking.
 - [Auto PR Description](./auto-pr-description/) - Automatically generates and updates pull request descriptions based on code changes, commits, and related issues while preserving user-written content.
+- [Release PR Description](./release-pr-description/) - Generates release-focused PR descriptions that summarize features and functionality for PRs targeting the main branch, complementing Auto PR Description for release workflows.
 - [Auto Root Cause Analysis](./auto-root-cause-analysis/) - Automatically analyze bugs and suggest fixes when issues are labeled.
 - [Auto Changelog Reminder](./auto-changelog-reminder/) - Reminds developers to update changelog on PRs.
 - [Auto Docs Update on Merge](./auto-docs-update-on-merge/) - Automatically updates documentation when PRs are merged.
 - [Auto Update AGENTS.md](./auto-update-agents-md/) - Automatically generates or updates the AGENTS.md file based on repository structure and patterns. Runs on a schedule to keep documentation synchronized with the repository state. Works with any repository type.
 - [Implement Documentation from Issue](./implement-docs-from-issue/) - Automatically implements documentation updates based on issues, analyzing product PRs and creating documentation pull requests following existing standards and structure.
+- [Test Coverage Gap Analysis](./test-coverage-gap-analysis/) - Identifies test coverage gaps using targeted search strategies, validates against existing issues, and creates actionable issues for uncovered critical paths.
 
 ### Security
 
