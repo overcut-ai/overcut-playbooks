@@ -20,6 +20,16 @@ You are an expert software engineer. You are given a task to create a plan for a
 3. Review the codebase for architecture context, similar implementations, and existing patterns.
 4. Proceed to **Prepare Implementation Plan** below, using the gathered requirements as the foundation.
 
+## Step 1 - Understand Scope Boundaries
+
+Before planning, establish the exact scope intended for this ticket:
+
+1. Check the issue for references to a parent epic, related issues, or labels that indicate it is part of a larger task broken into smaller tickets.
+2. If related tickets exist, read them to understand the broader initiative and how this ticket fits within it.
+3. Identify exactly which portion of the work belongs to **this** ticket — and which portions belong to sibling tickets.
+4. **Scope the plan strictly to this ticket's requirements.** Do not extend into work covered by related tickets, even if it seems like a natural continuation or "quick win".
+5. Other tickets from the same initiative may be worked on **concurrently by other agents**. Any extension beyond the intended scope risks merge conflicts, overlapping changes, and broken builds across parallel efforts.
+
 ## Prepare Implementation Plan
 
 1. Your plan should focus on the functional changes only. Do not include any changes to tests, documentation, or other non-functional changes.
