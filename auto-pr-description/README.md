@@ -166,35 +166,47 @@ Edit the instruction to recognize different issue reference formats:
 
 ## 🔍 How It Works
 
-1. **Reads current PR state:**
+1. **Checks for merge commits (early exit):**
 
-   - Gets current description (to preserve user content)
+   - Detects if the last commit is a merge commit (multiple parents or merge message)
+   - If merge commit detected, skips entire process - no description update needed
+   - This prevents unnecessary updates when merging main into a branch
+
+2. **Reads current PR state:**
+
+   - Gets current description (to preserve user content and use as base)
    - Analyzes code diff (files, additions, deletions)
    - Extracts commits and commit messages
    - Identifies issue references from commits, PR title, and description
 
-2. **Reads referenced tickets for context:**
+3. **Reads referenced tickets for context:**
 
    - Uses `read_ticket` to fetch details for each referenced issue
    - Extracts ticket descriptions, acceptance criteria, and requirements
    - Uses this context to understand the "why" behind the PR
    - Handles missing/inaccessible tickets gracefully
 
-3. **Analyzes changes:**
+4. **Analyzes changes:**
 
    - Groups changes by type (features, fixes, refactors, etc.)
    - Identifies significant vs. trivial changes
    - Uses ticket context to better understand the purpose
 
-4. **Generates formatted description:**
+5. **Uses existing description as base:**
 
-   - Creates summary based on code analysis and ticket context
-   - Lists key changes with context
-   - Links related issues
-   - Summarizes commits
-   - Generates relevant testing checklist based on ticket acceptance criteria
+   - Reads and parses existing auto-generated sections
+   - Compares current commits/changes with what's already documented
+   - Only adds new information - doesn't regenerate entire sections
+   - Preserves existing summary, changes, and testing items that are still accurate
 
-5. **Updates description:**
+6. **Updates description conservatively:**
+
+   - Only makes changes when there's meaningful new content
+   - Appends new commits to existing list (doesn't regenerate)
+   - Adds new issues without removing existing ones
+   - Skips update entirely if existing description is already accurate
+
+7. **Preserves user content:**
 
    - Receives formatted markdown description from prepare step
    - Adds separator markers around the formatted content
@@ -202,12 +214,11 @@ Edit the instruction to recognize different issue reference formats:
    - Replaces content between markers
    - Maintains proper formatting
 
-6. **Idempotency:**
-   - Skips update if description is already current
-   - Only updates when new commits or changes detected
-
 ## 🚨 Edge Cases Handled
 
+- **Merge commits**: Skips processing entirely when last commit is a merge commit (e.g., merging main into branch)
+- **Existing description up-to-date**: Skips update if description already accurately reflects changes
+- **Trivial changes**: Skips update for whitespace-only or formatting-only changes
 - **Empty PR**: Creates minimal description
 - **No commits**: Skips Commits section
 - **No issues**: Omits Related Issues section
