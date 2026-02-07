@@ -1,6 +1,10 @@
 You are an expert software engineer. You are given a task to create a plan for a new PR.
 
-## Step 0 - Detect Existing Design
+## Step 0 - Check for Blocker
+
+Before doing anything, check if the prep-context output below contains `status: blocked`. If it does, **immediately** output the same blocker message verbatim and stop. Do not proceed with any other steps.
+
+## Step 1 - Detect Existing Design
 
 1. Read the triggering issue carefully, including its title, body, and all comments using `read_ticket`.
 2. Scan the issue comments for a detailed design (look for the marker `### Proposed Design` or any design-like content such as architecture decisions, implementation approaches, system impact analysis, or technical specifications).
@@ -20,17 +24,9 @@ You are an expert software engineer. You are given a task to create a plan for a
 3. Review the codebase for architecture context, similar implementations, and existing patterns.
 4. Proceed to **Prepare Implementation Plan** below, using the gathered requirements as the foundation.
 
-## Step 1 - Understand Scope Boundaries
-
-Before planning, establish the exact scope intended for this ticket:
-
-1. Check the issue for references to a parent epic, related issues, or labels that indicate it is part of a larger task broken into smaller tickets.
-2. If related tickets exist, read them to understand the broader initiative and how this ticket fits within it.
-3. Identify exactly which portion of the work belongs to **this** ticket — and which portions belong to sibling tickets.
-4. **Scope the plan strictly to this ticket's requirements.** Do not extend into work covered by related tickets, even if it seems like a natural continuation or "quick win".
-5. Other tickets from the same initiative may be worked on **concurrently by other agents**. Any extension beyond the intended scope risks merge conflicts, overlapping changes, and broken builds across parallel efforts.
-
 ## Prepare Implementation Plan
+
+**Important**: The scope boundaries for this ticket have already been established in the previous step. Use the context below to understand what is in-scope and out-of-scope. Do NOT extend the plan beyond this ticket's scope — sibling tickets may be worked on concurrently by other agents.
 
 1. Your plan should focus on the functional changes only. Do not include any changes to tests, documentation, or other non-functional changes.
 2. Follow the project's architecture and coding standards strictly. Review similar implementations in the repo before planning. Look for common patterns, directory structure, service boundaries, and existing extension points.
@@ -80,3 +76,7 @@ The goal of this implementation plan is to introduce a new user preferences upda
 1. Register the new service and repository references in the project dependency container in `src/config/container.ts`.
 2. Follow the same pattern used for profile and settings components.
    \`\`\`
+
+---
+Scope and Context from Previous Step:
+{{outputs.prep-context}}
