@@ -64,17 +64,7 @@ ambiguities:
 
 related_tickets_analyzed: <comma-separated list of ticket refs, or "none">
 
-Allowed tools: read_ticket
-Prohibited: code_search, read_file, run_terminal_cmd
 ```
-
-**After Analyst returns**, verify the output contains:
-- [ ] In-scope requirements are listed.
-- [ ] Out-of-scope items are listed (or explicitly "none").
-- [ ] Related tickets were identified and read (or explicitly "none").
-- [ ] Ambiguities are captured (or explicitly "none").
-
-If any item is missing, delegate back to the Analyst with specific instructions on what to complete.
 
 ---
 
@@ -116,16 +106,7 @@ indirect_dependencies:
 - <dependent component> — <nature of impact>
 ...
 
-Allowed tools: code_search, read_file, list_directory, run_terminal_cmd (read-only commands only)
-Prohibited: write_file, git commit/push, read_ticket
 ```
-
-**After Technical Explorer returns**, verify the output contains:
-- [ ] Reference patterns were found with specific file paths.
-- [ ] Data flows were traced end-to-end.
-- [ ] All affected components (direct and indirect) are mapped.
-
-If any item is missing, delegate back to the Technical Explorer with specific instructions on what to complete.
 
 ---
 
