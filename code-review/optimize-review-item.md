@@ -146,6 +146,7 @@ When the workflow completes, you MUST output the following information:
 chunks_created: <yes|no>
 total_chunks: <number of chunk files created>
 kept_findings: <number of findings kept after optimization>
+chunk_files: <comma-separated list of chunk filenames created>
 ```
 
 Example outputs:
@@ -156,6 +157,7 @@ Example outputs:
 chunks_created: yes
 total_chunks: 3
 kept_findings: 8
+chunk_files: .overcut/review/scratchpad.chunk1.jsonl, .overcut/review/scratchpad.chunk2.jsonl, .overcut/review/scratchpad.chunk3.jsonl
 ```
 
 **If no findings remained after optimization:**
@@ -164,4 +166,5 @@ kept_findings: 8
 chunks_created: no
 total_chunks: 0
 kept_findings: 0
+chunk_files:
 ```

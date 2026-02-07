@@ -182,8 +182,8 @@ The `workflow.json` file must follow this structure:
 - Include appropriate `stepMaxDurationMinutes` for each step
 - Define triggers (automatic events or manual slash commands)
 - Include agent references in `refs.agents` array
-- **Copy instruction content from corresponding `.md` files** into each step's `instruction` field
 - Flow connections must match the sequence described in README
+- Set `instruction` to `null` for infrastructure steps (git.clone, repo.identify) — prompt content will be synced separately
 
 **Implementation Process:**
 
@@ -193,7 +193,7 @@ The `workflow.json` file must follow this structure:
    - `name`: Human-readable step name
    - `action`: `agent.run`, `agent.session`, `git.clone`, etc.
    - `params`: Step-specific parameters
-   - `instruction`: Copy content from the corresponding `{step-id}.md` file
+   - `instruction`: Set to `null` initially (will be synced from `.md` files)
    - `stepMaxDurationMinutes`: Based on README estimates
 
 2. **Create flow array**: Define connections between steps based on README workflow sequence
@@ -202,11 +202,17 @@ The `workflow.json` file must follow this structure:
 
 4. **Add agent references**: List all agents used in `refs.agents`
 
+5. **Sync prompt content into workflow.json** using the sync script:
+
+```bash
+python3 scripts/sync-prompts.py <playbook-directory>
+```
+
+This automatically copies content from each `{step-id}.md` file into the matching step's `instruction` field in `workflow.json`, handling JSON escaping correctly.
+
 **Validation:**
 
-- Verify every prompt file has a corresponding step
-- Verify every step has a corresponding prompt file
-- Verify step IDs match prompt filenames exactly
+- Run `python3 scripts/sync-prompts.py <playbook-directory>` — it reports any mismatches
 - Verify flow matches README sequence
 - Verify triggers match README description
 
@@ -255,19 +261,25 @@ The `workflow.json` file must follow this structure:
 ### Updating Prompts
 
 1. **Edit the prompt file** (e.g., `code-review.md`)
-2. **Update workflow.json** to match:
-   - Find the step with matching `id` (e.g., `"id": "code-review"`)
-   - Update the `instruction` field with content from the `.md` file
-   - Maintain exact filename-to-ID matching
+2. **Run the sync script** to update workflow.json automatically:
+
+```bash
+python3 scripts/sync-prompts.py <playbook-directory>
+```
 
 **Example:**
 
 ```bash
-# User edits: code-review/code-review.md
-# Agent must update: code-review/workflow.json
-# Find step: {"id": "code-review", ...}
-# Update: "instruction": "[content from code-review.md]"
+# Edit the prompt file
+vim code-review/code-review.md
+
+# Sync all prompts into workflow.json
+python3 scripts/sync-prompts.py code-review
 ```
+
+The script reads all `*.md` files in the playbook directory (excluding `README.md`), matches each to a step in `workflow.json` by filename == step ID, and updates the `instruction` field with the file content. It handles JSON escaping automatically and reports any mismatches between `.md` files and steps.
+
+**Important:** Always use this script instead of manually copying prompt content into workflow.json. Manual copying is error-prone due to JSON string escaping (newlines, quotes, etc.).
 
 ### Adding New Steps
 
@@ -339,6 +351,8 @@ The `workflow.json` file must follow this structure:
 
 ### Agent Run (Single Agent)
 
+Use `agent.run` for straightforward, single-pass tasks where one agent can complete the work without coordination or iteration.
+
 ```json
 {
   "id": "step-id",
@@ -351,7 +365,16 @@ The `workflow.json` file must follow this structure:
 }
 ```
 
-### Agent Session (Multi-Agent Coordination)
+### Agent Session (Coordinated Execution)
+
+Use `agent.session` when a step needs a **coordinator** to oversee execution. This applies not only to multi-agent coordination, but also to:
+
+- **Multi-step processes** that require sequencing, verification between steps, or iterative refinement
+- **Error recovery** where a coordinator can detect failures, retry, or adjust course
+- **Iterative loops** (e.g., draft → review → revise → approve cycles) that need supervision to track progress and enforce limits
+- **Verification-heavy tasks** where each sub-task's output must be confirmed before proceeding to the next
+
+The coordinator pattern ensures reliability by giving an orchestrating agent oversight of the process, rather than relying on a single agent to self-manage complex sequences.
 
 ```json
 {
