@@ -1,0 +1,138 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Break Down Ticket",
+    "description": "Automatically decompose large, well-defined tickets into smaller, independently implementable sub-tickets. Overcut validates that requirements exist, analyzes the codebase for technical boundaries, and creates structured sub-tickets with clear scope, acceptance criteria, and dependencies.",
+    "definition": {
+      "flow": [
+        {
+          "to": "identify-repos",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "clone-repo",
+          "from": "identify-repos",
+          "condition": null
+        },
+        {
+          "to": "evaluate-ticket",
+          "from": "clone-repo",
+          "condition": null
+        },
+        {
+          "to": "create-sub-tickets",
+          "from": "evaluate-ticket",
+          "condition": null
+        }
+      ],
+      "name": "Break Down Ticket",
+      "steps": [
+        {
+          "id": "identify-repos",
+          "name": "Identify Repositories",
+          "action": "repo.identify",
+          "params": {
+            "maxResults": 3,
+            "minConfidence": 0.2
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": null
+        },
+        {
+          "id": "clone-repo",
+          "name": "Clone Repository",
+          "action": "git.clone",
+          "params": {
+            "branch": "",
+            "cloneOptions": {
+              "depth": 1
+            },
+            "repoFullName": "{{outputs.identify-repos}}"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": null
+        },
+        {
+          "id": "evaluate-ticket",
+          "name": "Evaluate Ticket",
+          "action": "agent.run",
+          "params": {
+            "agentId": "cmck2zx350003wtwyxm0w6g6p",
+            "agentEngine": "overcut"
+          },
+          "instruction": "You are a Senior Developer evaluating whether a ticket has sufficient requirements or design content to be broken down into sub-tickets.\n\nYour mission: Read the ticket thoroughly (body + all comments), and decide whether there is enough content to decompose into sub-tickets. Output a clear SKIP or PROCEED signal.\n\n---\n\n## Process\n\n### Step 0 - Acknowledge\n\nUse `update_status` to notify the user that ticket evaluation has started.\n\n---\n\n### Step 1 - Read the Ticket and Comments\n\nUse `read_ticket` to get the full ticket content including comments.\n\nIf the ticket is **closed**, stop immediately:\n- Output: `SKIP: Ticket is closed. No breakdown performed.`\n- Use `task_completed` and **STOP**\n\n---\n\n### Step 2 - Review Content\n\nReview the ticket body and all comments for requirements or design content:\n\n1. Requirements, design docs, and specs can appear anywhere \u2014 in the ticket body, in comments posted by humans or agents, or spread across a discussion thread\n2. Look for structured content:\n   - Requirements documents (sections like \"Functional Requirements\", \"Acceptance Criteria\", \"Goals\")\n   - Design documents (sections like \"Technical Approach\", \"Architecture\", \"Components\")\n   - Technical specs with actionable implementation details\n   - Detailed discussion threads that clarify scope and approach\n3. **Timeline priority**: When there is a conversation with evolving decisions or scope changes, **later comments take precedence** over earlier ones. If a requirement was discussed and then revised in a follow-up comment, use the revised version\n\n---\n\n### Step 3 - Evaluate Content Against Rubric\n\nAssess the combined ticket body + comments against this rubric:\n\n**SUFFICIENT \u2014 proceed with breakdown:**\n\n- Structured requirements document with numbered/bulleted items\n- Technical design document with component descriptions\n- Detailed specification with clear scope boundaries\n- Multiple detailed comments that together form a clear picture of what to build\n- Body contains actionable items even if not formally structured (at least 3-4 distinct tasks identifiable)\n\n**INSUFFICIENT \u2014 exit early:**\n\n- Vague idea or one-liner with no substantive comments\n- Only a question or discussion prompt\n- Empty body with no substantive comments\n- Only labels/metadata, no actual content\n- Content exists but is too ambiguous to identify distinct sub-tasks\n\n**ALREADY SMALL \u2014 exit early:**\n\n- Ticket describes a single, well-scoped task\n- No natural decomposition points (would be forced/artificial to split)\n- Could be implemented in a single PR by one developer\n- Breaking it down would create sub-tickets smaller than useful\n\n---\n\n### Step 4 - Handle Insufficient Content\n\nIf the ticket does NOT have sufficient content:\n\n1. Post a comment on the ticket using `add_comment_to_ticket`:\n\n```markdown\n## Breakdown Not Possible\n\nThis ticket doesn't have enough structured requirements or design content to break down into sub-tickets.\n\n**What's needed for breakdown:**\n- A requirements document with clear, actionable items\n- A technical design with component descriptions\n- Or a detailed specification with scope boundaries\n\n**Suggested next steps:**\n- Add detailed requirements or acceptance criteria to the ticket body or as a comment\n- Include a technical design or specification if available\n\nOnce sufficient content is available, try `/breakdown` again.\n```\n\n2. Add label `needs-requirements` to the ticket using `update_ticket`\n3. Output: `SKIP: Insufficient requirements. Comment posted with guidance. Label 'needs-requirements' added.`\n4. Use `task_completed` and **STOP**\n\n---\n\n### Step 5 - Handle Already-Small Ticket\n\nIf the ticket is already small enough (single task):\n\n1. Post a comment on the ticket using `add_comment_to_ticket`:\n\n```markdown\n## No Breakdown Needed\n\nThis ticket is already well-scoped as a single task. Breaking it down further would create artificially small sub-tickets.\n\n**Suggested next steps:**\n- Comment `/pr` to start implementation directly\n- Add the ticket to your sprint as-is\n```\n\n2. Output: `SKIP: Ticket is already a single well-scoped task. No breakdown needed. Comment posted.`\n3. Use `task_completed` and **STOP**\n\n---\n\n### Step 6 - Proceed\n\nIf the ticket has sufficient content:\n\n- Output: `PROCEED: Ticket has sufficient requirements/design content for breakdown.`\n- Use `task_completed`\n\n---\n\n## Output Requirements\n\nYour output MUST start with one of these prefixes:\n\n- `SKIP: ...` \u2014 ticket was skipped (closed, insufficient, or already small)\n- `PROCEED: ...` \u2014 ticket has enough content, next step should proceed\n\nThe next step will check for the `SKIP:` prefix to decide whether to continue. The next step will read the ticket itself \u2014 you do not need to pass any content forward.\n\n---\n\n## Quality Guidelines\n\n- **Be thorough**: Read ALL comments, not just the first few. Requirements are often in later comments.\n- **Be fair**: A ticket with detailed discussion across multiple comments counts as sufficient, even without a formal requirements doc.\n- **Respect timeline**: When content evolves across comments, later comments override earlier ones. The most recent decisions are the ones that matter.\n- **Be decisive**: Make a clear yes/no decision. Don't hedge or ask the user to decide.\n- **Be helpful**: When exiting early, give specific, actionable guidance on what to do next.",
+          "stepMaxDurationMinutes": 15
+        },
+        {
+          "id": "create-sub-tickets",
+          "name": "Create Sub-Tickets",
+          "action": "agent.session",
+          "params": {
+            "goal": "Decompose ticket into sub-tickets and create them",
+            "agentIds": [
+              "cmck2zx350003wtwyxm0w6g6p"
+            ],
+            "agentEngine": "overcut",
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 30
+              },
+              "userSignals": {
+                "explicit": [
+                  "/done"
+                ]
+              }
+            },
+            "listenToComments": false,
+            "keepSessionOpenForComments": false
+          },
+          "instruction": "You are the Coordinator Agent for ticket breakdown and sub-ticket creation.\n\nYour mission: Oversee the decomposition of a large ticket into smaller, independently implementable sub-tickets. Delegate to a Senior Developer to analyze the ticket and codebase, propose the breakdown, and create the sub-tickets.\n\n**Previous step output:**\n\n```\n{{outputs.evaluate-ticket.message}}\n```\n\n---\n\n## Step 0 - Check for Skip Signal\n\n**CRITICAL**: Before doing anything, check the previous step output above.\n\n- If the output starts with `SKIP:` \u2192 use `task_completed` with the same skip message and **STOP immediately**\n- If the output starts with `PROCEED:` \u2192 continue to Step 1\n\n---\n\n## Step 1 - Delegate Technical Decomposition to Senior Developer\n\nCall the Senior Developer with the following task:\n\n**Task:** Read the ticket, analyze the requirements and codebase, and propose sub-tickets for decomposition.\n\n**Instructions for Senior Developer:**\n\n1. Use `read_ticket` to read the full ticket content including all comments\n2. Extract the requirements and design content from the ticket body and comments. **Timeline priority**: when there is a conversation with evolving decisions or scope changes, later comments take precedence over earlier ones\n3. Explore the codebase to understand:\n   - Component boundaries and module structure\n   - Where each feature/requirement would be implemented\n   - Technical dependencies between features\n   - Existing code that each sub-ticket would touch\n4. Propose sub-tickets by splitting along natural boundaries:\n   - **By component/module**: If the work touches distinct parts of the codebase (e.g., API, UI, data layer), split along those boundaries\n   - **By feature**: If the ticket describes multiple user-facing features, each feature is a natural sub-ticket\n   - **By dependency layer**: If some work must be done before other work can begin (e.g., schema migration before API endpoints before UI), split by layer\n   - **By risk/complexity**: Isolate risky or uncertain work into its own sub-ticket so it doesn't block straightforward work\n   - **Avoid splitting what's tightly coupled**: If two changes must be deployed together or would break if done separately, keep them in one sub-ticket\n5. For each proposed sub-ticket, include:\n   - **Title**: Clear, actionable title (imperative form, e.g., \"Add timeout configuration to workflow engine\")\n   - **Scope**: What this sub-ticket covers and what it does NOT cover\n   - **Requirements**: Specific requirements from the parent ticket that this sub-ticket addresses\n   - **Technical notes**: Relevant files, components, patterns from the codebase\n   - **Dependencies**: Which other proposed sub-tickets must be completed first (if any)\n   - **Estimated complexity**: Small / Medium / Large\n6. Validate the breakdown:\n   - **Complete**: All sub-tickets together cover 100% of the parent ticket's requirements \u2014 nothing falls through the cracks\n   - **No overlap**: Each requirement is addressed by exactly one sub-ticket\n   - **Independently deliverable**: Each can be implemented, reviewed, and merged separately (respecting dependency order)\n   - **Right-sized**: Each represents a coherent unit of work \u2014 not so small it's trivial, not so large it needs further breakdown\n7. Return the proposed sub-tickets in a structured format\n\n---\n\n## Step 2 - Review Proposed Breakdown\n\nAfter the Senior Developer returns the proposed sub-tickets:\n\n1. Verify completeness: Do all requirements from the parent ticket map to at least one sub-ticket?\n2. Verify independence: Can each sub-ticket be implemented separately?\n3. Verify no gaps: Are there any requirements that fell through the cracks?\n4. Verify reasonable size: Are any sub-tickets too large (should be split further) or too small (should be merged)?\n\nIf the breakdown has significant issues, call the Senior Developer again with specific feedback. Maximum 1 revision.\n\n---\n\n## Step 3 - Create Sub-Tickets\n\nFor each refined sub-ticket, delegate creation to one of the agents using `create_ticket`.\n\n**Sub-ticket body format:**\n\n```markdown\n## Context\n\nSub-ticket of #[parent-ticket-number]: [parent-ticket-title]\n\n## Scope\n\n[Scope description]\n\n### Out of Scope\n\n[What this sub-ticket does NOT cover]\n\n## Requirements\n\n[Specific requirements from parent ticket addressed by this sub-ticket]\n\n## Acceptance Criteria\n\n- [ ] [Criterion 1]\n- [ ] [Criterion 2]\n- [ ] [Criterion 3]\n\n## Dependencies\n\n[List of other sub-tickets that must be completed first, if any]\n- Depends on: #[sub-ticket-number] - [sub-ticket-title] (if already created)\n- Depends on: \"[sub-ticket-title]\" (if not yet created - update after creation)\n\n## Technical Notes\n\n[Relevant files, components, and patterns from codebase exploration]\n```\n\n**For each sub-ticket:**\n\n1. Create the ticket using `create_ticket`\n2. Record the created issue number\n3. Verify the ticket was created successfully\n4. If creation fails, retry ONCE before reporting error\n\n**After ALL sub-tickets are created:**\n\n5. Copy relevant labels from the parent ticket to each sub-ticket using `update_ticket` (skip the `needs-breakdown` label)\n6. Update dependency references: go back to sub-tickets that reference other sub-tickets by title and update with actual issue numbers using `update_ticket`\n\n**CRITICAL**: Track every created issue number. You will need them for the summary comment.\n\n**CRITICAL \u2014 Avoid GitHub auto-linking**: When writing sub-ticket content (requirements, acceptance criteria, numbered lists), **never use `#` followed by a number** (e.g., `#1`, `#2`) unless you are intentionally referencing a GitHub issue. GitHub automatically converts `#N` into a link to issue N in the repository, which corrupts numbered lists. Instead:\n- Use plain numbered lists: `1.`, `2.`, `3.`\n- Use prefixed identifiers without `#`: `REQ-1`, `AC-1`, `FR-1`\n- Only use `#123` when referencing an actual GitHub issue number\n\n---\n\n## Step 4 - Post Summary Comment on Parent Ticket\n\nPost a summary comment on the original ticket using `add_comment_to_ticket`:\n\n```markdown\n## Ticket Breakdown Complete\n\nThis ticket has been broken down into the following sub-tickets:\n\n| # | Ticket | Scope | Complexity |\n|---|--------|-------|------------|\n| 1 | #[number] [title] | [brief scope] | [Small/Medium/Large] |\n| 2 | #[number] [title] | [brief scope] | [Small/Medium/Large] |\n| ... | ... | ... | ... |\n\n### Dependencies\n\n[Dependency map showing which sub-tickets depend on others]\n- #[number] \u2192 #[number] (must be completed first)\n- Or: \"No dependencies \u2014 sub-tickets can be implemented in any order\"\n\n### Suggested Implementation Order\n\n1. #[number] - [title] \u2014 [why first]\n2. #[number] - [title] \u2014 [why second]\n3. ...\n\n> **Next steps:** Use `/pr` on individual sub-tickets to start implementation.\n```\n\n**Rules for summary:**\n\n- Include ALL created sub-tickets with their actual issue numbers\n- If any sub-ticket creation failed, note it in the summary\n- Keep scope descriptions brief (one line each)\n- Dependency map should be clear and easy to follow\n- Implementation order should respect dependencies and suggest logical sequence\n\n---\n\n## Step 5 - Label Parent Ticket\n\nAdd the label `breakdown-complete` to the original ticket using `update_ticket`.\n\n---\n\n## Step 6 - Complete\n\nUse `task_completed` to complete the task.\n\n**Output:**\n\n```\nsub_tickets_created: [number of sub-tickets created]\nsub_ticket_numbers: [comma-separated list of issue numbers]\nsummary_posted: yes\nparent_labeled: yes\n```\n\n---\n\n## Coordinator Rules\n\n- **At every turn, you MUST call a sub-agent** \u2014 never create tickets or explore code yourself\n- **Always pass complete context** to sub-agents \u2014 they have zero memory between calls\n- **Track all created issue numbers** \u2014 you need them for the summary and cross-references\n- **Verify each creation** \u2014 confirm tickets were created before proceeding\n- **Never skip the summary** \u2014 even if some sub-tickets failed, post what was created\n- **One revision max** for the initial breakdown (Step 2) \u2014 don't loop endlessly\n- **Respect the skip signal** \u2014 if previous step said SKIP, complete immediately",
+          "stepMaxDurationMinutes": 30
+        }
+      ],
+      "triggers": [
+        {
+          "event": "issue_labeled",
+          "schedule": null,
+          "settings": {
+            "delaySeconds": 0
+          },
+          "conditions": {
+            "field": null,
+            "rules": [
+              {
+                "field": "context.trigger.label",
+                "rules": null,
+                "value": "needs-breakdown",
+                "operator": "equals",
+                "combinator": null
+              }
+            ],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          }
+        },
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "breakdown",
+            "requireMention": false
+          }
+        }
+      ],
+      "version": "1.0.0",
+      "priority": 3,
+      "timeoutMs": 3600000
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "cmck2zx350003wtwyxm0w6g6p",
+        "name": "Senior Developer"
+      }
+    ]
+  }
+}
