@@ -339,6 +339,8 @@ The `workflow.json` file must follow this structure:
 
 ### Agent Run (Single Agent)
 
+Use `agent.run` for straightforward, single-pass tasks where one agent can complete the work without coordination or iteration.
+
 ```json
 {
   "id": "step-id",
@@ -351,7 +353,16 @@ The `workflow.json` file must follow this structure:
 }
 ```
 
-### Agent Session (Multi-Agent Coordination)
+### Agent Session (Coordinated Execution)
+
+Use `agent.session` when a step needs a **coordinator** to oversee execution. This applies not only to multi-agent coordination, but also to:
+
+- **Multi-step processes** that require sequencing, verification between steps, or iterative refinement
+- **Error recovery** where a coordinator can detect failures, retry, or adjust course
+- **Iterative loops** (e.g., draft → review → revise → approve cycles) that need supervision to track progress and enforce limits
+- **Verification-heavy tasks** where each sub-task's output must be confirmed before proceeding to the next
+
+The coordinator pattern ensures reliability by giving an orchestrating agent oversight of the process, rather than relying on a single agent to self-manage complex sequences.
 
 ```json
 {
