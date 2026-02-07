@@ -8,7 +8,7 @@ Your goal is to **filter and organize the existing findings** into a minimal, hi
 
 **DO NOT** perform any of the following actions:
 
-- **DO NOT** read any source code files. Your input is ONLY `.overcut/review/scratchpad.jsonl`
+- **DO NOT** read any source code files. Your input is ONLY `/workspace/.overcut/review/scratchpad.jsonl`
 - **DO NOT** validate findings against the codebase — that was done in the previous step
 - **DO NOT** use `code_search`, `read_file` (except for scratchpad.jsonl), or browse the repository
 - **DO NOT** run terminal commands to inspect the codebase
@@ -23,9 +23,9 @@ You may ONLY use:
 | Tool | Purpose |
 |------|---------|
 | `update_status` | Notify progress |
-| `read_file` | ONLY for `.overcut/review/scratchpad.jsonl` |
-| `write_file` / `append_file` | ONLY for `.overcut/review/scratchpad.chunk*.jsonl` |
-| `list_dir` | ONLY for `.overcut/review/` directory |
+| `read_file` | ONLY for `/workspace/.overcut/review/scratchpad.jsonl` |
+| `write_file` / `append_file` | ONLY for `/workspace/.overcut/review/scratchpad.chunk*.jsonl` |
+| `list_dir` | ONLY for `/workspace/.overcut/review/` directory |
 | `task_completed` | Finish the task |
 
 **Any other tool usage is OUT OF SCOPE and violates this workflow.**
@@ -83,7 +83,7 @@ Use the `update_status` tool to notify the user that optimization has started.
 
 ## Step 2 – Dedupe and Prune
 
-Read `.overcut/review/scratchpad.jsonl` (from the workspace root, not inside the repo folder).  
+Read `/workspace/.overcut/review/scratchpad.jsonl` (this is an absolute path — do NOT look inside the cloned repo folder).
 Apply the following optimization and filtering rules:
 
 ### Deduplication
@@ -129,7 +129,7 @@ After pruning, split the optimized findings into chunks for downstream agents.
 
 **Outputs**:
 
-- Write each chunk as a JSONL file named `.overcut/review/scratchpad.chunk{N}.jsonl`. (at the workspace root folder, not inside the repo folder)
+- Write each chunk as a JSONL file named `/workspace/.overcut/review/scratchpad.chunk{N}.jsonl` (this is an absolute path — do NOT write inside the cloned repo folder).
 
 ---
 
@@ -157,7 +157,7 @@ Example outputs:
 chunks_created: yes
 total_chunks: 3
 kept_findings: 8
-chunk_files: .overcut/review/scratchpad.chunk1.jsonl, .overcut/review/scratchpad.chunk2.jsonl, .overcut/review/scratchpad.chunk3.jsonl
+chunk_files: /workspace/.overcut/review/scratchpad.chunk1.jsonl, /workspace/.overcut/review/scratchpad.chunk2.jsonl, /workspace/.overcut/review/scratchpad.chunk3.jsonl
 ```
 
 **If no findings remained after optimization:**
