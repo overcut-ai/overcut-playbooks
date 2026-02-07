@@ -73,9 +73,17 @@ Compare the analysis data with the existing AGENTS.md (if it exists) to determin
    - Statistics and counts → update if numbers changed
    - Technology lists → update if technologies changed
 
-3. **Decide if changes are needed:**
+3. **Estimate change scope:**
+   - Roughly estimate the percentage of the file that would change (by lines or sections affected)
+   - Classify changes as **critical** or **non-critical**:
+     - **Critical**: Factual errors, broken examples, missing documentation for new major features, incorrect instructions that would mislead agents
+     - **Non-critical**: Minor additions, updated counts/statistics, small wording tweaks, new minor patterns
+
+4. **Decide if changes are needed:**
    - **If no significant changes**: Preserve the existing file as-is, output `changes_made: no`
-   - **If changes are needed**: Proceed to Step 4 to generate updated content
+   - **If changes are critical** (factual errors, broken examples, misleading instructions): Proceed to Step 4 regardless of change size
+   - **If changes are non-critical AND affect less than ~10% of the file**: Skip the update, preserve the existing file as-is, output `changes_made: no`. Small non-critical updates create PR noise and should be batched until they accumulate into a meaningful update.
+   - **If changes are non-critical AND affect 10% or more of the file**: Proceed to Step 4
    - **Avoid changes for:**
      - Style improvements
      - Reorganizations that aren't necessary
@@ -255,6 +263,7 @@ The file should include sections appropriate for the repository type:
 - **Preserve existing format**: Keep markdown formatting conventions when updating existing files
 - **Update when necessary**: Update examples, counts, patterns, and references when they're outdated or incorrect
 - **Avoid PRs for no reason**: If content is still accurate and up-to-date, preserve it as-is
+- **Minimum change threshold**: Skip non-critical changes that affect less than ~10% of the file. Small updates create PR noise — let them accumulate until they form a meaningful update. Critical changes (factual errors, broken examples, misleading instructions) bypass this threshold.
 - **Be accurate**: Only include items that actually exist in the repository
 - **Be comprehensive**: Include all relevant patterns and examples
 - **Validate examples**: Ensure code examples are syntactically correct
