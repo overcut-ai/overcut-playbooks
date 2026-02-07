@@ -12,13 +12,8 @@
     "definition": {
       "flow": [
         {
-          "to": "analyze-ticket",
+          "to": "create-design",
           "from": "clone-repo",
-          "condition": null
-        },
-        {
-          "to": "design-session",
-          "from": "analyze-ticket",
           "condition": null
         },
         {
@@ -33,7 +28,7 @@
         },
         {
           "to": "post-design",
-          "from": "design-session",
+          "from": "create-design",
           "condition": null
         }
       ],
@@ -53,20 +48,11 @@
           "instruction": null
         },
         {
-          "id": "analyze-ticket",
-          "name": "Analyze Ticket",
-          "action": "agent.run",
-          "params": {
-            "agentId": "cme5khhdh0005bf6tfd9jo4ae"
-          },
-          "instruction": "You are a Senior Developer tasked with understanding the requirements in the ticket. \n\n1) Extract functional & non-functional requirements. \n2) Identify modules or files likely impacted. \n3) List open questions if requirements are ambiguous. \n\nOutput a concise JSON block with keys: requirements, impactedAreas, openQuestions."
-        },
-        {
-          "id": "design-session",
-          "name": "Draft Design",
+          "id": "create-design",
+          "name": "Create Design",
           "action": "agent.session",
           "params": {
-            "goal": "Draft a production-ready technical design document",
+            "goal": "Create a detailed technical design proposal",
             "agentIds": [
               "cme5khhdh0005bf6tfd9jo4ae",
               "cme5kh6qv0004bf6t8802o7ul"
@@ -76,13 +62,16 @@
                 "maxDurationMinutes": 15
               },
               "userSignals": {
-                "explicit": ["/done", "/approve"]
+                "explicit": [
+                  "/done",
+                  "/approve"
+                ]
               }
             },
             "listenToComments": false,
             "keepSessionOpenForComments": false
           },
-          "instruction": "You are the **Coordinator Agent**.  \nYour responsibility is to orchestrate the creation of a **detailed design document**.  \n\n### Process  \n1. **Delegate** the drafting of each required section (Overview, System Impact, Edge Cases, Risks & Mitigations, Open Questions, Next Steps) to the **Design Writer sub-agent**.  \n2. **Instruct** the sub-agent to:  \n   - Use insights from the previous analysis step.  \n   - Access and review the code in the repository to fill in missing details.  \n   - Embed diagrams when useful, in fenced \\`\\`\\`mermaid code blocks.  \n   - Return results formatted in Markdown.  \n3. **Collect and assemble** the sub-agent outputs into a single cohesive document.  \n4. Ensure the final output begins with:  \n   \\`\\`\\`  \n   ### Proposed Design  \n   \\`\\`\\`  \n\n### Constraints  \n- Do **not** reply to the user yet.  \n- Do **not** add results back to the ticket.  \n- Only return the completed Markdown document as the final output.  "
+          "instruction": "You are an expert software architect. Your task is to create a detailed technical design proposal for the requirements described in the triggering issue.\n\n## Process\n\n1. Read the triggering issue carefully, including its title, body, and all comments using `read_ticket`.\n2. Follow the conversation on the issue and comments and make sure to use the latest approved requirements as reference.\n3. Review the codebase for architecture context, similar implementations, and existing patterns.\n4. Perform a deep analysis of the affected areas \u2014 understand data models, service boundaries, API contracts, and integration points.\n5. Create a comprehensive implementation plan.\n\n## Design Analysis Guidelines\n\n- Trace the full data flow through the system for the proposed changes.\n- Identify all components, services, and modules that will be affected \u2014 both directly and indirectly.\n- Review existing patterns in the codebase and reference specific files, classes, or functions that the implementation should follow.\n- Call out architecture decisions and their rationale (e.g., why a new service vs. extending an existing one).\n- Flag edge cases, error handling considerations, and risks with proposed mitigations.\n- Note any open questions or ambiguities in the requirements that need stakeholder input.\n- Include diagrams when useful, in fenced ```mermaid code blocks (e.g., sequence diagrams for complex flows, ER diagrams for data model changes).\n\n## Output Format\n\nThe output MUST begin with `### Proposed Design` and follow the implementation plan format below.\n\nEach phase should reflect the deeper analysis \u2014 include context on *why* the change is structured this way, reference specific files and patterns in the codebase, and note any risks or edge cases relevant to that phase.\n\n```\n### Proposed Design\n\n## Goal\n<High-level description of what needs to be built and why. Include the key architecture decisions and their rationale.>\n\n## Phase 1 - <Title>\n1. <Task with specific file paths, patterns to follow, and implementation details>\n2. <Task>\n...\n\n## Phase 2 - <Title>\n1. <Task>\n2. <Task>\n...\n\n## Open Questions\n- <Any unresolved questions or ambiguities that need stakeholder input>\n\n## Risks & Mitigations\n- <Risk>: <Mitigation>\n```\n\n### Example\n\n\\`\\`\\`markdown\n### Proposed Design\n\n## Goal\n\nThe goal of this design is to introduce a user preferences update endpoint that integrates with the existing controller-service-repository architecture. The endpoint will follow the same validation and persistence patterns used by the profile module, reusing existing infrastructure rather than introducing new dependencies. Key decision: extend the existing `user.repository.ts` rather than creating a separate preferences repository, since preferences are tightly coupled to the user entity.\n\n## Phase 1 - Add API Endpoint\n\n1. Create a new controller method `updatePreferences` in `src/controllers/userPreferences.controller.ts`, following the pattern in `src/controllers/profile.controller.ts`.\n2. Add a new route entry in `src/routes/userPreferences.routes.ts` pointing to the new controller method.\n3. Reuse the existing validation middleware pattern from `src/controllers/profile.controller.ts` to validate the incoming payload.\n4. Ensure the controller delegates to the service layer without embedding business logic \u2014 edge case: handle partial updates where only some preference fields are provided.\n\n## Phase 2 - Implement Service Logic\n\n1. Add a new method `updateUserPreferences` in `src/services/userPreferences.service.ts`, following the update pattern in `profile.service.ts`.\n2. Load the current user record, apply only the fields defined in the requirements, and return a normalized DTO.\n3. Edge case: handle concurrent preference updates \u2014 use optimistic locking consistent with existing patterns in the user module.\n\n## Phase 3 - Repository and Data Layer Updates\n\n1. Add a new repository method in `src/repositories/user.repository.ts` for saving updated preference fields.\n2. Follow naming conventions from `src/repositories/profile.repository.ts`.\n3. Confirm that only the required fields are persisted and no unrelated data is modified.\n\n## Phase 4 - Wire Up Dependency Configuration\n\n1. Register the new service and repository references in `src/config/container.ts`, following the pattern used for profile and settings components.\n2. Verify the dependency chain resolves correctly at startup.\n\n## Open Questions\n\n- Should preference changes trigger a notification to the user (email/webhook)?\n- Are there rate-limiting requirements for preference updates?\n\n## Risks & Mitigations\n\n- **Data migration**: Existing users have no preferences record \u2014 mitigate by defaulting to empty preferences on first read.\n- **Cache invalidation**: If user data is cached, preference updates must invalidate the cache \u2014 mitigate by reusing the existing cache invalidation pattern in `profile.service.ts`.\n\\`\\`\\`\n\n## Constraints\n\n- Do **not** reply to the user yet.\n- Do **not** add results back to the ticket.\n- Follow the project's architecture and coding standards strictly.\n- Review similar implementations in the repo before designing.\n- Do not introduce new packages, libraries, or external dependencies unless explicitly required by the ticket. If you believe such an addition is required, mark it as \"new dependency\".\n- Focus on functional changes only \u2014 no test or documentation plans.\n- Do not write code. Focus on the design and approach.\n- Only return the completed Markdown document as the final output."
         },
         {
           "id": "identify-repos",
@@ -100,19 +89,23 @@
           "action": "agent.session",
           "params": {
             "goal": "Help the user with their questions",
-            "agentIds": ["cme5km2d40007bf6twhwvz27n"],
+            "agentIds": [
+              "cme5km2d40007bf6twhwvz27n"
+            ],
             "exitCriteria": {
               "timeLimit": {
                 "maxDurationMinutes": 120
               },
               "userSignals": {
-                "explicit": ["/done"]
+                "explicit": [
+                  "/done"
+                ]
               }
             },
             "listenToComments": true,
             "keepSessionOpenForComments": true
           },
-          "instruction": "You are the **Coordinator Agent**.  \nYour responsibility is to handle the post-processing of the generated design document.  \n\n### Process  \n1. Take the Markdown design content produced in the previous step.  \n2. Use `add_comment_to_ticket` to post it as a comment on the issue.  \n   - Append the note:  \n     > If you’d like a draft implementation branch, comment `/pr`.  \n3. Use `update_ticket` to assign the issue to its creator (`{{trigger.issue.user.login}}`).  \n4. Check the \"Open Questions\" section of the design:  \n   - If any open questions exist → add the label `design-needs-feedback`.  \n   - Otherwise → add the label `design-complete`.  \n\n### Constraints  \n- Ensure only one final comment is added (idempotent).  \n- Do not modify or truncate the generated Markdown content.  \n- Always append the `/pr` note at the end of the comment.  "
+          "instruction": "You are the **Coordinator Agent**.  \nYour responsibility is to handle the post-processing of the generated design document.  \n\n### Process  \n1. Take the Markdown design content produced in the previous step.  \n2. Use `add_comment_to_ticket` to post it as a comment on the issue.  \n   - Append the note:  \n     > If you'd like a draft implementation branch, comment `/pr`.  \n3. Use `update_ticket` to assign the issue to its creator (`{{trigger.issue.user.login}}`).  \n4. Check the \"Open Questions\" section of the design:  \n   - If any open questions exist \u2192 add the label `design-needs-feedback`.  \n   - Otherwise \u2192 add the label `design-complete`.  \n\n### Constraints  \n- Ensure only one final comment is added (idempotent).  \n- Do not modify or truncate the generated Markdown content.  \n- Always append the `/pr` note at the end of the comment."
         }
       ],
       "triggers": [
