@@ -475,10 +475,11 @@ Before submitting a playbook, verify:
 
 Study these playbooks for patterns:
 
-- **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
-- **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
-- **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow
 - **Auto PR Description** (`auto-pr-description/`) - Simple single-step workflow
+- **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow
+- **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
+- **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
+- **Auto Update Agents** (`auto-update-agents-md/`) - Scheduled workflow that keeps AGENTS.md up to date by automating documentation maintenance
 
 ## 🎯 Common Tasks
 
