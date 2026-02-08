@@ -21,6 +21,10 @@ Coordinate Developer agents to implement all phases from the implementation plan
 {{outputs.planning}}
 ```
 
+## Step 0 - Check for Blocker
+
+Before doing anything, check if the prep-context output below contains `status: blocked`. If it does, **immediately** output the same blocker message verbatim and stop. Do not proceed with any other steps.
+
 ## Overall Process
 
 1. Receive the implementation plan from the previous step.

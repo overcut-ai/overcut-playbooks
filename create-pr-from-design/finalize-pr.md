@@ -41,6 +41,11 @@ Update the draft PR description with comprehensive implementation and validation
 {{outputs.implement-changes.message}}
 ```
 
+## Step 0 - Check for Blocker
+
+Before doing anything, check if the prep-context output below contains `status: blocked`. If it does, **immediately** output the same blocker message verbatim and stop. Do not proceed with any other steps.
+
+
 ## Overall Process
 
 1. Collect all information from previous steps:

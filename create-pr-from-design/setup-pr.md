@@ -16,7 +16,12 @@ From the triggering issue and previous steps:
 
 - `issue_url`: URL of the triggering issue
 - `issue_title`: Title of the issue
-- `implementation_plan`: The implementation plan from the previous step.
+- `implementation_plan`: The implementation plan from the planning step.
+- `base_branch`: The base branch determined by the prep-context step (may be the default branch or a dependency's PR branch).
+
+## Step 0 - Check for Blocker
+
+Before doing anything, check if the prep-context output below contains `status: blocked`. If it does, **immediately** output the same blocker message verbatim and stop. Do not proceed with any other steps.
 
 ## Overall Process
 
@@ -24,7 +29,7 @@ From the triggering issue and previous steps:
 
 2. Create a new implementation branch:
    - Branch name: `prbuilder/<slug>` where slug is derived from the issue title (keep it up to 50 characters for clarity)
-   - Create from the current branch (the cloned branch)
+   - Create from the current branch (already set to the correct base by the prep-context step)
    - Verify branch creation succeeded
 
 3. Parse the implementation plan to extract:
@@ -37,7 +42,7 @@ From the triggering issue and previous steps:
    - Title: `[DRAFT] <issue_title>`
    - Body: Initial description (use template below)
    - Mark as **draft**
-   - Base branch: The branch that was cloned
+   - Base branch: The current branch (set by prep-context — may be the default branch or a dependency's PR branch)
    - This PR will be updated with progress in the next steps
 
 5. Post a comment on the triggering issue:
@@ -76,7 +81,7 @@ Implementation is in progress. This PR will be updated with:
 
 - **Implementation Branch**: `prbuilder/<slug>`
 - **Base Branch**: <base_branch_name>
-- **Merge Target**: Base branch (the branch that was cloned)
+- **Merge Target**: Base branch (set by prep-context)
 
 This description will be updated with full details once implementation begins.
 
@@ -128,8 +133,8 @@ base_branch: main
 
 • Pull latest changes before creating branch.
 • Create implementation branch with clear naming: `prbuilder/<slug>`.
-• Branch from the cloned branch.
-• Create draft PR with the cloned branch as base.
+• Branch from the current branch (already set by prep-context).
+• Create draft PR with the current branch as base.
 • Use the Initial Draft PR Description template - keep it simple and plan-focused.
 • Post comment on triggering issue with link to draft PR.
 • Output all required information for the next step.
