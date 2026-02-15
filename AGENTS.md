@@ -12,6 +12,8 @@ This repository contains **Overcut Playbooks** - pre-built, customizable AI agen
 - Markdown for prompts and documentation
 - Git for version control
 
+**Detailed Reference Skills:** The `.agents/skills/` directory contains deep-dive reference skills for triggers, step actions, agent sessions, template variables, prompt engineering, and agent tools. These are symlinked into each agent's config folder (`.claude/`, `.cursor/`, `.codex/`, `.gemini/`, `.agent/`) and activate automatically when relevant.
+
 ## 🏗️ Repository Structure
 
 Each playbook must follow this structure:
@@ -133,7 +135,7 @@ Use this template structure:
 - Include examples when helpful
 - Handle error cases explicitly
 - Specify output format requirements
-- Pass complete context between steps using `{{outputs.step-id.field}}` syntax
+- Pass complete context between steps using `{{outputs.step-id.message}}` for agent steps or `{{outputs.step-id}}` for infrastructure steps
 - Reference the step's role in the overall workflow
 - Ensure prompts align with the README design
 
@@ -314,7 +316,7 @@ The script reads all `*.md` files in the playbook directory (excluding `README.m
 - ✅ Include examples when helpful
 - ✅ Handle error cases explicitly
 - ✅ Specify output format requirements
-- ✅ Pass complete context between steps using `{{outputs.step-id.field}}`
+- ✅ Pass complete context between steps using `{{outputs.step-id.message}}` (agent steps) or `{{outputs.step-id}}` (infrastructure steps)
 - ✅ No sensitive data or credentials
 
 ### Documentation (README.md)
@@ -334,6 +336,18 @@ The script reads all `*.md` files in the playbook directory (excluding `README.m
 - ✅ Examples provided where helpful
 
 ## 🔧 Common Workflow Patterns
+
+### Step Actions Quick Reference
+
+| Action | Purpose | Has Instruction? | Key Params |
+|--------|---------|-----------------|------------|
+| `agent.run` | Single agent executes a prompt | Yes | `agentId`, `agentEngine` |
+| `agent.session` | Coordinator orchestrates agents | Yes | `agentIds`, `goal`, `exitCriteria` |
+| `git.clone` | Clone repositories | No | `repoFullName`, `branch`, `cloneOptions` |
+| `repo.identify` | Identify relevant repos for a ticket | No | `maxResults`, `minConfidence` |
+| `ci.executeWorkflow` | Trigger external CI pipeline | No | `repoFullName`, `workflowId`, `ref`, `inputs` |
+
+> For complete parameter schemas, see the `step-actions` skill.
 
 ### Git Operations
 
@@ -395,6 +409,38 @@ The coordinator pattern ensures reliability by giving an orchestrating agent ove
 }
 ```
 
+> For coordinator tools, delegation templates, and interactive session patterns, see the `agent-session-design` skill.
+
+### Repository Identification (Issue-Triggered Workflows)
+
+Use `repo.identify` → `git.clone` when a workflow starts from an issue/ticket and needs to determine which repos to work with:
+
+```json
+{
+  "id": "identify-repos",
+  "name": "Identify Repositories",
+  "action": "repo.identify",
+  "params": {
+    "maxResults": 3,
+    "minConfidence": 0.2
+  },
+  "instruction": null
+}
+```
+
+Chain it with `git.clone` using template syntax:
+
+```json
+{
+  "id": "clone-repo",
+  "action": "git.clone",
+  "params": {
+    "repoFullName": "{{outputs.identify-repos}}",
+    "cloneOptions": { "depth": 1 }
+  }
+}
+```
+
 ### Flow Connections
 
 ```json
@@ -417,12 +463,9 @@ The coordinator pattern ensures reliability by giving an orchestrating agent ove
 {
   "event": "pull_request_opened",
   "conditions": {
+    "combinator": "and",
     "rules": [
-      {
-        "field": "context.pullRequest.draft",
-        "value": "false",
-        "operator": "equals"
-      }
+      { "field": "context.pullRequest.draft", "operator": "equals", "value": "false" }
     ]
   }
 }
@@ -440,6 +483,16 @@ The coordinator pattern ensures reliability by giving an orchestrating agent ove
 }
 ```
 
+> For all 22 event types, condition operators, schedule triggers, and real-world examples, see the `workflow-triggers` skill.
+
+### Workflow Configuration
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `priority` | 5 | Execution priority (1-100, lower = higher priority) |
+| `timeoutMs` | — | Abort workflow after this time (min: 30000ms) |
+| `statusUpdateMethod` | `"comment"` | `"comment"`, `"reuse_comment"`, or `"static_comment"` |
+
 ## 🚨 Critical Rules
 
 1. **Filename-ID Matching**: Prompt filenames MUST match step IDs exactly (case-sensitive, kebab-case)
@@ -452,10 +505,14 @@ The coordinator pattern ensures reliability by giving an orchestrating agent ove
 
 When passing data between steps, use this syntax:
 
-- `{{outputs.step-id.field}}` - Reference output from previous step
-- `{{trigger.event}}` - Reference trigger event data
+- `{{outputs.step-id}}` - Reference full output from infrastructure steps (git.clone, repo.identify)
+- `{{outputs.step-id.message}}` - Reference text output from agent steps (agent.run, agent.session)
 - `{{trigger.pullRequest.headBranch}}` - Reference PR branch
 - `{{trigger.repository.fullName}}` - Reference repository name
+- `{{trigger.issue.title}}` - Reference issue title
+- `{{trigger.trigger.label}}` - Reference trigger-specific data (e.g., label that was added)
+
+> For the complete list of trigger context fields and Handlebars helpers, see the `template-variables` skill.
 
 ## 🔍 Validation Checklist
 
@@ -473,12 +530,17 @@ Before submitting a playbook, verify:
 
 ## 📚 Reference Examples
 
-Study these playbooks for patterns:
+Study these playbooks for patterns, ordered by complexity:
 
-- **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
-- **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
-- **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow
-- **Auto PR Description** (`auto-pr-description/`) - Simple single-step workflow
+**Simple** (good starting point):
+- **Auto PR Description** (`auto-pr-description/`) — 3 steps, `agent.run` only, conditional skip pattern, idempotency markers
+
+**Medium** (introduces coordination):
+- **Remediate CVEs** (`remediate-cves/`) — 4 steps, `repo.identify` → `git.clone` chain, `agent.session`, label-based triggers, specialized agents
+- **Code Review** (`code-review/`) — 5 steps, scratchpad/JSONL pattern, chunk processing, multi-agent delegation with tool constraints
+
+**Complex** (full patterns):
+- **Create PR from Design** (`create-pr-from-design/`) — 8 steps, blocking/gating, dependency resolution, phased implementation, progress tracking
 
 ## 🎯 Common Tasks
 
