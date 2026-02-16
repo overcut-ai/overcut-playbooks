@@ -14,9 +14,11 @@ Update the user with the `update_status` tool with a message that you are starti
 
 ---
 
-### Step 1 - Per-item Analysis to Scratchpad
+### Step 1 - Simultaneous Per-item Analysis to Scratchpad
 
 For each item in the list of review items, delegate to **Code Reviewer** this entire message in full — you must pass the schema.
+use one turn to delegate all tasks at once and let the code reviewers work in parallel
+
 
 You are acting as a **Code Reviewer**.  
 Analyze the following [task].  
