@@ -11,6 +11,8 @@ This repository contains **Overcut Playbooks** - pre-built, customizable AI agen
 - Overcut Workflow JSON format (version 1.0.0)
 - Markdown for prompts and documentation
 - Git for version control
+- Python-based maintenance scripts (e.g., `scripts/sync-prompts.py`) that keep prompt files and workflow JSON instructions in sync
+- Git-based automation triggers (pull requests, issues, slash commands, and scheduled runs) that launch these playbooks inside Overcut
 
 ## 🏗️ Repository Structure
 
@@ -26,6 +28,21 @@ playbook-name/
 │   └── agent-name.md      # Instructions for configuring custom agents
 └── ...                    # More steps as needed
 ```
+
+**Root-Level Assets:**
+
+- `README.md` – Repository overview, catalog of available playbooks, and contribution entry point
+- `AGENTS.md` – This operating guide for Overcut agents
+- `CONTRIBUTING.md` – Process details for human contributors collaborating with agents
+- `scripts/` – Automation helpers like `sync-prompts.py` used by agents to keep workflows aligned with prompts
+
+## ♻️ Repository Patterns
+
+- **Strict per-playbook structure**: Every workflow directory contains `workflow.json`, a README following the standard template, and one prompt file per step with names that match their step IDs exactly.
+- **Design-first documentation**: READMEs are treated as design docs that define triggers, prerequisites, step sequencing, and customization guidance before implementation begins.
+- **Prompt ↔ workflow synchronization**: Agents rely on `scripts/sync-prompts.py` to copy prompt content into `workflow.json`, preventing drift and ensuring JSON stays valid.
+- **Specialized agent guidance**: When a workflow needs bespoke personas (e.g., Security Engineer), a `special-agents/` folder documents those roles while keeping generic roles in standard prompts.
+- **Automation-ready triggers**: Workflows commonly expose Git-based automations (PR events, issue events, slash commands) so they can be scheduled or respond to repository activity without manual wiring.
 
 ## 🎯 Creating New Playbooks
 
@@ -480,6 +497,7 @@ Study these playbooks for patterns:
 - **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
 - **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
 - **Auto Update Agents** (`auto-update-agents-md/`) - Scheduled workflow that keeps AGENTS.md up to date by automating documentation maintenance
+- **Repository Documentation** (`README.md`, `AGENTS.md`) - Documentation-focused examples that showcase how centralized guidance steers both humans and AI agents across every playbook
 
 ## 🎯 Common Tasks
 
