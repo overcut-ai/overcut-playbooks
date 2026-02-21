@@ -42,8 +42,9 @@ You may ONLY use:
 1. Read `scratchpad.jsonl` once
 2. Apply deduplication rules based on file path and summary similarity
 3. Apply pruning rules based on finding metadata (importance, category, confidence)
-4. Write chunk files
-5. Done
+4. Call `write_file` for each chunk file (at least one chunk — even if only 1 finding)
+5. Call `list_dir` on `.overcut/review/` to verify chunk files exist on disk
+6. Done
 
 ---
 
@@ -120,6 +121,8 @@ Drop or merge items based on these criteria:
 
 After pruning, split the optimized findings into chunks for downstream agents.
 
+⚠️ **MANDATORY**: If there are any findings remaining after pruning, you MUST call `write_file` to create at least one chunk file. Do NOT skip this step. The next workflow step depends on these files existing on disk. Claiming you created a file without calling `write_file` will break the pipeline. If all findings were pruned and there is nothing to write, you may skip file creation and report that no actionable findings remain.
+
 ### Chunking Rules
 
 - Default partitioning is by file — all findings for one file go in one chunk.
@@ -130,6 +133,17 @@ After pruning, split the optimized findings into chunks for downstream agents.
 **Outputs**:
 
 - Write each chunk as a JSONL file named `.overcut/review/scratchpad.chunk{N}.jsonl` (this is a relative path from the workspace root — do NOT write inside the cloned repo folder).
+
+---
+
+## Step 3.5 – Verify Chunk Files Were Created
+
+After writing chunk files, you MUST verify they exist:
+
+1. Call `list_dir` on `.overcut/review/` directory.
+2. Confirm that every `scratchpad.chunk{N}.jsonl` file you intended to create appears in the listing.
+3. If any chunk file is missing, call `write_file` again to create it.
+4. Do NOT proceed to Step 4 until all chunk files are confirmed to exist.
 
 ---
 
