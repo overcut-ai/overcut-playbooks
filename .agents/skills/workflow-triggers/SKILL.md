@@ -29,12 +29,13 @@ The `triggers` array uses **OR logic** — matching any one trigger starts the w
 
 ## Event Types
 
-There are 22 event types across 6 categories:
+There are 28 event types across 7 categories:
 
 | Category | Events |
 |----------|--------|
 | **Issue** | `issue_opened`, `issue_closed`, `issue_edited`, `issue_assigned`, `issue_unassigned`, `issue_labeled`, `issue_unlabeled`, `issue_commented` |
 | **Pull Request** | `pull_request_opened`, `pull_request_closed`, `pull_request_merged`, `pull_request_edited`, `pull_request_reviewed`, `pull_request_assigned`, `pull_request_unassigned`, `pull_request_labeled`, `pull_request_unlabeled`, `pull_request_commented`, `pull_request_review_commented` |
+| **CI Workflow** | `ci_workflow_queued`, `ci_workflow_started`, `ci_workflow_completed`, `ci_workflow_failed`, `ci_workflow_cancelled`, `ci_workflow_timed_out` |
 | **Manual** | `manual` |
 | **Mention** | `mention` |
 | **Scheduled** | `scheduled` |
@@ -61,7 +62,7 @@ Conditions use a recursive rule tree with combinators. The root is typically a g
 
 **Combinators**: `and`, `or` — rules can nest other rule groups for complex logic.
 
-**Condition fields** reference the event context using dot notation: `context.pullRequest.*`, `context.issue.*`, `context.trigger.*`, `context.repository.*`, `context.actor.*`.
+**Condition fields** reference the event context using dot notation: `context.pullRequest.*`, `context.issue.*`, `context.trigger.*`, `context.repository.*`, `context.actor.*`, `context.ciWorkflow.*`.
 
 ## Manual Triggers (Slash Commands)
 
@@ -159,6 +160,20 @@ At most **one** schedule trigger per workflow:
     "rules": [
       { "field": "context.pullRequest.draft", "operator": "equals", "value": "false" },
       { "field": "context.trigger.commitAdded", "operator": "equals", "value": "true" }
+    ]
+  }
+}
+```
+
+### CI failure trigger
+
+```json
+{
+  "event": "ci_workflow_failed",
+  "conditions": {
+    "combinator": "and",
+    "rules": [
+      { "field": "context.ciWorkflow.branch", "operator": "equals", "value": "main" }
     ]
   }
 }

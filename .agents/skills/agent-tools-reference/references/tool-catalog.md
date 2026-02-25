@@ -65,6 +65,69 @@ Complete listing of all agent tools with their identifiers and categories.
 | `get_ticket_attachments` | Get Ticket Attachments | Retrieve attachments from a ticket |
 | `get_pull_request_attachments` | Get Pull Request Attachments | Retrieve attachments from a PR |
 
+## CI/CD Tools (5)
+
+| Tool ID | Display Name | Description |
+|---------|-------------|-------------|
+| `get_ci_run_details` | Get CI Run Details | Retrieves status, timing, and job details for a CI workflow run |
+| `get_ci_run_logs` | Get CI Run Logs | Fetches concatenated log output from all jobs in a CI workflow run |
+| `list_pr_ci_runs` | List PR CI Runs | Lists CI workflow runs associated with a pull request |
+| `get_ci_job_logs` | Get CI Job Logs | Fetches log output for a specific job within a CI workflow run |
+| `retry_ci_workflow` | Retry CI Workflow | Triggers a new run of a CI workflow or pipeline |
+
+### get_ci_run_details Parameters
+
+```json
+{
+  "projectOrRepoFullName": "owner/repo (required)",
+  "runId": "CI workflow run ID (required)",
+  "pipelineId": "Azure DevOps pipeline ID (optional)"
+}
+```
+
+### get_ci_run_logs Parameters
+
+```json
+{
+  "projectOrRepoFullName": "owner/repo (required)",
+  "runId": "CI workflow run ID (required)",
+  "pipelineId": "Azure DevOps pipeline ID (optional)"
+}
+```
+
+### list_pr_ci_runs Parameters
+
+```json
+{
+  "projectOrRepoFullName": "owner/repo (required)",
+  "prId": "Pull request number or MR IID (required)"
+}
+```
+
+### get_ci_job_logs Parameters
+
+```json
+{
+  "projectOrRepoFullName": "owner/repo (required)",
+  "runId": "CI workflow run ID (required)",
+  "jobId": "Specific job or step ID within the run (required)",
+  "pipelineId": "Azure DevOps pipeline ID (optional)"
+}
+```
+
+### retry_ci_workflow Parameters
+
+```json
+{
+  "projectOrRepoFullName": "owner/repo (required)",
+  "workflowId": "Workflow or pipeline identifier (required)",
+  "ref": "Branch or tag reference (optional)",
+  "inputs": { "key": "value" }
+}
+```
+
+All CI tools work across GitHub Actions, GitLab CI, Bitbucket Pipelines, and Azure DevOps Pipelines. The `projectOrRepoFullName` format is provider-specific (e.g., `owner/repo` for GitHub, `group/project` for GitLab).
+
 ## Exploration Tools (1)
 
 | Tool ID | Display Name | Description |
@@ -109,7 +172,7 @@ These tools are only available to the coordinator agent in `agent.session` steps
 
 ## Built-In Agent Type Tool Matrix
 
-### SeniorDeveloper (26 tools)
+### SeniorDeveloper (31 tools)
 
 Full-stack development agent with comprehensive access:
 
@@ -123,9 +186,11 @@ Full-stack development agent with comprehensive access:
 
 **Code Review**: `get_pull_request_diff`
 
+**CI/CD**: `get_ci_run_details`, `get_ci_run_logs`, `list_pr_ci_runs`, `get_ci_job_logs`, `retry_ci_workflow`
+
 **Exploration**: `explore_codebase`
 
-### CodeReview (22 tools)
+### CodeReview (26 tools)
 
 Code review agent with read-heavy access (no file creation/deletion, no PR creation):
 
@@ -138,6 +203,8 @@ Code review agent with read-heavy access (no file creation/deletion, no PR creat
 **PRs**: `read_pull_request`, `update_pull_request`, `list_pull_requests`, `add_comment_to_pull_request`, `update_comment_on_pull_request`
 
 **Code Review**: `add_pull_request_review_thread`, `submit_review`, `add_pull_request_review_thread_reply`, `get_pull_request_diff`
+
+**CI/CD**: `get_ci_run_details`, `get_ci_run_logs`, `list_pr_ci_runs`, `get_ci_job_logs`
 
 **Exploration**: `explore_codebase`
 

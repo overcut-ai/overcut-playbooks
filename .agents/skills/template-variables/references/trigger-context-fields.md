@@ -177,6 +177,38 @@ Available under `{{trigger.actor.*}}` for all events.
 | `email` | string? | Email address |
 | `type` | `"User"` \| `"Bot"` \| `"Organization"` | Type of actor |
 
+## CiWorkflowContext
+
+Available under `{{trigger.ciWorkflow.*}}` for CI workflow events (`ci_workflow_*`).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `runId` | string | CI run ID from the provider |
+| `workflowName` | string | Name of the workflow/pipeline |
+| `status` | `"Queued"` \| `"InProgress"` \| `"Succeeded"` \| `"Failed"` \| `"Cancelled"` \| `"TimedOut"` | Standardized status across all CI providers |
+| `conclusion` | string? | Provider-specific conclusion string |
+| `branch` | string | Branch that triggered the CI workflow |
+| `isPullRequest` | boolean | Whether the CI run is associated with a pull request |
+| `pullRequestId` | number? | PR number (if the CI run is PR-triggered) |
+| `commitSha` | string | Commit SHA the CI workflow ran against |
+| `queuedAt` | string? | ISO timestamp when the run was queued |
+| `startedAt` | string? | ISO timestamp when the run started executing |
+| `completedAt` | string? | ISO timestamp when the run completed |
+| `duration` | number? | Run duration in milliseconds |
+| `workflowUrl` | string? | URL to the CI run in the provider UI |
+| `jobCount` | number? | Number of jobs in the workflow |
+
+**Note:** CI workflow events also include `repository` context (always) and `pullRequest` context (when `isPullRequest` is `true`).
+
+## OrganizationContext
+
+Available under `{{trigger.organization.*}}` when the event is associated with an organization.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `login` | string | Organization login/slug |
+| `name` | string? | Organization display name |
+
 ## Handlebars Helper Functions
 
 These helpers are registered in the template engine and can be used in any template expression.
