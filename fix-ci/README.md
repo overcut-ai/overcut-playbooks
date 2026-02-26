@@ -47,7 +47,7 @@ git-clone → analyze-ci-failure → fix-and-commit
 ### Data Flow
 
 - `git-clone` provides the cloned repo workspace
-- `analyze-ci-failure` outputs a structured analysis with `files_to_modify`, `fix_count`, and `failed_commands` fields
+- `analyze-ci-failure` outputs a structured analysis with `files_to_modify`, `fix_count`, and `failed_commands` fields (plus the numbered Fix Plan section)
 - `fix-and-commit` reads `{{outputs.analyze-ci-failure.message}}` and applies the plan
 
 ## Customization
