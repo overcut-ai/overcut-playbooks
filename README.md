@@ -55,6 +55,7 @@ Use AI to help you:
 
 - [Code Review](./code-review/) - Automated comprehensive code review with inline comments and suggestions.
 - [Fix Review Comments](./fix-review-comments/) - Automatically addresses code review feedback with structured implementation plans and real-time progress tracking.
+- [Fix CI](./fix-ci/) - Automatically detects CI workflow failures on PR branches, analyzes error logs to identify root causes, applies code fixes, and commits the changes back to the branch.
 - [Auto PR Description](./auto-pr-description/) - Automatically generates and updates pull request descriptions based on code changes, commits, and related issues while preserving user-written content.
 - [Release PR Description](./release-pr-description/) - Generates release-focused PR descriptions that summarize features and functionality for PRs targeting the main branch, complementing Auto PR Description for release workflows.
 - [Auto Root Cause Analysis](./auto-root-cause-analysis/) - Automatically analyze bugs and suggest fixes when issues are labeled.
