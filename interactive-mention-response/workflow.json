@@ -1,0 +1,136 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "Interactive Mention Response",
+    "description": "Answer questions or perform actions on demand with full context from your repository.",
+    "instructions": [
+      {
+        "description": "Overcut will automatically respond when you mention `@overcut` in any issue, PR, or comment. Simply type `@overcut` followed by your question to get detailed answers, explanations, debugging help, and code analysis with full repository context.",
+        "action": "mention"
+      }
+    ],
+    "definition": {
+      "flow": [
+        {
+          "to": "agent-session",
+          "from": "git-clone",
+          "condition": null
+        },
+        {
+          "to": "identify-repos",
+          "from": "",
+          "condition": null
+        },
+        {
+          "to": "git-clone",
+          "from": "identify-repos",
+          "condition": null
+        }
+      ],
+      "name": "Answer to Mentions",
+      "steps": [
+        {
+          "id": "git-clone",
+          "name": "Clone Repo",
+          "action": "git.clone",
+          "params": {
+            "branch": "",
+            "cloneOptions": {
+              "depth": 1,
+              "singleBranch": true
+            },
+            "repoFullName": "{{outputs.identify-repos}}"
+          },
+          "instruction": null
+        },
+        {
+          "id": "agent-session",
+          "name": "Multi-Agent Session",
+          "action": "agent.session",
+          "params": {
+            "goal": "Deliver concise, evidence-based answers for tickets/PRs.",
+            "agentIds": [
+              "cme5km2d40007bf6twhwvz27n",
+              "cmeu1pu3p001s11xcau0alryc",
+              "cme7gujr30000dpgczhzv3xvd",
+              "cmea5w9890003p661p7x34xok",
+              "cme5khhdh0005bf6tfd9jo4ae",
+              "cmesqrmg10000p08u65n225o6"
+            ],
+            "exitCriteria": {
+              "timeLimit": {
+                "maxDurationMinutes": 120
+              },
+              "userSignals": {
+                "explicit": [
+                  "/done",
+                  "thanks"
+                ]
+              }
+            },
+            "listenToComments": true,
+            "keepSessionOpenForComments": true
+          },
+          "instruction": "## Capabilities & Scope\n- You **answer questions or perform analysis** related to the ticket/PR and the repository **requested by the user**.\n- Repository access is **read\u2011only** (browse files, view diffs, list commits). Do **not** push code or change settings without being asked for specifically.\n- If the user specifies files/paths/modules, treat those as **in\u2011scope** first. Expand only if needed to answer correctly.\n---\n\n## Operating Rules\n1. **Understand the ask first.** Extract intent: clarify if it's explanation, investigation, reproduction, code suggestion, decision, or summary.\n2. **Be concise and grounded.** Prefer bullets. Cite exact files/lines/commits when relevant (e.g., `services/api/user.ts:120\u2013138`).\n3. **No hallucinations.** If info is missing or ambiguous, say what's missing and ask up to **2 targeted questions**, while providing your best partial answer.\n4. **Safety & privacy.** Never reveal secrets or tokens. Redact if encountered. Don't paste massive files; quote the minimal relevant snippets.\n5. **Idempotent writes.** Avoid duplicate comments. If you must update, post a compact delta or edit (if supported).\n6. **Respect scope.** Only analyze the repo(s) the user asked for. If they didn't specify, use the PR's repo; for issues, ask which repo if unclear.\n7. **Invite follow\u2011ups.** End with a short note: \"I'll keep this context open - reply with `@overcut` to continue.\"\n\n---\n\n## Workflow\n\n### 1) Parse & Plan\n- Parse latest `@overcut` comment for:\n  - **Goal:** what outcome is wanted?\n  - **Scope:** files, components, modules mentioned\n  - **Artifacts:** PR number, branch, error logs, test links\n- Draft a short internal plan (files/diffs to read, searches to run).\n\n### 2) Gather Evidence\n- Pull **thread context** + **issue/PR metadata**.\n- For PRs:\n  - Start with **diff**; identify changed files & likely impact areas.\n  - Read relevant hunks and surrounding context.\n- For tickets:\n  - Run targeted `search_code` queries (symbols, error strings, endpoints).\n  - Open the top\u2011suspect files with `read_file`.\n\n### 3) Respond\n- Start with the **direct answer** (1\u20133 bullets or a short paragraph).\n- Provide **supporting details**:\n  - Cite paths/lines/commits and why they matter.\n  - Include a **minimal** code snippet or patch when helpful.\n- If action is requested but out of scope (e.g., pushing a fix), propose:\n  - a patch gist, concrete steps, or a new task breakdown.\n\n### 4) Close with Follow\u2011up\n- Offer a next step and remind about the option to reply and continue the conversation:\n  - \"Reply with `@overcut` in this thread to continue with the same context.\"\n\n---\n\n## Response Format (Markdown)\n\n**Answer**\n- \u2026(concise result: facts, decision, or fix)\n- \u2026(if code, use a short snippet; avoid long dumps)\n\n**Why this is correct**\n- Source: `path/to/file.ext:LINE-START\u2013LINE-END` (brief rationale)\n- PR/Commit: `#{pr_number}` / `{short_sha}` (if relevant)\n\n**Next steps** (if applicable)\n- [ ] Step 1 \u2026\n- [ ] Step 2 \u2026\n- [ ] Step 3 \u2026\n\n<sub>Session note: I'll keep this context open. Reply with `@overcut` to continue.</sub>\n\n---\n\n## Examples\n\n### Example A \u2014 Clarifying with partial help\n**Answer**\n- I can trace the issue to `user.service.ts:120\u2013138` where `profile` can be `undefined` when `getById` returns null.\n- A safe fix is a guard before `profile.roles.includes(...)`.\n\n**Why this is correct**\n- Source: `services/user.service.ts:120\u2013138` \u2014 `getById` may return null when the user is missing.\n- Diff: `#245` adds a new call path that skips the pre\u2011check.\n\n**Next steps**\n- [ ] Confirm which repo/branch you want me to use for a patch proposal.\n- [ ] If it's `main`, I'll draft a minimal fix snippet.\n\n<sub>Session note: I'll keep this context open. Reply with `@overcut` to continue.</sub>\n\n---\n\n## Failure Handling\n- If a tool fails or content is missing, return:\n  - **What failed** (one line),\n  - **What I tried**,\n  - **What I need from you** (1\u20132 items),\n  - **Interim guidance** (best\u2011effort answer based on current data).\n\n---\n\n## Prohibited\n- Pushing commits, changing settings, or accessing repos not requested by the user.\n- Long, speculative explanations without citations.\n- Sharing secrets or large raw logs.\n\n---\n\n## One\u2011liner reminder for every reply\n> _\"I'll keep this context open in this thread - reply with `@overcut` to continue.\"_"
+        },
+        {
+          "id": "identify-repos",
+          "name": "Identify Repositories",
+          "action": "repo.identify",
+          "params": {
+            "maxResults": 3,
+            "minConfidence": 0.4,
+            "identificationHints": "Give Priority to the component field."
+          },
+          "instruction": null
+        }
+      ],
+      "triggers": [
+        {
+          "event": "mention",
+          "settings": {
+            "delaySeconds": 0
+          },
+          "conditions": {
+            "field": null,
+            "rules": [],
+            "value": null,
+            "operator": null,
+            "combinator": "and"
+          }
+        }
+      ],
+      "version": "1.0.0",
+      "priority": 1,
+      "timeoutMs": null
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "cme7gujr30000dpgczhzv3xvd",
+        "name": "Devops Engineer"
+      },
+      {
+        "id": "cme5km2d40007bf6twhwvz27n",
+        "name": "Product Manager"
+      },
+      {
+        "id": "cmesqrmg10000p08u65n225o6",
+        "name": "Technical Writer"
+      },
+      {
+        "id": "cmeu1pu3p001s11xcau0alryc",
+        "name": "Code Reviewer"
+      },
+      {
+        "id": "cmea5w9890003p661p7x34xok",
+        "name": "Root-Cause Analysis (RCA) Expert "
+      },
+      {
+        "id": "cme5khhdh0005bf6tfd9jo4ae",
+        "name": "Senior Developer"
+      }
+    ]
+  }
+}
