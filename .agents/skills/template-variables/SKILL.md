@@ -126,6 +126,27 @@ All trigger context is available under `{{trigger.*}}`. The exact fields depend 
 {{trigger.trigger.reviewState}}     → "approved" | "changes_requested"
 ```
 
+### CI Workflow Events
+
+```
+{{trigger.ciWorkflow.runId}}        → "12345678"
+{{trigger.ciWorkflow.workflowName}} → "CI / Build & Test"
+{{trigger.ciWorkflow.status}}       → "Failed"
+{{trigger.ciWorkflow.conclusion}}   → "failure"
+{{trigger.ciWorkflow.branch}}       → "main"
+{{trigger.ciWorkflow.isPullRequest}} → true | false
+{{trigger.ciWorkflow.pullRequestId}} → 42
+{{trigger.ciWorkflow.commitSha}}    → "abc123..."
+{{trigger.ciWorkflow.queuedAt}}     → "2024-01-15T10:30:00Z"
+{{trigger.ciWorkflow.startedAt}}    → "2024-01-15T10:30:05Z"
+{{trigger.ciWorkflow.completedAt}}  → "2024-01-15T10:35:00Z"
+{{trigger.ciWorkflow.duration}}     → 295000
+{{trigger.ciWorkflow.workflowUrl}}  → "https://github.com/org/repo/actions/runs/12345678"
+{{trigger.ciWorkflow.jobCount}}     → 3
+```
+
+**Note:** CI workflow events may also include `{{trigger.pullRequest.*}}` fields when the CI run was triggered by a pull request (`isPullRequest` is `true`).
+
 ## Handlebars Helpers
 
 The template engine registers these helpers:

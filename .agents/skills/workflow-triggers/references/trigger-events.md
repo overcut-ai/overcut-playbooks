@@ -31,6 +31,19 @@
 | `pull_request_commented` | A comment is posted on a PR |
 | `pull_request_review_commented` | A review comment is posted inline on a PR |
 
+### CI Workflow Events (6)
+
+| Event | Fires When |
+|-------|-----------|
+| `ci_workflow_queued` | A CI workflow run is queued |
+| `ci_workflow_started` | A CI workflow run starts executing |
+| `ci_workflow_completed` | A CI workflow run completes successfully |
+| `ci_workflow_failed` | A CI workflow run fails |
+| `ci_workflow_cancelled` | A CI workflow run is cancelled |
+| `ci_workflow_timed_out` | A CI workflow run times out |
+
+Supported across all 4 CI providers: GitHub Actions, GitLab CI, Bitbucket Pipelines, and Azure DevOps Pipelines.
+
 ### Other Events (3)
 
 | Event | Fires When |
@@ -151,6 +164,25 @@ context.repository.provider        → "Github" | "GitLab" | "Bitbucket" | "Azur
 context.actor.login
 context.actor.name
 context.actor.type                 → "User" | "Bot" | "Organization"
+```
+
+### CI Workflow Context Fields
+
+```
+context.ciWorkflow.runId           → CI run ID from the provider
+context.ciWorkflow.workflowName    → name of the workflow/pipeline
+context.ciWorkflow.status          → "Queued" | "InProgress" | "Succeeded" | "Failed" | "Cancelled" | "TimedOut"
+context.ciWorkflow.conclusion      → provider-specific conclusion
+context.ciWorkflow.branch          → branch that triggered the CI workflow
+context.ciWorkflow.isPullRequest   → "true" | "false" (string!)
+context.ciWorkflow.pullRequestId   → PR number (if PR-triggered)
+context.ciWorkflow.commitSha       → commit SHA the CI ran against
+context.ciWorkflow.queuedAt        → ISO timestamp when queued
+context.ciWorkflow.startedAt       → ISO timestamp when started
+context.ciWorkflow.completedAt     → ISO timestamp when completed
+context.ciWorkflow.duration        → run duration in milliseconds
+context.ciWorkflow.workflowUrl     → URL to the run in the provider UI
+context.ciWorkflow.jobCount        → number of jobs in the workflow
 ```
 
 ## Slash Command Configuration
@@ -299,6 +331,38 @@ context.actor.type                 → "User" | "Bot" | "Organization"
   {
     "event": "manual",
     "slashCommand": { "command": "pr-description", "requireMention": false }
+  }
+]
+```
+
+### CI Failure on Main Branch
+
+```json
+"triggers": [
+  {
+    "event": "ci_workflow_failed",
+    "conditions": {
+      "combinator": "and",
+      "rules": [
+        { "field": "context.ciWorkflow.branch", "operator": "equals", "value": "main" }
+      ]
+    }
+  }
+]
+```
+
+### CI Completion for Specific Workflow
+
+```json
+"triggers": [
+  {
+    "event": "ci_workflow_completed",
+    "conditions": {
+      "combinator": "and",
+      "rules": [
+        { "field": "context.ciWorkflow.workflowName", "operator": "equals", "value": "deploy-staging" }
+      ]
+    }
   }
 ]
 ```

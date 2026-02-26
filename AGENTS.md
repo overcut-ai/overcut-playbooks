@@ -483,7 +483,21 @@ Chain it with `git.clone` using template syntax:
 }
 ```
 
-> For all 22 event types, condition operators, schedule triggers, and real-world examples, see the `workflow-triggers` skill.
+**CI Workflow (Event-based):**
+
+```json
+{
+  "event": "ci_workflow_failed",
+  "conditions": {
+    "combinator": "and",
+    "rules": [
+      { "field": "context.ciWorkflow.branch", "operator": "equals", "value": "main" }
+    ]
+  }
+}
+```
+
+> For all 28 event types, condition operators, schedule triggers, and real-world examples, see the `workflow-triggers` skill.
 
 ### Workflow Configuration
 

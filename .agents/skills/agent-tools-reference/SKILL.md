@@ -13,7 +13,7 @@ This skill covers the tools available to Overcut agents, built-in agent type pre
 
 ## Tool Categories Overview
 
-Overcut provides 35 user-configurable tools plus 6 system tools, organized by category:
+Overcut provides 40 user-configurable tools plus 6 system tools, organized by category:
 
 | Category | Tools | Count |
 |----------|-------|-------|
@@ -22,6 +22,7 @@ Overcut provides 35 user-configurable tools plus 6 system tools, organized by ca
 | **Tickets/Issues** | CreateTicket, UpdateTicket, ListTickets, ReadTicket, AddCommentToTicket, UpdateCommentOnTicket | 6 |
 | **Pull Requests** | CreatePullRequest, ReadPullRequest, UpdatePullRequest, ListPullRequests, MergePullRequest, AddCommentToPullRequest, UpdateCommentOnPullRequest, ClosePullRequest | 8 |
 | **Code Review** | AddPullRequestReviewThread, SubmitReview, AddPullRequestReviewThreadReply, GetPullRequestDiff, GetPullRequestDiffLineNumbers | 5 |
+| **CI/CD** | GetCiRunDetails, GetCiRunLogs, ListPrCiRuns, GetCiJobLogs, RetryCiWorkflow | 5 |
 | **Attachments** | GetTicketAttachments, GetPullRequestAttachments | 2 |
 | **Exploration** | ExploreCodebase | 1 |
 | **Memory** (auto-injected) | MemoryWrite, MemoryRead | 2 |
@@ -33,8 +34,8 @@ When creating agents in Overcut, you select a base type that determines the defa
 
 | Agent Type | Tools | Focus |
 |------------|-------|-------|
-| **SeniorDeveloper** | 26 tools | Full-stack development: all file, code, ticket, PR, and exploration tools |
-| **CodeReview** | 22 tools | Code review: read-only file access + append, code search, review tools, PR read/update |
+| **SeniorDeveloper** | 31 tools | Full-stack development: all file, code, ticket, PR, CI/CD, and exploration tools |
+| **CodeReview** | 26 tools | Code review: read-only file access + append, code search, review tools, PR read/update, CI read tools |
 | **TechWriter** | 25 tools | Documentation: full file access, code search, ticket and PR tools |
 | **ProductManager** | 20 tools | Planning: read-only file access, code search, ticket CRUD, PR read/update |
 | **ExploreAgent** | 5 tools | Exploration: ReadFile, ListDirectory, CodeSearch, SemanticCodeSearch, RunTerminalCmd |
