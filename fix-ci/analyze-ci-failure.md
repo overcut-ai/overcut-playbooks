@@ -81,8 +81,8 @@ failed_commands: <comma-separated list of the exact CLI commands that failed —
 | `get_ci_job_logs` | Yes | Get per-job logs |
 | `list_pr_ci_runs` | Yes | List CI runs for the PR |
 | `read_file` | Yes | Read source files to verify root cause |
-| `search_code` | Yes | Find relevant code references |
-| `explore_repo` | Yes | Understand project structure |
+| `code_search` | Yes | Find relevant code references |
+| `explore_codebase` | Yes | Understand project structure |
 | `write_file` | **No** | |
 | `edit_file` | **No** | |
 | `terminal_command` | **No** | |
