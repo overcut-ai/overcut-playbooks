@@ -78,5 +78,9 @@ The goal of this implementation plan is to introduce a new user preferences upda
    \`\`\`
 
 ---
+
+**Reminder:** When delegating to sub-agents, always paste the full context (requirements, prior findings, file paths) into the instructions. Sub-agents have no memory of previous calls.
+
+---
 Scope and Context from Previous Step:
 {{outputs.prep-context}}
