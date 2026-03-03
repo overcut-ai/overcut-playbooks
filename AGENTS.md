@@ -33,12 +33,13 @@ playbook-name/
 
 - `README.md` – Repository overview, catalog of available playbooks, and contribution entry point
 - `AGENTS.md` – This operating guide for Overcut agents
+- `CLAUDE.md` – Reference guide for Claude-specific instructions in this repo
 - `CONTRIBUTING.md` – Process details for human contributors collaborating with agents
 - `scripts/` – Automation helpers like `sync-prompts.py` used by agents to keep workflows aligned with prompts
 
 ## ♻️ Repository Patterns
 
-- **Strict per-playbook structure**: Every workflow directory contains `workflow.json`, a README following the standard template, and one prompt file per step with names that match their step IDs exactly.
+- **Strict per-playbook structure**: Every workflow directory contains `workflow.json`, a README following the standard template, and one prompt file per step with names that match their step IDs exactly (except `migration-package/`, which is a docs-only exception).
 - **Design-first documentation**: READMEs are treated as design docs that define triggers, prerequisites, step sequencing, and customization guidance before implementation begins.
 - **Prompt ↔ workflow synchronization**: Agents rely on `scripts/sync-prompts.py` to copy prompt content into `workflow.json`, preventing drift and ensuring JSON stays valid.
 - **Specialized agent guidance**: When a workflow needs bespoke personas (e.g., Security Engineer), a `special-agents/` folder documents those roles while keeping generic roles in standard prompts.
@@ -496,6 +497,7 @@ Study these playbooks for patterns:
 - **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow
 - **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
 - **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
+- **Migration Package** (`migration-package/`) - Docs-only exception without workflow.json/prompt files
 - **Auto Update Agents** (`auto-update-agents-md/`) - Scheduled workflow that keeps AGENTS.md up to date by automating documentation maintenance
 - **Repository Documentation** (`README.md`, `AGENTS.md`) - Documentation-focused examples that showcase how centralized guidance steers both humans and AI agents across every playbook
 
