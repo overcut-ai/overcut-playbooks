@@ -32,12 +32,15 @@ Before doing anything, check if the prep-context output below contains `status: 
    - Create from the current branch (already set to the correct base by the prep-context step)
    - Verify branch creation succeeded
 
-3. Parse the implementation plan to extract:
+3. Create an empty commit and push the branch:
+   - Run `git commit --allow-empty -m "chore: initialize PR branch"`
+   - Push the branch to remote with `git push -u origin <branch_name>`
+4. Parse the implementation plan to extract:
    - Overall goal
    - All phases and their tasks
    - Expected changes and scope
 
-4. Create a **draft pull request**:
+5. Create a **draft pull request**:
    - Check if a PR already exists for this branch, if it does, update it
    - Title: `[DRAFT] <issue_title>`
    - Body: Initial description (use template below)
@@ -45,12 +48,12 @@ Before doing anything, check if the prep-context output below contains `status: 
    - Base branch: The current branch (set by prep-context — may be the default branch or a dependency's PR branch)
    - This PR will be updated with progress in the next steps
 
-5. Post a comment on the triggering issue:
+6. Post a comment on the triggering issue:
    - Include link to the draft PR
    - Note that implementation is starting
    - Mention that progress can be monitored in the PR
 
-6. Output the branch name and draft PR URL for the next step.
+7. Output the branch name and draft PR URL for the next step.
 
 ---
 
@@ -133,6 +136,7 @@ base_branch: main
 
 • Pull latest changes before creating branch.
 • Create implementation branch with clear naming: `prbuilder/<slug>`.
+• Create an empty commit before opening the draft PR (PR requires at least one commit difference).
 • Branch from the current branch (already set by prep-context).
 • Create draft PR with the current branch as base.
 • Use the Initial Draft PR Description template - keep it simple and plan-focused.
