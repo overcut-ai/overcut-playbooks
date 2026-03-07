@@ -551,7 +551,7 @@ Study these playbooks for patterns, ordered by complexity:
 
 **Medium** (introduces coordination):
 - **Remediate CVEs** (`remediate-cves/`) — 4 steps, `repo.identify` → `git.clone` chain, `agent.session`, label-based triggers, specialized agents
-- **Code Review** (`code-review/`) — 5 steps, scratchpad/JSONL pattern, chunk processing, multi-agent delegation with tool constraints
+- **Code Review** (`code-review/`) — 5 steps, scratchpad tools + JSONL pattern, chunk processing, multi-agent delegation with tool constraints
 
 **Complex** (full patterns):
 - **Create PR from Design** (`create-pr-from-design/`) — 8 steps, blocking/gating, dependency resolution, phased implementation, progress tracking

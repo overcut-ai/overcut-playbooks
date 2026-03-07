@@ -77,6 +77,9 @@ The coordinator has access to these exclusive tools:
 | `task_completed` | Signal that the session is complete and return final output |
 | `read_file` | Read files (typically limited to coordination artifacts) |
 | `memory_write` / `memory_read` | Persist and retrieve learnings across executions |
+| `write_scratchpad` / `read_scratchpad` | Create/read ephemeral per-run scratchpads for inter-agent data |
+| `list_scratchpads` | List all scratchpad names in the current run |
+| `append_scratchpad` | Append content to a scratchpad (safe for concurrent writes) |
 
 The coordinator should **not** perform the actual work (posting comments, writing code, etc.) — that's delegated to sub-agents.
 
@@ -134,8 +137,8 @@ Always include explicit allowed/prohibited tool tables in both coordinator and d
 ### Allowed Tools
 | Tool | Purpose |
 |------|---------|
-| `read_file` | ONLY for `.overcut/review/scratchpad.jsonl` |
-| `write_file` | ONLY for `.overcut/review/scratchpad.chunk*.jsonl` |
+| `read_scratchpad` | ONLY for `review-findings` scratchpad |
+| `write_scratchpad` | ONLY for `review-chunk-{N}` scratchpads |
 
 ### Prohibited Tools
 ❌ `code_search` — no code searching needed
@@ -188,9 +191,9 @@ The session ends when a user posts one of these exact strings as a comment (requ
 
 ### Chunk Processing Pattern
 
-1. Previous step creates chunk files (`.overcut/review/scratchpad.chunk{N}.jsonl`)
-2. Coordinator reads chunk list from previous step's output
-3. Delegates one sub-agent per chunk file
+1. Previous step collects findings via `append_scratchpad` and splits them into named chunk scratchpads via `write_scratchpad` (e.g., `review-chunk-1`, `review-chunk-2`)
+2. Coordinator reads chunk list from previous step's output (or uses `list_scratchpads` as fallback)
+3. Delegates one sub-agent per chunk (sub-agent uses `read_scratchpad` to read its chunk)
 4. Aggregates results
 5. Delegates one final sub-agent for summary/submission
 
@@ -224,11 +227,12 @@ After all three return, aggregate their findings and proceed to Step 3.
 ```markdown
 ## Step 2 — Process Chunks in Parallel
 
-Delegate ALL chunk files in a single turn:
-- Delegate chunk1.jsonl to Code Reviewer
-- Delegate chunk2.jsonl to Code Reviewer
-- Delegate chunk3.jsonl to Code Reviewer
+Delegate ALL chunks in a single turn:
+- Delegate `review-chunk-1` scratchpad to Code Reviewer
+- Delegate `review-chunk-2` scratchpad to Code Reviewer
+- Delegate `review-chunk-3` scratchpad to Code Reviewer
 
+Each sub-agent uses `read_scratchpad` to read its assigned chunk.
 Issue all delegations in the same response. Do NOT process them one at a time.
 ```
 

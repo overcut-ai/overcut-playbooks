@@ -38,8 +38,8 @@ Always specify exactly which tools the agent may use. This prevents unnecessary 
 ### Allowed Tools
 | Tool | Purpose |
 |------|---------|
-| `read_file` | ONLY for `.overcut/review/scratchpad.jsonl` |
-| `write_file` | ONLY for `.overcut/review/scratchpad.chunk*.jsonl` |
+| `read_scratchpad` | ONLY for `review-findings` scratchpad |
+| `write_scratchpad` | ONLY for `review-chunk-{N}` scratchpads |
 | `task_completed` | Finish the task |
 
 ### Prohibited Tools
@@ -67,9 +67,10 @@ proceed with the current version and note remaining issues in the output.
 
 ### 5. File Path Conventions
 
-- **Workspace root files**: Use `.overcut/` prefix for intermediate data (e.g., `.overcut/review/scratchpad.jsonl`)
+- **Scratchpad tools for inter-agent data**: Prefer `write_scratchpad`/`read_scratchpad`/`append_scratchpad` over manual file operations for intermediate data shared between agents or steps
+- **Workspace root files**: Use `.overcut/` prefix for any files that must be on disk (e.g., generated artifacts)
 - **Paths are relative** to the workspace root — do NOT use absolute `/workspace/` paths
-- **Cloned repos** appear under the workspace root at a path like `owner/repo/` — keep scratchpad files OUTSIDE cloned repo folders
+- **Cloned repos** appear under the workspace root at a path like `owner/repo/` — keep workspace files OUTSIDE cloned repo folders
 
 ## Output Format Conventions
 
@@ -82,7 +83,7 @@ status: ready
 base_branch: main
 chunks_created: yes
 total_chunks: 3
-chunk_files: .overcut/review/scratchpad.chunk1.jsonl, .overcut/review/scratchpad.chunk2.jsonl
+chunk_names: review-chunk-1, review-chunk-2
 ```
 
 ### Structured Sections
@@ -105,14 +106,18 @@ base_branch: feature/dependency-x
 
 ### JSONL for Large Data
 
-When a step produces many structured items, write them to a JSONL file rather than including in the output message:
+When a step produces many structured items, use `append_scratchpad` to accumulate JSONL content in a named scratchpad rather than including it all in the output message:
 
 ```markdown
-Append each finding as a JSON line to `.overcut/review/scratchpad.jsonl`:
+Append each finding as a JSON line to the `review-findings` scratchpad using `append_scratchpad`:
 
 {"file": "src/auth.ts", "importance": "major", "title": "Missing validation", "message": "..."}
 {"file": "src/api.ts", "importance": "minor", "title": "Unused import", "message": "..."}
 ```
+
+`append_scratchpad` is safe for concurrent writes from parallel agents. Downstream steps read with `read_scratchpad`.
+
+> **Legacy alternative**: File-based JSONL (e.g., `append_file` to `.overcut/review/scratchpad.jsonl`) is still supported but scratchpad tools are preferred for inter-agent data.
 
 ## Advanced Patterns
 

@@ -97,31 +97,42 @@ Delegate to TechWriter for final formatting and post the result.
 
 ## 4. Scratchpad Pattern
 
-**When to use**: A step produces large intermediate data (many findings, analysis results) that should be stored as files rather than passed as text output.
+**When to use**: A step produces large intermediate data (many findings, analysis results) that should be shared between agents or steps without passing it all as text output.
 
-**How it works**: Steps write to `.overcut/` directory at the workspace root using JSONL format for structured data.
+**How it works**: Agents use scratchpad tools (`write_scratchpad`, `read_scratchpad`, `list_scratchpads`, `append_scratchpad`) for ephemeral, per-run storage. These tools are auto-injected into all agents.
 
-**Example** (from code-review):
+**Example — 3-stage pipeline** (from code-review):
+
+**Stage 1 — Collect** (analysis step uses `append_scratchpad` to accumulate findings):
 
 ```markdown
-Append each finding as a JSON line to `.overcut/review/scratchpad.jsonl`
-(this is a relative path from the workspace root — do NOT write inside the cloned repo folder).
+Append each finding as a JSON line to the `review-findings` scratchpad using `append_scratchpad`:
 
 Schema for each finding:
 {"file": "path/to/file", "importance": "blocker|major|minor|nit", "title": "Short handle", "message": "1-2 sentence comment", "suggested_fix": "Optional guidance", "line": "", "side": "RIGHT|LEFT|UNKNOWN"}
 ```
 
-**Downstream processing** splits the scratchpad into chunks:
+**Stage 2 — Split** (preparation step reads and splits into chunks):
 
 ```markdown
-Write each chunk as a JSONL file named `.overcut/review/scratchpad.chunk{N}.jsonl`
+1. Read the `review-findings` scratchpad using `read_scratchpad`
+2. Split findings into chunks of ~10 findings each
+3. Write each chunk to a named scratchpad using `write_scratchpad`: `review-chunk-1`, `review-chunk-2`, etc.
+```
+
+**Stage 3 — Process** (coordinator delegates chunk processing to sub-agents):
+
+```markdown
+For each chunk, delegate to a Code Reviewer with the chunk scratchpad name.
+The sub-agent uses `read_scratchpad` to read its assigned chunk.
 ```
 
 **Key conventions**:
-- Always use `.overcut/` prefix at workspace root
-- Use JSONL format (one JSON object per line) for easy parsing and splitting
-- Keep scratchpad files OUTSIDE cloned repo folders
-- Use relative paths (not absolute `/workspace/` paths)
+- Use `append_scratchpad` when collecting data incrementally — it's safe for concurrent writes from parallel agents
+- Use `write_scratchpad` when creating complete, distinct chunks
+- Use `read_scratchpad` when a downstream agent needs to consume the data
+- Use `list_scratchpads` as a fallback to discover available scratchpads
+- Use kebab-case names (e.g., `review-findings`, `review-chunk-1`)
 
 ## 5. Progress Tracking via PR Comments
 
@@ -199,15 +210,15 @@ This works because the Create PR from Design workflow has a manual trigger for t
 ### Allowed Tools
 | Tool | Purpose | Max Calls |
 |------|---------|-----------|
-| `read_file` | ONLY for `{chunkFile}` | 1 |
+| `read_scratchpad` | ONLY for `{chunkName}` | 1 |
 | `get_pull_request_diff_line_numbers` | Resolve line numbers | 1 per file |
 | `add_pull_request_review_thread` | Post each comment | 1 per finding |
 
-**Tool budget: 1 call to get_pull_request_diff_line_numbers per file, and 1 call to post review comment + 1 initial read.**
+**Tool budget: 1 call to get_pull_request_diff_line_numbers per file, and 1 call to post review comment + 1 initial read_scratchpad.**
 
 ### Prohibited Tools
 ❌ `run_terminal_cmd` — no terminal commands, no git commands
-❌ `read_file` on any file other than `{chunkFile}` — no source code reads
+❌ `read_scratchpad` on any scratchpad other than `{chunkName}` — no other scratchpad reads
 ❌ `submit_review` — the coordinator will submit later
 ```
 
@@ -232,15 +243,15 @@ Delegate ALL of the following reviews in a single turn (do NOT wait for one to f
 
 1. Delegate to **Security Reviewer**:
    Review the PR for security concerns: injection risks, auth bypasses, secret exposure, insecure defaults.
-   Chunk file: `.overcut/review/security-findings.jsonl`
+   Write findings to scratchpad: `security-findings`
 
 2. Delegate to **Performance Reviewer**:
    Review the PR for performance implications: N+1 queries, missing indexes, unbounded loops, memory leaks.
-   Chunk file: `.overcut/review/performance-findings.jsonl`
+   Write findings to scratchpad: `performance-findings`
 
 3. Delegate to **API Reviewer**:
    Review the PR for API contract changes: breaking changes, missing versioning, undocumented endpoints.
-   Chunk file: `.overcut/review/api-findings.jsonl`
+   Write findings to scratchpad: `api-findings`
 
 Issue all three delegations in the same response. After all three return, aggregate their findings and proceed to Step 3.
 ```
@@ -260,7 +271,8 @@ Issue all delegations in the same response.
 **Key conventions**:
 - Each parallel delegation must be fully self-contained — no shared mutable state
 - Explicitly instruct: "Issue all delegations in the same response" / "do NOT wait for one to finish"
-- If parallel agents write to files, use separate output files to avoid conflicts
+- Use separate scratchpad names per parallel agent to avoid conflicts (e.g., `security-findings`, `performance-findings`)
+- `append_scratchpad` is safe for concurrent writes if multiple agents need to write to the same scratchpad
 - Aggregate results only after ALL parallel delegations complete
 - Failed parallel tasks can be retried independently without re-running successful ones
 - When NOT to use: tasks with data dependencies where one delegation's output feeds into the next
