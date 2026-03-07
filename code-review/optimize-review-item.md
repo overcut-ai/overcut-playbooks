@@ -8,9 +8,9 @@ Your goal is to **filter and organize the existing findings** into a minimal, hi
 
 **DO NOT** perform any of the following actions:
 
-- **DO NOT** read any source code files. Your input is ONLY `.overcut/review/scratchpad.jsonl`
+- **DO NOT** read any source code files. Your input is ONLY the `review-findings` scratchpad
 - **DO NOT** validate findings against the codebase — that was done in the previous step
-- **DO NOT** use `code_search`, `read_file` (except for scratchpad.jsonl), or browse the repository
+- **DO NOT** use `code_search`, `read_file`, or browse the repository
 - **DO NOT** run terminal commands to inspect the codebase
 - **DO NOT** try to "verify" or "confirm" findings by looking at actual code
 
@@ -23,9 +23,9 @@ You may ONLY use:
 | Tool | Purpose |
 |------|---------|
 | `update_status` | Notify progress |
-| `read_file` | ONLY for `.overcut/review/scratchpad.jsonl` |
-| `write_file` / `append_file` | ONLY for `.overcut/review/scratchpad.chunk*.jsonl` |
-| `list_dir` | ONLY for `.overcut/review/` directory |
+| `read_scratchpad` | Read the `review-findings` scratchpad |
+| `write_scratchpad` | Write chunk scratchpads (e.g., `review-chunk1`, `review-chunk2`) |
+| `list_scratchpads` | Verify chunk scratchpads were created |
 | `task_completed` | Finish the task |
 
 **Any other tool usage is OUT OF SCOPE and violates this workflow.**
@@ -39,11 +39,11 @@ You may ONLY use:
 
 ### ✅ CORRECT Approach
 
-1. Read `scratchpad.jsonl` once
+1. Read the `review-findings` scratchpad once
 2. Apply deduplication rules based on file path and summary similarity
 3. Apply pruning rules based on finding metadata (importance, category, confidence)
-4. Call `write_file` for each chunk file (at least one chunk — even if only 1 finding)
-5. Call `list_dir` on `.overcut/review/` to verify chunk files exist on disk
+4. Call `write_scratchpad` for each chunk (at least one chunk — even if only 1 finding)
+5. Call `list_scratchpads` to verify chunk scratchpads exist
 6. Done
 
 ---
@@ -58,7 +58,7 @@ Use the `update_status` tool to notify the user that optimization has started.
 
 **Prerequisites**:
 
-- The previous step should have created `.overcut/review/scratchpad.jsonl` with review findings.
+- The previous step should have created the `review-findings` scratchpad with review findings.
 - The previous step provides output indicating whether review comments were found.
 
 **Previous step output:**
@@ -84,7 +84,7 @@ Use the `update_status` tool to notify the user that optimization has started.
 
 ## Step 2 – Dedupe and Prune
 
-Read `.overcut/review/scratchpad.jsonl` (this is a relative path from the workspace root — do NOT look inside the cloned repo folder).
+Read the `review-findings` scratchpad using `read_scratchpad` with name `review-findings`.
 Apply the following optimization and filtering rules:
 
 ### Deduplication
@@ -102,10 +102,10 @@ Drop or merge items based on these criteria:
 - **Ignore lint-only changes**:
   - Skip findings that relate only to formatting, whitespace, import order, semicolons, trailing commas, quote style, or other stylistic diffs.
   - If a finding points to a line that changed only in formatting (no logic), discard it.
-- **Drop no-op or trivial items** (e.g., “variable could be renamed,” “add blank line,” etc.).
-- **Drop low-confidence items** that lack clear reasoning or are speculative (“might,” “maybe,” “possibly”).
+- **Drop no-op or trivial items** (e.g., "variable could be renamed," "add blank line," etc.).
+- **Drop low-confidence items** that lack clear reasoning or are speculative ("might," "maybe," "possibly").
 - **Drop out-of-scope findings** that do not relate to the current PR changes, unless they are **critical** (security, correctness, or stability).
-- **Drop nitpicks** — small subjective preferences that don’t affect correctness, maintainability, or readability.
+- **Drop nitpicks** — small subjective preferences that don't affect correctness, maintainability, or readability.
 - **Collapse repetitive housekeeping**:
   - If multiple similar style issues appear in the same file (imports, spacing, etc.), collapse them into one summary note per file.
 
@@ -113,7 +113,7 @@ Drop or merge items based on these criteria:
 
 - Prefer **fewer, higher-confidence** comments that reflect clear problems or improvements.
 - Each retained finding must represent a **distinct and meaningful insight**.
-- The goal is to make Overcut’s review **concise and high-signal**.
+- The goal is to make Overcut's review **concise and high-signal**.
 
 ---
 
@@ -121,7 +121,7 @@ Drop or merge items based on these criteria:
 
 After pruning, split the optimized findings into chunks for downstream agents.
 
-⚠️ **MANDATORY**: If there are any findings remaining after pruning, you MUST call `write_file` to create at least one chunk file. Do NOT skip this step. The next workflow step depends on these files existing on disk. Claiming you created a file without calling `write_file` will break the pipeline. If all findings were pruned and there is nothing to write, you may skip file creation and report that no actionable findings remain.
+⚠️ **MANDATORY**: If there are any findings remaining after pruning, you MUST call `write_scratchpad` to create at least one chunk scratchpad. Do NOT skip this step. The next workflow step depends on these scratchpads existing. Claiming you created a scratchpad without calling `write_scratchpad` will break the pipeline. If all findings were pruned and there is nothing to write, you may skip creation and report that no actionable findings remain.
 
 ### Chunking Rules
 
@@ -132,18 +132,18 @@ After pruning, split the optimized findings into chunks for downstream agents.
 
 **Outputs**:
 
-- Write each chunk as a JSONL file named `.overcut/review/scratchpad.chunk{N}.jsonl` (this is a relative path from the workspace root — do NOT write inside the cloned repo folder).
+- Write each chunk as a JSONL scratchpad named `review-chunk{N}` using `write_scratchpad` (e.g., `review-chunk1`, `review-chunk2`).
 
 ---
 
-## Step 3.5 – Verify Chunk Files Were Created
+## Step 3.5 – Verify Chunk Scratchpads Were Created
 
-After writing chunk files, you MUST verify they exist:
+After writing chunk scratchpads, you MUST verify they exist:
 
-1. Call `list_dir` on `.overcut/review/` directory.
-2. Confirm that every `scratchpad.chunk{N}.jsonl` file you intended to create appears in the listing.
-3. If any chunk file is missing, call `write_file` again to create it.
-4. Do NOT proceed to Step 4 until all chunk files are confirmed to exist.
+1. Call `list_scratchpads`.
+2. Confirm that every `review-chunk{N}` scratchpad you intended to create appears in the listing.
+3. If any chunk scratchpad is missing, call `write_scratchpad` again to create it.
+4. Do NOT proceed to Step 4 until all chunk scratchpads are confirmed to exist.
 
 ---
 
@@ -158,9 +158,9 @@ When the workflow completes, you MUST output the following information:
 
 ```
 chunks_created: <yes|no>
-total_chunks: <number of chunk files created>
+total_chunks: <number of chunk scratchpads created>
 kept_findings: <number of findings kept after optimization>
-chunk_files: <comma-separated list of chunk filenames created>
+chunk_names: <comma-separated list of chunk scratchpad names created>
 ```
 
 Example outputs:
@@ -171,7 +171,7 @@ Example outputs:
 chunks_created: yes
 total_chunks: 3
 kept_findings: 8
-chunk_files: .overcut/review/scratchpad.chunk1.jsonl, .overcut/review/scratchpad.chunk2.jsonl, .overcut/review/scratchpad.chunk3.jsonl
+chunk_names: review-chunk1, review-chunk2, review-chunk3
 ```
 
 **If no findings remained after optimization:**
@@ -180,5 +180,5 @@ chunk_files: .overcut/review/scratchpad.chunk1.jsonl, .overcut/review/scratchpad
 chunks_created: no
 total_chunks: 0
 kept_findings: 0
-chunk_files:
+chunk_names:
 ```
