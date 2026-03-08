@@ -32,7 +32,9 @@ Handle these yourself — they are trivial and do NOT require a sub-agent:
 ### Only Delegate These Tasks
 
 - **Step 2**: One delegation per chunk scratchpad (posting comments to PR) — **all delegated in a single turn**
-- **Step 3**: One delegation for final review submission
+- **Step 3**: One delegation for final review submission — **strictly AFTER all Step 2 delegations have returned**
+
+**⚠️ Sequencing Rule:** Step 2 delegations are parallel (all in one turn). Step 3 is strictly sequential — it MUST NOT be delegated in the same turn as Step 2. Wait until every Step 2 sub-agent has returned its completion message before delegating Step 3.
 
 ### Max Delegations
 
@@ -195,15 +197,28 @@ Do NOT include summaries, statistics, or additional commentary.
 
 ### Coordinator Checkpoint (Between Step 2 and Step 3)
 
+**⚠️ CRITICAL: You MUST NOT delegate Step 3 until you have received return messages from ALL Step 2 sub-agents. If you delegated N chunks, you must have N return messages before proceeding.**
+
 After ALL parallel chunk delegations from Step 2 have completed:
 
-1. **Aggregate results yourself** — parse the return messages from all sub-agents (e.g., "posted 5 comments from review-chunk1")
-2. **DO NOT** post any PR comments or summaries at this point
-3. **Proceed directly to Step 3**
+1. **Verify all Step 2 delegations returned** — count the return messages and confirm they match the number of chunks delegated
+2. **Aggregate results yourself** — parse the return messages from all sub-agents (e.g., "posted 5 comments from review-chunk1")
+3. **DO NOT** post any PR comments or summaries at this point
+4. **Only then proceed to Step 3**
+
+**❌ PROHIBITED PATTERN — never do this:**
+```
+# WRONG: Delegating Step 2 and Step 3 in the same turn
+delegate chunk1 posting...
+delegate chunk2 posting...
+delegate final review submission...  ← WRONG, must wait for chunk results first
+```
 
 ---
 
 ## Step 3 – Finalize and Submit the Review with a Sub-Agent
+
+**Precondition:** Before delegating this step, verify you have received completion messages from ALL chunk delegations in Step 2. If any chunk delegation is still pending, WAIT — do not proceed.
 
 After all chunks are processed and all comments have been added in Step 2:
 
