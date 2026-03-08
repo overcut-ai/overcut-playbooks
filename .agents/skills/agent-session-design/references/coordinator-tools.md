@@ -62,6 +62,66 @@ Persists a learning that will be available in future executions of the same agen
 
 Retrieves a stored memory by title (case-insensitive match).
 
+## Scratchpad Tools (All Agents)
+
+These tools are injected into all agents (coordinators and sub-agents alike). They provide ephemeral, per-run storage for sharing structured data between agents.
+
+### write_scratchpad
+
+```json
+{
+  "name": "Scratchpad name (e.g., 'review-findings', 'chunk-1')",
+  "content": "Content to write (overwrites existing)"
+}
+```
+
+Creates or overwrites a named scratchpad with the given content.
+
+### read_scratchpad
+
+```json
+{
+  "name": "Scratchpad name to read"
+}
+```
+
+Reads the contents of a named scratchpad.
+
+### list_scratchpads
+
+```json
+{}
+```
+
+Lists all scratchpad names created in the current run.
+
+### append_scratchpad
+
+```json
+{
+  "name": "Scratchpad name to append to",
+  "content": "Content to append"
+}
+```
+
+Appends content to an existing scratchpad (creates it if it doesn't exist). Safe for concurrent writes from parallel agents.
+
+### Scratchpad vs Memory
+
+| | Scratchpad | Memory |
+|---|---|---|
+| **Lifetime** | Single workflow run | Persists across runs |
+| **Purpose** | Share data between agents/steps | Store learnings for future runs |
+| **Concurrency** | `append_scratchpad` is safe for parallel writes | Not designed for concurrent access |
+| **Use when** | Passing intermediate data (findings, chunks) | Saving patterns, conventions, preferences |
+
+### When to Use Scratchpads
+
+- **Collecting findings**: Use `append_scratchpad` to accumulate JSONL findings from analysis steps
+- **Chunk processing**: Use `write_scratchpad` to create named chunks, `read_scratchpad` to process them
+- **Cross-agent data sharing**: Any agent can write to a scratchpad and any other agent can read it
+- **Prefer over file operations**: Use scratchpad tools instead of `write_file`/`read_file` for intermediate workflow data
+
 ## Writing Effective Coordinator Prompts
 
 ### Structure Template
@@ -140,20 +200,21 @@ Use `task_completed` with structured output.
 The submit-review step in the code-review playbook demonstrates the chunk processing pattern:
 
 1. **Step 0**: Acknowledge via `update_status`
-2. **Step 1**: Parse previous step's output for chunk list (`chunks_created`, `total_chunks`, `chunk_files`)
-3. **Step 2**: For each chunk file, delegate to Code Reviewer with a complete delegation template that includes:
-   - Specific chunk file path
-   - Allowed tools table (read_file for chunk only, get_pull_request_diff_line_numbers, add_pull_request_review_thread)
-   - Prohibited tools table (run_terminal_cmd, code_search, submit_review, etc.)
+2. **Step 1**: Parse previous step's output for chunk list (`chunks_created`, `total_chunks`, `chunk_names`)
+3. **Step 2**: For each chunk, delegate to Code Reviewer with a complete delegation template that includes:
+   - Specific chunk scratchpad name
+   - Allowed tools table (`read_scratchpad` for chunk only, `get_pull_request_diff_line_numbers`, `add_pull_request_review_thread`)
+   - Prohibited tools table (`run_terminal_cmd`, `code_search`, `submit_review`, etc.)
    - Error handling for line number resolution failures
-   - Expected output format: `"posted {count} comments from {chunkFile}"`
+   - Expected output format: `"posted {count} comments from {chunkName}"`
 4. **Checkpoint**: Aggregate results from all sub-agents (coordinator does this directly, no delegation)
 5. **Step 3**: Delegate review finalization to Code Reviewer with template for submitting the review summary
 6. **Step 4**: Use `task_completed` with final status
 
 **Key patterns from this example:**
-- Coordinator reads chunk files with `read_file` but never posts PR comments directly
-- Each delegation template includes complete context (file paths, tool constraints, schema)
+- Coordinator reads chunks with `read_scratchpad` but never posts PR comments directly
+- Uses `list_scratchpads` as a fallback if chunk names aren't available from previous step output
+- Each delegation template includes complete context (scratchpad names, tool constraints, schema)
 - Error handling is specified at the delegation level (what sub-agent should do if tool calls fail)
 - Explicit delegation count: `(number of chunks) + 1`
 

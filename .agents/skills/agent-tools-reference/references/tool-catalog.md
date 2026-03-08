@@ -160,6 +160,53 @@ These tools are automatically added to all agents (coordinator and sub-agent). T
 }
 ```
 
+## Scratchpad Tools (4) — Auto-Injected
+
+These tools are automatically added to all agents (coordinator and sub-agent). They provide ephemeral, per-run storage for sharing structured data between agents within a single workflow execution.
+
+| Tool ID | Display Name | Description |
+|---------|-------------|-------------|
+| `write_scratchpad` | Write Scratchpad | Create or overwrite a named scratchpad with content |
+| `read_scratchpad` | Read Scratchpad | Read the contents of a named scratchpad |
+| `list_scratchpads` | List Scratchpads | List all scratchpad names in the current run |
+| `append_scratchpad` | Append Scratchpad | Append content to an existing scratchpad (creates if not exists) |
+
+### write_scratchpad Parameters
+
+```json
+{
+  "name": "Scratchpad name (e.g., 'review-findings', 'chunk-1')",
+  "content": "Content to write (overwrites existing)"
+}
+```
+
+### read_scratchpad Parameters
+
+```json
+{
+  "name": "Scratchpad name to read"
+}
+```
+
+### list_scratchpads Parameters
+
+```json
+{}
+```
+
+No parameters required. Returns a list of all scratchpad names created in the current run.
+
+### append_scratchpad Parameters
+
+```json
+{
+  "name": "Scratchpad name to append to (creates if not exists)",
+  "content": "Content to append"
+}
+```
+
+Scratchpads are ephemeral — they exist only for the duration of the workflow run and are automatically cleaned up when the run completes. Use memory tools instead for data that should persist across runs.
+
 ## Coordinator-Only Tools (3) — Auto-Injected
 
 These tools are only available to the coordinator agent in `agent.session` steps.

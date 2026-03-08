@@ -13,7 +13,7 @@ This skill covers the tools available to Overcut agents, built-in agent type pre
 
 ## Tool Categories Overview
 
-Overcut provides 40 user-configurable tools plus 6 system tools, organized by category:
+Overcut provides 40 user-configurable tools plus 10 system tools, organized by category:
 
 | Category | Tools | Count |
 |----------|-------|-------|
@@ -26,6 +26,7 @@ Overcut provides 40 user-configurable tools plus 6 system tools, organized by ca
 | **Attachments** | GetTicketAttachments, GetPullRequestAttachments | 2 |
 | **Exploration** | ExploreCodebase | 1 |
 | **Memory** (auto-injected) | MemoryWrite, MemoryRead | 2 |
+| **Scratchpad** (auto-injected) | WriteScratchpad, ReadScratchpad, ListScratchpads, AppendScratchpad | 4 |
 | **Coordinator-only** (auto-injected) | DelegateToSubAgent, UpdateStatus, TaskCompletedTool | 3 |
 
 ## Built-in Agent Types
@@ -51,6 +52,7 @@ When creating agents in Overcut, you select a base type that determines the defa
 
 Regardless of base type, these tools are **automatically added** at runtime:
 - **Memory tools** (`memory_write`, `memory_read`) — added to all agents (coordinator and sub-agents)
+- **Scratchpad tools** (`write_scratchpad`, `read_scratchpad`, `list_scratchpads`, `append_scratchpad`) — added to all agents (coordinator and sub-agents)
 - **Coordinator tools** (`delegate_to_sub_agent`, `update_status`, `task_completed`) — added only to coordinator agents in `agent.session` steps
 
 ## Memory System
@@ -86,6 +88,69 @@ The memory system allows agents to persist and retrieve learnings across workflo
 - Use for: repository conventions, past review patterns, common issues, team preferences
 - Keep titles descriptive and unique for reliable retrieval
 
+## Scratchpad System
+
+The scratchpad system provides ephemeral, per-run storage for sharing structured data between agents within a single workflow execution.
+
+### write_scratchpad
+
+```json
+{
+  "name": "Scratchpad name (e.g., 'review-findings', 'chunk-1')",
+  "content": "Content to write (overwrites existing)"
+}
+```
+
+- `name`: Identifier for the scratchpad (use kebab-case, descriptive names)
+- `content`: Full content to write (replaces any existing content)
+
+### read_scratchpad
+
+```json
+{
+  "name": "Scratchpad name to read"
+}
+```
+
+- `name`: Exact name of the scratchpad to read
+
+### list_scratchpads
+
+```json
+{}
+```
+
+No parameters. Returns all scratchpad names in the current run.
+
+### append_scratchpad
+
+```json
+{
+  "name": "Scratchpad name to append to",
+  "content": "Content to append"
+}
+```
+
+- `name`: Scratchpad to append to (creates it if it doesn't exist)
+- `content`: Content to append (added after existing content)
+
+### Scratchpad Behavior
+
+- Scratchpads are **ephemeral** — they exist only for the duration of the workflow run
+- Auto-injected into all agents (coordinator and sub-agents)
+- Use for: intermediate findings, chunk data, structured results shared between steps or agents
+- `append_scratchpad` is safe for concurrent writes from parallel agents
+- Use kebab-case names (e.g., `review-findings`, `chunk-1`, `security-analysis`)
+
+### Scratchpad vs Memory
+
+| | Scratchpad | Memory |
+|---|---|---|
+| **Lifetime** | Single workflow run | Persists across runs |
+| **Purpose** | Share data between agents/steps | Store learnings for future runs |
+| **Concurrency** | `append_scratchpad` is safe for parallel writes | Not designed for concurrent access |
+| **Use when** | Passing intermediate data (findings, chunks) | Saving patterns, conventions, preferences |
+
 ## Tool Selection for Prompts
 
 When writing step prompts, restrict tools to only what's needed. Use allowed/prohibited tool tables:
@@ -96,6 +161,7 @@ When writing step prompts, restrict tools to only what's needed. Use allowed/pro
 |------|---------|
 | `read_file` | Read source files for analysis |
 | `code_search` | Find relevant code patterns |
+| `append_scratchpad` | Store findings for downstream steps |
 | `add_comment_to_pull_request` | Post review summary |
 
 ### Prohibited Tools
