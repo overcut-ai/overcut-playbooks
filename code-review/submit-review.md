@@ -116,10 +116,10 @@ You may ONLY use these tools:
 | Tool | Purpose | Max Calls |
 |------|---------|-----------|
 | `read_scratchpad` | ONLY for `{chunkName}` | 1 |
-| `get_pull_request_diff_line_numbers` | Resolve line numbers for findings | 1 per file |
+| `get_pull_request_diff_line_numbers` | Resolve line numbers for findings | 1 per unique file |
 | `add_pull_request_review_thread` | Post each comment | 1 per finding |
 
-**Tool budget: 1 call to get_pull_request_diff_line_numbers per file, and 1 call to post review comment + 1 initial read.**
+**Batch parallel calls per turn to minimize round trips. Use your judgement on batch size based on the number of files/findings — avoid overly large batches that may produce too much output.**
 
 ### Prohibited Tools
 
@@ -137,13 +137,12 @@ You may ONLY use these tools:
 
 1. **Load findings** from scratchpad `{chunkName}` using `read_scratchpad`
 
-2. **For each finding in the chunk**:
-   a. Call `get_pull_request_diff_line_numbers` **ONE TIME** to resolve the line number
-   b. If it succeeds → post the comment with `add_pull_request_review_thread`
-   c. If it returns an **empty array** (file is not in the PR diff) → post the comment on the **first file in the PR** at **line 1**, and prepend `"[Re: {originalFilePath}] "` to the comment body
-   d. Include the importance level at the beginning: `[IMPORTANCE]: {comment}`
+2. **Resolve line numbers and post comments** — batch `get_pull_request_diff_line_numbers` and `add_pull_request_review_thread` calls in parallel per turn. You can mix both tool types in the same turn. Use your judgement on batch size to balance speed vs output size. Collect the thread ID returned by each `add_pull_request_review_thread` call.
+   - If line resolution succeeded → post at the resolved line
+   - If line resolution returned an **empty array** (file not in PR diff) → post on the **first file in the PR** at **line 1**, prepending `"[Re: {originalFilePath}] "` to the body
+   - Include the importance level at the beginning: `[IMPORTANCE]: {comment}`
 
-3. **Return to chat** only: `"posted {count} comments from {chunkName}"`
+3. **Return to chat**: `"posted {count} comments from {chunkName}: [threadId1, threadId2, ...]"`
 
 ## Line Number Resolution Failure Handling
 
@@ -166,16 +165,9 @@ In both cases:
 ❌ **DO NOT** add any comments that are not in the chunk
 ❌ **DO NOT** modify or editorialize the comments - post them as written
 
-✅ **DO** use `add_pull_request_review_thread` tool to post each comment
-✅ **DO** process every finding in the chunk
-✅ **DO** return a simple status message when done
-
-### ✅ CORRECT Approach
-
-1. Read chunk scratchpad once
-2. For each finding: one `get_pull_request_diff_line_numbers` call → post comment (or file-level if failed)
-3. Return status message
-4. Done
+✅ **DO** call `add_pull_request_review_thread` for every finding
+✅ **DO** batch parallel calls per turn to minimize round trips
+✅ **DO** return the thread IDs from each call — this is required proof of posting
 
 ## Why These Restrictions?
 
@@ -188,7 +180,7 @@ Submitting the review prematurely would prevent other chunks from being processe
 
 ## Expected Output
 
-Return only: `"posted {count} comments from {chunkName}"`
+Return only: `"posted {count} comments from {chunkName}: [threadId1, threadId2, ...]"`
 
 Do NOT include summaries, statistics, or additional commentary.
 ```
@@ -201,8 +193,8 @@ Do NOT include summaries, statistics, or additional commentary.
 
 After ALL parallel chunk delegations from Step 2 have completed:
 
-1. **Verify all Step 2 delegations returned** — count the return messages and confirm they match the number of chunks delegated
-2. **Aggregate results yourself** — parse the return messages from all sub-agents (e.g., "posted 5 comments from review-chunk1")
+1. **Verify all Step 2 delegations returned** — count the return messages and confirm they match the number of chunks delegated. Each message must include thread IDs — if a sub-agent returned a count but no thread IDs, re-delegate that chunk.
+2. **Aggregate results yourself** — parse the return messages from all sub-agents
 3. **DO NOT** post any PR comments or summaries at this point
 4. **Only then proceed to Step 3**
 
