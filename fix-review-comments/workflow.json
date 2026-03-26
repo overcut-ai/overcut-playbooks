@@ -3,6 +3,12 @@
   "workflow": {
     "name": "Fix Review Comments",
     "description": "Streamline your review process with automatic code fixes based on approved review comments directly from the PR. Overcut interprets feedback and implements changes, saving you time on back-and-forth iterations.",
+    "instructions": [
+      {
+        "description": "Overcut will automatically fix review comments when you add a comment with the command `/fix-review` on a PR. Overcut will interpret the reviewer feedback, implement the requested changes, and push the fixes directly to the PR branch.",
+        "action": "create_pr"
+      }
+    ],
     "definition": {
       "flow": [
         {
