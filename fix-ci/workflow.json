@@ -3,7 +3,12 @@
   "workflow": {
     "name": "Fix CI",
     "description": "Automatically analyzes CI failures, fixes the code, and commits the changes.",
-    "instructions": [],
+    "instructions": [
+      {
+        "description": "Overcut will automatically analyze and fix CI failures every time a `CI workflow fails on main` or when you add a comment with the command `/fix-ci`. Overcut will inspect the failure logs, identify the root cause, implement a fix, and commit the changes to the branch.",
+        "action": "ci_workflow_failed"
+      }
+    ],
     "definition": {
       "flow": [
         {
