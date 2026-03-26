@@ -3,6 +3,12 @@
   "workflow": {
     "name": "Break Down Ticket",
     "description": "Automatically decompose large, well-defined tickets into smaller, independently implementable sub-tickets. Overcut validates that requirements exist, analyzes the codebase for technical boundaries, and creates structured sub-tickets with clear scope, acceptance criteria, and dependencies.",
+    "instructions": [
+      {
+        "description": "Overcut will automatically break down large tickets into smaller sub-tickets every time you label an issue with `needs-breakdown` or when you add a comment with the command `/breakdown`. Overcut will validate that requirements exist, analyze the codebase for technical boundaries, and create structured sub-tickets with clear scope, acceptance criteria, and dependencies.",
+        "action": "create_issue"
+      }
+    ],
     "definition": {
       "flow": [
         {

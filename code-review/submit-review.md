@@ -142,7 +142,9 @@ You may ONLY use these tools:
    - If line resolution returned an **empty array** (file not in PR diff) → post on the **first file in the PR** at **line 1**, prepending `"[Re: {originalFilePath}] "` to the body
    - Include the importance level at the beginning: `[IMPORTANCE]: {comment}`
 
-3. **Return to chat**: `"posted {count} comments from {chunkName}: [threadId1, threadId2, ...]"`
+3. **Post every finding** — no exceptions. You MUST call add_pull_request_review_thread once for each finding in the scratchpad and receive a tool response before moving on. Do NOT skip any finding. Do NOT return your final output until every add_pull_request_review_thread call has been made and a response received. Producing output like "posted N comments" without having actually called the tool for each finding is a critical failure.  
+
+4. **Return to chat**: `"posted {count} comments from {chunkName}: [threadId1, threadId2, ...]"`
 
 ## Line Number Resolution Failure Handling
 

@@ -3,6 +3,12 @@
   "workflow": {
     "name": "Generate Requirements",
     "description": "Automatically analyze feature requests against your codebase and generate full requirement documents. Overcut ensures specifications are comprehensive, feasible, and aligned with your team's standards and format.",
+    "instructions": [
+      {
+        "description": "Overcut will automatically generate a requirements document every time you label an issue with `feature` or when you add a comment with the command `/requirements`. Overcut will analyze the feature request against your codebase and produce a comprehensive requirements document including scope, technical feasibility, and acceptance criteria.",
+        "action": "create_issue"
+      }
+    ],
     "definition": {
       "flow": [
         {
