@@ -84,7 +84,7 @@
         {
           "event": "issue_opened",
           "settings": {
-            "delaySeconds": 120
+            "delaySeconds": 0
           },
           "conditions": {
             "field": null,

@@ -14,7 +14,7 @@ It will start with identifying the repositories that are relevant to the issue, 
 **Automatic:**
 
 - Event: `issue_opened`
-- Delay: 120 seconds (allows time for issue description to be completed)
+- Delay: None
 
 **Manual:**
 
