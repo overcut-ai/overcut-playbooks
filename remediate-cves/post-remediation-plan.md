@@ -87,3 +87,11 @@ OR
 - The `/pr` command must be at the very beginning of the second comment
 - Verify both comments posted successfully
 - The `/pr` command will automatically trigger the "Create PR from Design" workflow
+
+### Step 3: Update Labels
+
+After both comments are posted successfully:
+
+1. If the `needs-cve-remediation` label is present on the issue, remove it (workflow is complete)
+2. Add label `cve-remediation-complete` to the issue
+3. If the remediation plan indicates insufficient information to proceed, add `cve-remediation-needs-info` instead of `cve-remediation-complete`

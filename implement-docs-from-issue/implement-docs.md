@@ -6,13 +6,22 @@ You will delegate each plan item from the scratchpad to the **Tech Writer sub-ag
 
 ## Process
 
-### Step 0 - Acknowledge
+### Step 0 - Check for Skip Signal
+
+**CRITICAL**: Before doing anything, check the previous step output above.
+
+- If the output starts with `SKIP:` ⇒ use `task_completed` with the same skip message and **STOP immediately**
+- Otherwise ⇒ continue to Step 1
+
+---
+
+### Step 1 - Acknowledge
 
 Update the user with the `update_status` tool with a message that you are starting documentation implementation.
 
 ---
 
-### Step 1 - Per-item Implementation
+### Step 2 - Per-item Implementation
 
 Read all plan items from `.overcut/docs-plan/scratchpad.jsonl`.
 
@@ -114,7 +123,7 @@ Return a short status to chat: `[file] - verified and committed` or `[file] - co
 
 ---
 
-### Step 2 - Complete and return summary
+### Step 3 - Complete and return summary
 
 Use the `task_completed` tool to complete the task and return a summary.
 

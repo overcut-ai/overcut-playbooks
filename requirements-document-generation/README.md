@@ -8,7 +8,8 @@ Automatically generates comprehensive requirements documents from feature reques
 
 **Automatic:**
 
-- Event: `issue_labeled` when label is `feature`
+- Event: `issue_labeled` when label is `needs-requirements`
+- Note: The `needs-requirements` label is typically added by the Triage workflow when it classifies a ticket as a `feature`, or by the Break Down Ticket workflow when requirements are insufficient
 - Delay: None
 
 **Manual:**

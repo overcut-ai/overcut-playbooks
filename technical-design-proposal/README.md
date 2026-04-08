@@ -56,7 +56,7 @@ Automatically generates comprehensive technical design documents from issue requ
    - Duration: Up to 120 min (interactive session)
    - Posts design as issue comment with `/pr` prompt
    - Assigns issue to creator
-   - Adds `design-needs-feedback` or `design-complete` label based on open questions
+   - Removes `needs-design` label (if present) and adds `design-needs-info` or `design-complete` label based on open questions
    - Listens for follow-up comments
 
 ```

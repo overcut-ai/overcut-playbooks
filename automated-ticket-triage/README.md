@@ -3,7 +3,7 @@
 ## 📋 Overview
 
 Automatically categorizes and prioritizes new issues using AI analysis. Determines component/category, assigns priority levels based on content, detects duplicate issues, and requests missing information when needed. Reduces manual triage burden and ensures consistent issue classification with confidence scoring.
-Can be used to trigger following workflows, by adding labels like `bug`, `feature`, `question`, `enhancement`, etc.
+Applies two types of labels: **classification labels** (`bug`, `feature`, `question`, etc.) for categorization, and **action labels** (`needs-rca`, `needs-requirements`, `needs-cve-remediation`) that trigger downstream workflows. For lightweight or tracking tickets (e.g., linked to an existing PR), only classification labels are applied — no automation is triggered.
 
 This workflow can be triggered on the ticket system (e.g. Jira), even when the code is managed in a different system (e.g. GitHub, GitLab, etc.).
 
@@ -88,9 +88,10 @@ Edit task #4:
 **Customize labels:**
 Edit `triage-ticket.md` to use your label schema:
 
-- Components: `frontend`, `backend`, `api`, `docs`
-- Categories: `bug`, `feature`, `question`, `enhancement`
-- Priorities: `p0-critical`, `p1-high`, `p2-medium`, `p3-low`
+- Classification: `bug`, `feature`, `question`, `chore`, `cve`, `developer-experience`
+- Action: `needs-rca`, `needs-requirements`, `needs-cve-remediation`
+- Components: `database`, `ci`, `admin-ui`, `backend`, `api`
+- Lightweight detection: tickets with existing PRs or pre-applied labels skip action labels
 
 **Change needs-info logic:**
 Edit task #6:

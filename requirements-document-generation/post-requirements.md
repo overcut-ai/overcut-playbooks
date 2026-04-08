@@ -120,8 +120,9 @@ Read the "Open Questions" section from the requirements document you posted:
 
 If there are open questions:
 
-1. Add label `requirements-needs-feedback` to the ticket
-2. Use `task_completed` with message: `"Requirements posted with {N} open questions. Ticket labeled for feedback."`
+1. If the `needs-requirements` label is present on the ticket, remove it (workflow is complete)
+2. Add label `requirements-needs-info` to the ticket
+3. Use `task_completed` with message: `"Requirements posted with {N} open questions. Ticket labeled for feedback."`
 
 ---
 
@@ -129,8 +130,9 @@ If there are open questions:
 
 If there are no open questions:
 
-1. Add label `requirements-complete` to the ticket
-2. Use `task_completed` with message: `"Requirements posted. No open questions - ready for design phase."`
+1. If the `needs-requirements` label is present on the ticket, remove it (workflow is complete)
+2. Add label `requirements-complete` to the ticket
+3. Use `task_completed` with message: `"Requirements posted. No open questions - ready for design phase."`
 
 ---
 
