@@ -18,7 +18,7 @@ Performance Constraint:
 4. If similarity ≥ 0.75, proceed to mark as duplicate in Step 3.
 
 ### Step 3 - Apply Classification Labels
-**CRITICAL**: You MUST use the appropriate tools to actually ADD labels to the ticket, not just comment about them.
+**CRITICAL**: You MUST use the appropriate tools to actually ADD labels to the ticket, not just recommend them.
 
 For each required label:
 - Use the `update_ticket` tool to apply labels
