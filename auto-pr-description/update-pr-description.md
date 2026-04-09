@@ -100,7 +100,15 @@ Combine all parts in this order:
    - Preserve exactly as-is
    - Include any leading whitespace/newlines
 
-2. **Auto-generated section** (from Step 3 - already formatted)
+2. **Ensure ticket link in user-content zone** (for GitHub auto-close):
+
+   - Extract ticket references from the Related Issues section of the formatted description (e.g., `Closes #123`, `Fixes #456`, `Related to #789`)
+   - Check if these references already appear in the user content before the markers
+   - If a `Closes #N`, `Fixes #N`, or `Resolves #N` reference exists in Related Issues but NOT in the user content before markers, prepend it to the user content area (before the start marker)
+   - This ensures GitHub's native issue auto-close works, since GitHub only processes closing keywords outside HTML comments
+   - If the user content already contains the reference, do not duplicate it
+
+3. **Auto-generated section** (from Step 3 - already formatted)
 
    - Use the formatted description content extracted from the previous step
    - Wrap it with the separator markers:
@@ -110,7 +118,7 @@ Combine all parts in this order:
      - Add newline
      - End with `<!-- overcut:pr-description:end -->`
 
-3. **User content after markers** (if exists)
+4. **User content after markers** (if exists)
    - Preserve exactly as-is
    - Include any trailing whitespace/newlines
 

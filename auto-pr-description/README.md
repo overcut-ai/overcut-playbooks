@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-Automatically generates and updates pull request descriptions based on code changes, commits, and related issues. Maintains structured sections (Summary, Changes, Related Issues, Commits, Testing) while preserving user-written content outside the auto-generated area. Updates automatically when new commits are pushed to the PR.
+Automatically generates and updates pull request descriptions based on code changes, commits, and related issues. Ensures every PR has a linked ticket — finds an existing one or creates a new one with proper labels. Maintains structured sections (Summary, Changes, Related Issues, Commits, Testing) while preserving user-written content outside the auto-generated area. Updates automatically when new commits are pushed to the PR.
 
 ## ⚡ Triggers
 
@@ -25,6 +25,7 @@ Automatically generates and updates pull request descriptions based on code chan
 ## 🎯 Use Cases
 
 - **Consistency**: Ensures all PRs have structured, informative descriptions
+- **Ticket linking**: Every PR gets a linked ticket — finds existing ones or creates new ones with proper labels
 - **Time-saving**: Automatically extracts issue links, summarizes changes, and lists commits
 - **Context-aware**: Reads referenced tickets to understand requirements and generate accurate summaries
 - **Up-to-date**: Updates description when new commits are pushed
@@ -44,11 +45,12 @@ Automatically generates and updates pull request descriptions based on code chan
    - Duration: ~1 min
    - Uses shallow clone with blob filtering for efficiency
 
-2. **Prepare PR Description** (`agent.run`) - Analyzes PR and prepares formatted description
+2. **Prepare PR Description** (`agent.run`) - Analyzes PR, ensures ticket link, and prepares formatted description
 
    - Agent: Senior Developer
    - Duration: ~2-5 min
    - Analyzes code changes, extracts issues, summarizes commits
+   - **Ensures every PR has a linked ticket**: checks for existing references, searches for matching tickets, or creates a new ticket with proper labels (category, component)
    - **Reads referenced tickets** using `read_ticket` to gather context about requirements and acceptance criteria
    - Generates formatted markdown description: summary, changes, related issues, commits, testing checklist
    - Outputs complete formatted markdown description (ready to publish, without separator markers)
@@ -179,34 +181,44 @@ Edit the instruction to recognize different issue reference formats:
    - Extracts commits and commit messages
    - Identifies issue references from commits, PR title, and description
 
-3. **Reads referenced tickets for context:**
+3. **Ensures ticket link:**
+
+   - If issue references were found, verifies at least one is valid
+   - If no valid references, searches for matching open tickets using keywords from the PR
+   - If no matching ticket found, creates a new one with appropriate labels:
+     - Category label (feature, bug, chore, etc.) inferred from PR title/commits
+     - Component label (api, backend, database, etc.) inferred from changed files
+     - No action labels (auto-created tickets don't trigger downstream workflows)
+   - Adds the ticket reference (e.g., `Closes #N`) to the Related Issues section
+
+4. **Reads referenced tickets for context:**
 
    - Uses `read_ticket` to fetch details for each referenced issue
    - Extracts ticket descriptions, acceptance criteria, and requirements
    - Uses this context to understand the "why" behind the PR
    - Handles missing/inaccessible tickets gracefully
 
-4. **Analyzes changes:**
+5. **Analyzes changes:**
 
    - Groups changes by type (features, fixes, refactors, etc.)
    - Identifies significant vs. trivial changes
    - Uses ticket context to better understand the purpose
 
-5. **Uses existing description as base:**
+6. **Uses existing description as base:**
 
    - Reads and parses existing auto-generated sections
    - Compares current commits/changes with what's already documented
    - Only adds new information - doesn't regenerate entire sections
    - Preserves existing summary, changes, and testing items that are still accurate
 
-6. **Updates description conservatively:**
+7. **Updates description conservatively:**
 
    - Only makes changes when there's meaningful new content
    - Appends new commits to existing list (doesn't regenerate)
    - Adds new issues without removing existing ones
    - Skips update entirely if existing description is already accurate
 
-7. **Preserves user content:**
+8. **Preserves user content:**
 
    - Receives formatted markdown description from prepare step
    - Adds separator markers around the formatted content
@@ -221,7 +233,7 @@ Edit the instruction to recognize different issue reference formats:
 - **Trivial changes**: Skips update for whitespace-only or formatting-only changes
 - **Empty PR**: Creates minimal description
 - **No commits**: Skips Commits section
-- **No issues**: Omits Related Issues section
+- **No issues**: Creates a new ticket and links it (Related Issues section always included)
 - **Very large PR**: Focuses on most significant changes
 - **Draft PR**: Treated same as regular PRs (if enabled)
 - **First run**: Creates markers if they don't exist
