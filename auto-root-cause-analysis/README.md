@@ -8,7 +8,8 @@ Automatically performs deep root cause analysis when bugs are reported. Analyzes
 
 **Automatic:**
 
-- Event: `issue_labeled` when label is `bug`
+- Event: `issue_labeled` when label is `needs-rca`
+- Note: The `needs-rca` label is typically added by the Triage workflow when it classifies a ticket as a `bug` that needs investigation
 
 **Manual:**
 
@@ -27,7 +28,7 @@ Automatically performs deep root cause analysis when bugs are reported. Analyzes
 ## 🔧 Prerequisites
 
 - Agent configured: Root-Cause Analysis (RCA) Expert
-- Optional: Configure `autoPR` threshold in workflow.json for automatic PR creation
+- When confidence is `conf-high`, the workflow automatically posts a `/pr` comment to trigger the Create PR from Design workflow
 
 ## 🏗️ Workflow Steps
 
@@ -78,18 +79,18 @@ Edit `rca-session.md` to:
 - Educational: "Explain multiple possible fixes with trade-offs"
 
 **Configure auto-PR behavior:**
-Edit `rca-session.md` and workflow.json `autoPR` configuration:
+Edit `rca-session.md`:
 
-- Disable: Remove auto-PR logic from prompt
-- Lower threshold: Create PR at `conf-med` instead of `conf-high`
-- Add tests: "Always include test cases in auto-PR"
+- Disable: Remove the `/pr` comment logic
+- Lower threshold: Trigger `/pr` at `conf-med` instead of `conf-high`
+- Add context: Change the `/pr` comment to include specific fix instructions
 
 **Customize labels:**
 Edit `rca-session.md` to change:
 
-- Label names (`rca-proposed`, confidence tiers)
-- When labels are applied
-- Additional labels based on issue type
+- Completion labels: `rca-complete` (success) or `rca-needs-info` (insufficient info)
+- Confidence tiers: `conf-high`, `conf-med`, `conf-low`
+- The `needs-rca` trigger label is automatically removed on completion
 
 **Needs-info criteria:**
 Edit the "Needs-Info Handling" section to:

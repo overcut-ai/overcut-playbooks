@@ -51,10 +51,14 @@ A single RCA Expert Agent is used for all steps.
     - Confidence score
   - Mark the comment with `<!-- overcut:rca:done -->`.
 - Apply labels:
-  - `rca-proposed`
-  - Confidence tier: `conf-high`, `conf-med`, or `conf-low`
-- If confidence is above the configured PR threshold and `autoPR` is enabled:
-  - Create a branch, apply the fix, and open a PR linking it to the ticket.
+  - If the `needs-rca` label is present on the ticket, remove it (workflow is now complete)
+  - Add `rca-complete`
+  - Add confidence tier: `conf-high`, `conf-med`, or `conf-low`
+- If confidence is `conf-high`, trigger automatic fix implementation:
+  - Post a **separate comment** on the ticket with the `/pr` slash command to trigger the "Create PR from Design" workflow
+  - The comment should be: `/pr - Implement RCA fix suggestion above`
+  - The `/pr` command must be at the very beginning of the comment
+  - This must be a separate comment from the RCA summary
 
 ---
 
@@ -65,7 +69,7 @@ A single RCA Expert Agent is used for all steps.
     - Environment and version info
     - Full (sanitized) stacktrace
     - Recent config/feature flag changes
-  - Add the `needs-info` label.
+  - If the `needs-rca` label is present on the ticket, remove it. Add the `rca-needs-info` label.
 
 ---
 

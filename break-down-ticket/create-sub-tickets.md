@@ -172,7 +172,8 @@ This ticket has been broken down into the following sub-tickets:
 
 ## Step 5 - Label Parent Ticket
 
-Add the label `breakdown-complete` to the original ticket using `update_ticket`.
+1. If the `needs-breakdown` label is present on the original ticket, remove it using `update_ticket` (workflow is complete).
+2. Add the label `breakdown-complete` to the original ticket using `update_ticket`.
 
 ---
 

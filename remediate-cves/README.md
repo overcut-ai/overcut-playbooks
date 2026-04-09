@@ -13,9 +13,9 @@ Analyzes Common Vulnerabilities and Exposures (CVEs) in your codebase and create
 
 **Automatic:**
 
-- Event: `issue_labeled` when label is `security-vulnerability` or `cve`
+- Event: `issue_labeled` when label is `needs-cve-remediation`
 - Delay: None
-- Processes issues tagged with security labels
+- Note: The `needs-cve-remediation` label is typically added by the Triage workflow when it classifies a ticket as a `cve`
 
 ## 🎯 Use Cases
 
@@ -211,7 +211,7 @@ The remediation plan acts as a "design document" that feeds into the PR creation
 
 **Use appropriate labels:**
 
-- `security-vulnerability` or `cve` for automatic triggering
+- `needs-cve-remediation` for automatic triggering (or use `/remediate-cve` slash command)
 - Add severity labels (`critical`, `high`, `medium`, `low`) if known
 - Tag affected components (`backend`, `frontend`, `infrastructure`)
 
@@ -252,7 +252,7 @@ The remediation plan acts as a "design document" that feeds into the PR creation
 **Set up automated scanning:**
 
 - Configure Dependabot, Snyk, or Trivy to automatically create issues
-- Ensure issues are labeled `security-vulnerability` for auto-triggering
+- Ensure issues are labeled `needs-cve-remediation` for auto-triggering
 - Set up notifications for critical CVEs
 
 **Define response SLAs:**

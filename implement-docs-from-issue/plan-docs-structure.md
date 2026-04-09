@@ -6,13 +6,22 @@ You will delegate each change from the previous step to the **Tech Writer sub-ag
 
 ## Process
 
-### Step 0 - Acknowledge
+### Step 0 - Check for Skip Signal
+
+**CRITICAL**: Before doing anything, check the previous step output above.
+
+- If the output starts with `SKIP:` ⇒ use `task_completed` with the same skip message and **STOP immediately**
+- Otherwise ⇒ continue to Step 1
+
+---
+
+### Step 1 - Acknowledge
 
 Update the user with the `update_status` tool with a message that you are starting documentation planning.
 
 ---
 
-### Step 1 - Per-item Planning to Scratchpad
+### Step 2 - Per-item Planning to Scratchpad
 
 Read the analysis output from the previous step - it contains a list of changes under `whatChanged`.
 
@@ -79,7 +88,7 @@ Plan the documentation for the following change: [change from list].
 
 ---
 
-### Step 2 - Complete and return summary
+### Step 3 - Complete and return summary
 
 Use the `task_completed` tool to complete the task and return a summary.
 

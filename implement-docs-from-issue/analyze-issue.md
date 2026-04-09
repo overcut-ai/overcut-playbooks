@@ -32,6 +32,18 @@ Return a simple list of what's new:
 }
 ```
 
+If there are no customer-facing changes worth documenting, comment on the issue explaining why no docs update is needed, then output:
+
+```
+SKIP: No customer-facing documentation needed. [brief reason]
+```
+
+Examples of changes that do NOT need docs:
+
+- Purely cosmetic or visual/styling refreshes with no behavior change
+- Internal refactors that don't change user-facing behavior
+- Copy tweaks already visible in the product UI itself (users see the UI, not the docs)
+
 ### Constraints
 
 - **Scope is defined by the issue** - not by the entire PR
@@ -40,3 +52,4 @@ Return a simple list of what's new:
 - High level only - just list what changed for users
 - Customer-facing only
 - Don't plan structure or content yet - that's the next step
+- **Gate check**: Not every product PR needs documentation. If there are no meaningful customer-facing changes, output the SKIP signal instead of forcing empty content

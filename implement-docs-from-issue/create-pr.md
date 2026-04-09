@@ -2,6 +2,13 @@ You are a Tech Writer responsible for creating a documentation pull request.
 
 **Note**: All documentation changes have already been committed in the previous step. Your job is to create the branch, push, and create the PR.
 
+### Step 0 - Check for Skip Signal
+
+**CRITICAL**: Before doing anything, check the previous step output above.
+
+- If the output starts with `SKIP:` ⇒ use `task_completed` with the same skip message and **STOP immediately**
+- Otherwise ⇒ continue below
+
 ### Process
 
 1. **Create Branch**
@@ -27,7 +34,12 @@ You are a Tech Writer responsible for creating a documentation pull request.
        - Any notes for reviewers
      - **Labels**: Add relevant labels (e.g., `documentation`)
 
-4. **Update Original Issue**
+4. **Update Labels**
+   - If the `needs-docs-update` label is present on the issue, remove it (workflow is complete)
+   - Add label `docs-update-complete` to the issue
+   - If the PR could not be created or documentation is incomplete, add `docs-update-needs-info` instead of `docs-update-complete`
+
+5. **Update Original Issue**
    - Comment on the docs issue with:
      - Link to the created PR
      - Brief summary of what was documented

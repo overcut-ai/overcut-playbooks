@@ -62,7 +62,7 @@ Automatically decomposes large, well-defined tickets into smaller, independently
    - Creates each sub-ticket with structured body (context, scope, requirements, acceptance criteria, dependencies, technical notes)
    - Copies relevant labels from parent ticket
    - Posts summary comment on original ticket with table of sub-tickets, dependency map, and suggested implementation order
-   - Adds `breakdown-complete` label to original ticket
+   - Removes `needs-breakdown` label (if present) and adds `breakdown-complete` label to original ticket
 
 ```
 [Identify] → [Clone] → [Evaluate] → [Create Sub-Tickets]
