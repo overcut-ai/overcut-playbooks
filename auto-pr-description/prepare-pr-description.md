@@ -57,16 +57,56 @@ You are a **PR Description Analyst**. Your goal is to analyze a pull request and
    - If not available in PR data, use git commands in the cloned repo:
      - Run `git log base..head --oneline` to get commit list
      - Run `git log base..head --format="%H|%s|%b"` to get full commit details
-   - Extract issue references from commit messages:
-     - Patterns: `Fixes #123`, `Closes #456`, `Resolves #789`, `Related to #101`, `#202`
-     - Also check PR title for issue numbers
    - **Compare with existing commits** (if existing description found):
      - Identify which commits are new (not already listed in existing Commits section)
      - Only add new commits, don't rewrite the entire list
 
+5. **Extract all issue references** — collect unique issue numbers from all available sources:
+   - **PR description body** (user-written content before the markers): look for `#N`, `Fixes #N`, `Closes #N`, `Resolves #N`, `Related to #N`
+   - **PR title**: e.g., `feat: add timeout config (#123)` or `[#456] Fix login bug`
+   - **Branch name**: e.g., `feature/123-add-timeout` or `fix/GH-456-login-bug` — extract the numeric issue reference
+   - **Commit messages**: all patterns from substep 4 (`Fixes #N`, `Closes #N`, `Resolves #N`, `Related to #N`, bare `#N`)
+   - **Existing Related Issues section** (if auto-generated description exists): extract any issue numbers already listed
+   - Deduplicate all found references into a single list of unique issue numbers
+   - This list is used by Step 2 to determine whether a ticket is already linked
+
 ---
 
-### Step 2: Read Referenced Tickets for Context
+### Step 2: Ensure Ticket Link
+
+Every PR must have a linked ticket. Use the issue references extracted in Step 1 to determine whether a ticket is already linked. If not, find or create one.
+
+1. **If Step 1 found issue references** (from commits, PR title, or description):
+   - Verify at least one reference is valid by calling `read_ticket` on the first reference
+   - If valid → record it as the linked ticket and proceed to Step 3
+   - If all references are invalid (deleted tickets, wrong repo, typos) → treat as "no reference found" and continue to substep 2
+
+2. **If no valid issue references found** — search for a matching existing ticket:
+   - Extract 3–5 keywords from the PR title and branch name
+   - Use `list_tickets` to search for open tickets matching those keywords
+   - Evaluate the top 5–10 results for relevance (title similarity, description overlap with the PR changes)
+   - If a strong match is found (the ticket clearly describes what this PR implements) → record it as the linked ticket and proceed to Step 3
+
+3. **If no matching ticket found** — create a new one:
+   - **Title**: Derive from the PR title, converting to issue-style language (e.g., PR title "Add timeout config" → ticket "Add timeout configuration option")
+   - **Body**: A concise description of what the PR does, including `Created automatically from PR #<number>`
+   - **Labels**: Apply labels as part of the `create_ticket` call. By this point you have the PR title, commits, diff, and branch name — use this context to determine the appropriate labels:
+     - **Category label** (exactly one): `feature`, `bug`, `chore`, `cve`, `developer-experience`, `question`, or `duplicate`
+     - **Component label** (zero or one): `api`, `admin-ui`, `database`, `ci`, or `backend`
+   - Record the new ticket as the linked ticket
+
+4. **Add the ticket reference to the issue list**:
+   - Add `Closes #<ticket-number>` to the collected issue references (so it appears in the Related Issues section)
+   - The ticket's context (title, body, labels) will be read in Step 3 and used to improve the summary and testing sections
+
+**Edge cases**:
+- If ticket creation fails, log the error and continue — the PR will still get a description, just without a linked ticket
+- If `list_tickets` returns no results, proceed directly to creation
+- Before creating a new ticket, re-read the PR description one more time to confirm no ticket was linked since the initial check (race condition guard)
+
+---
+
+### Step 3: Read Referenced Tickets for Context
 
 1. **Extract all issue references** from Step 1:
 
@@ -115,7 +155,7 @@ This context will be used to:
 
 ---
 
-### Step 3: Analyze Changes
+### Step 4: Analyze Changes
 
 Analyze the code changes to identify:
 
@@ -152,7 +192,7 @@ Analyze the code changes to identify:
 
 ---
 
-### Step 4: Generate Content Sections
+### Step 5: Generate Content Sections
 
 Create structured content for each section. **If an existing description was found in Step 1, use it as a base and only make necessary updates:**
 
@@ -181,7 +221,7 @@ Create structured content for each section:
   - Most significant file changes
   - Commit message patterns
   - Change categories identified
-  - **Referenced ticket context** (from Step 2) - use ticket descriptions to understand the "why" and requirements
+  - **Referenced ticket context** (from Step 3) - use ticket descriptions to understand the "why" and requirements
 
 **Example**: "This PR adds support for workflow timeouts by implementing timeout configuration options and error handling. It includes validation to prevent invalid timeout values and updates the UI to display timeout status."
 
@@ -270,7 +310,7 @@ Create structured content for each section:
   - **Performance changes**: Performance benchmarks, load testing
   - **Security changes**: Security testing, vulnerability checks
   - **Configuration changes**: Configuration validation, edge cases
-- **Use ticket context** (from Step 2) to identify:
+- **Use ticket context** (from Step 3) to identify:
   - Acceptance criteria from referenced tickets
   - Specific test scenarios mentioned in ticket descriptions
   - Edge cases or requirements that need verification
@@ -290,7 +330,7 @@ Create structured content for each section:
 
 ---
 
-### Step 5: Format and Output Description
+### Step 6: Format and Output Description
 
 Format the prepared content into the final markdown description that will be published to the PR.
 
@@ -330,8 +370,8 @@ Format the prepared content into the final markdown description that will be pub
 1. **Summary**: Always include, even if brief
 2. **Changes**: Always include, even if minimal
 3. **Related Issues**:
-   - Include only if there are issue references
-   - If empty, omit the entire section
+   - Always include — Step 2 ensures at least one ticket is linked
+   - If ticket creation failed in Step 2, omit the section only if there are truly no references
 4. **Commits**:
    - Include only if there are commits
    - If empty, omit the entire section
