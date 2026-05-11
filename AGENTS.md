@@ -518,7 +518,7 @@ Study these playbooks for patterns:
 ### Task: Update Existing Prompt
 
 1. Edit the {step-id}.md file
-2. Update workflow.json: find step with matching id, update instruction field
+2. Run `python3 scripts/sync-prompts.py <playbook-directory>` to update the matching step's `instruction` field in `workflow.json`
 3. Verify filename still matches step ID
 4. Update README.md if step behavior changed significantly
 
@@ -530,7 +530,7 @@ Study these playbooks for patterns:
 2. Create {step-id}.md prompt file (ensure it makes sense in the workflow context)
 3. Add step to workflow.json with unique id matching the prompt filename
 4. Add flow connection in workflow.definition.flow
-5. Copy prompt content to step's instruction field in workflow.json
+5. Run `python3 scripts/sync-prompts.py <playbook-directory>` so the new prompt file populates the step's `instruction` field
 
 ### Task: Fix Workflow Issues
 
