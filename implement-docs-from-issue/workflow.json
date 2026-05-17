@@ -158,19 +158,14 @@
             "delaySeconds": 0
           },
           "conditions": {
-            "field": null,
+            "combinator": "and",
             "rules": [
               {
                 "field": "context.trigger.label",
-                "rules": null,
-                "value": "needs-docs-update",
                 "operator": "equals",
-                "combinator": null
+                "value": "needs-docs-update"
               }
-            ],
-            "value": null,
-            "operator": null,
-            "combinator": "and"
+            ]
           }
         },
         {
