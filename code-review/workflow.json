@@ -143,19 +143,14 @@
             "delaySeconds": 0
           },
           "conditions": {
-            "field": null,
+            "combinator": "and",
             "rules": [
               {
                 "field": "context.pullRequest.draft",
-                "rules": null,
-                "value": "false",
                 "operator": "equals",
-                "combinator": null
+                "value": "false"
               }
-            ],
-            "value": null,
-            "operator": null,
-            "combinator": "and"
+            ]
           }
         },
         {

@@ -78,26 +78,19 @@
             "delaySeconds": 0
           },
           "conditions": {
-            "field": null,
+            "combinator": "and",
             "rules": [
               {
                 "field": "context.pullRequest.draft",
-                "rules": null,
-                "value": "false",
                 "operator": "equals",
-                "combinator": null
+                "value": "false"
               },
               {
                 "field": "context.pullRequest.baseBranch",
-                "rules": null,
-                "value": "main",
                 "operator": "notEquals",
-                "combinator": null
+                "value": "main"
               }
-            ],
-            "value": null,
-            "operator": null,
-            "combinator": "and"
+            ]
           }
         },
         {
@@ -107,33 +100,24 @@
             "delaySeconds": 0
           },
           "conditions": {
-            "field": null,
+            "combinator": "and",
             "rules": [
               {
                 "field": "context.pullRequest.draft",
-                "rules": null,
-                "value": "false",
                 "operator": "equals",
-                "combinator": null
+                "value": "false"
               },
               {
                 "field": "context.trigger.commitAdded",
-                "rules": null,
-                "value": "true",
                 "operator": "equals",
-                "combinator": null
+                "value": "true"
               },
               {
                 "field": "context.pullRequest.baseBranch",
-                "rules": null,
-                "value": "main",
                 "operator": "notEquals",
-                "combinator": null
+                "value": "main"
               }
-            ],
-            "value": null,
-            "operator": null,
-            "combinator": "and"
+            ]
           }
         },
         {

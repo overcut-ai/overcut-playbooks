@@ -72,11 +72,8 @@
             "delaySeconds": 0
           },
           "conditions": {
-            "field": null,
-            "rules": [],
-            "value": null,
-            "operator": null,
-            "combinator": "and"
+            "combinator": "and",
+            "rules": []
           },
           "schedule": null
         },

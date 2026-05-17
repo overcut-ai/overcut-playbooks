@@ -113,19 +113,14 @@
           "event": "issue_labeled",
           "settings": null,
           "conditions": {
-            "field": null,
+            "combinator": "and",
             "rules": [
               {
                 "field": "context.trigger.label",
-                "rules": null,
-                "value": "needs-design",
                 "operator": "equals",
-                "combinator": null
+                "value": "needs-design"
               }
-            ],
-            "value": null,
-            "operator": null,
-            "combinator": "and"
+            ]
           },
           "schedule": null
         },
