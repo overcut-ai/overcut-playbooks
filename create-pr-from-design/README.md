@@ -199,7 +199,7 @@ Edit step **Finalize PR** PR description template to:
 - Check that tests are comprehensive and passing
 - Verify lint/format checks passed
 - Request review from appropriate team members
-- Trigger automated code review by using the [Code Review](../code-review/) Use Case
+- Trigger automated code review by using the [Code Review](../code-review/) workflow
 
 **Customizing for your team:**
 

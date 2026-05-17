@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides instructions for AI agents working with the Overcut Playbooks repository. It contains essential information for creating, updating, and maintaining playbooks (workflow use cases).
+This file provides instructions for AI agents working with the Overcut Playbooks repository. It contains essential information for creating, updating, and maintaining playbooks (workflow templates).
 
 ## 📋 Project Overview
 
