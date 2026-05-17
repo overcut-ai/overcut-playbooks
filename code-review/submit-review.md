@@ -71,7 +71,8 @@ Update the user with the update_status tool with a message that you are starting
 
 1. Read the previous agent's output to extract `chunks_created`, `total_chunks`, `kept_findings`, and `chunk_names`.
 2. If `chunks_created` is **"no"** or `total_chunks` is **0** or `kept_findings` is **0**:
-   - Use the `task_completed` tool with message: `"Code review complete. No issues found - all changes look good! ✅"`
+   - Delegate to the **Code Reviewer** agent with the following instruction: `"Submit an APPROVE review on this pull request. Call the submit_review tool exactly once with event APPROVE and body: 'Code review complete. No issues found - all changes look good! ✅'. Return: 'Review submitted: APPROVE. No issues found.'"`
+   - After the delegation returns, use the `task_completed` tool with message: `"Code review complete. No issues found - approved! ✅"`
    - **STOP here** - do not proceed to Step 2, Step 3, or Step 4.
 3. If `chunks_created` is **"yes"** and `total_chunks` > 0:
    - Use the `chunk_names` list from the output above as the list of chunk scratchpads to process.
