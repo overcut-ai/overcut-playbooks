@@ -39,7 +39,7 @@ playbook-name/
 
 ## ♻️ Repository Patterns
 
-- **Strict per-playbook structure**: Every workflow directory contains `workflow.json`, a README following the standard template, and one prompt file per step with names that match their step IDs exactly (except `migration-package/`, which is a docs-only exception).
+- **Strict per-playbook structure**: Workflow directories are expected to contain `workflow.json`, a README following the standard template, and one prompt file per step with names that match their step IDs exactly (except `migration-package/`, which is a docs-only exception). Known drift: `create-pr-from-design/` currently has an `implement-changes` step whose prompt is stored as `create-pr.md`, so fix that mismatch before using it as a naming reference or syncing prompts.
 - **Design-first documentation**: READMEs are treated as design docs that define triggers, prerequisites, step sequencing, and customization guidance before implementation begins.
 - **Prompt ↔ workflow synchronization**: Agents rely on `scripts/sync-prompts.py` to copy prompt content into `workflow.json`, preventing drift and ensuring JSON stays valid.
 - **Specialized agent guidance**: When a workflow needs bespoke personas (e.g., Security Engineer), a `special-agents/` folder documents those roles while keeping generic roles in standard prompts.
@@ -493,7 +493,7 @@ Before submitting a playbook, verify:
 
 Study these playbooks for patterns:
 
-- **Auto PR Description** (`auto-pr-description/`) - Simple single-step workflow
+- **Auto PR Description** (`auto-pr-description/`) - Three-step PR metadata workflow with cloning, description preparation, and PR update steps
 - **Create PR from Design** (`create-pr-from-design/`) - Complex multi-phase workflow
 - **Remediate CVEs** (`remediate-cves/`) - Specialized agents example
 - **Code Review** (`code-review/`) - Multi-step workflow with agent sessions
