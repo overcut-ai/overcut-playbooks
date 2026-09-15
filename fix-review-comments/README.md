@@ -44,7 +44,7 @@ Automatically addresses code review feedback on pull requests. Analyzes all open
 
 3. **Apply Fixes** (`agent.session`) - Implements fixes with progress tracking
    - Agents: PR Review Fixer
-   - Duration: ~5-60 min (depends on the number of fixes)
+   - Duration: ~5-30 min (depends on the number of fixes)
    - Posts implementation plan as PR comment with checkboxes
    - Implements each fix one by one
    - Commits and pushes each fix immediately after completion

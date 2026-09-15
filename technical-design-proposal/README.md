@@ -2,7 +2,7 @@
 
 ## Overview
 
-Automatically generates comprehensive technical design documents from issue requirements. Analyzes the codebase context, creates detailed design proposals with architecture diagrams (Mermaid), identifies risks and mitigations, and posts the design as a comment. Opens an interactive session for questions and can kick off the **Create PR from Design** workflow on request.
+Automatically generates comprehensive technical design documents from issue requirements. Analyzes the codebase context, creates detailed design proposals with architecture diagrams (Mermaid), identifies risks and mitigations, and posts the design as a comment. Reply with `/pr` on the issue to kick off the **Create PR from Design** workflow.
 
 ## Triggers
 
@@ -51,16 +51,16 @@ Automatically generates comprehensive technical design documents from issue requ
    - Reviews the codebase for architecture context, similar implementations, and existing patterns
    - Produces a structured design document beginning with `### Proposed Design` in implementation plan format: Goal, sequential Phases with detailed tasks, Open Questions, Risks & Mitigations
 
-4. **Post Design & Open Session** (`agent.session`) - Posts design and handles Q&A
+4. **Post Design** (`agent.session`) - Posts the design and applies labels
    - Agents: Product Manager
-   - Duration: Up to 120 min (interactive session)
+   - Duration: ~1-2 min
    - Posts design as issue comment with `/pr` prompt
-   - Assigns issue to creator
+   - Assigns issue to creator (skipped automatically if the provider rejects the assignment)
    - Removes `needs-design` label (if present) and adds `design-needs-info` or `design-complete` label based on open questions
-   - Listens for follow-up comments
+   - Ends as soon as posting is complete; reply with `/pr` on the issue to continue
 
 ```
-[Identify] → [Clone] → [Create Design] → [Post & Interact]
+[Identify] → [Clone] → [Create Design] → [Post Design]
 ```
 
 ## Customization
@@ -68,7 +68,7 @@ Automatically generates comprehensive technical design documents from issue requ
 ### Step Prompts
 
 - `create-design.md` - Controls design document structure (sections, depth, diagram types, constraints)
-- `post-design.md` - Controls posting behavior (labels, assignment, follow-up)
+- `post-design.md` - Controls posting behavior (comment, labels, assignment)
 
 ### Common Adjustments
 
@@ -100,12 +100,20 @@ Edit `post-design.md` to:
 - Skip labeling entirely
 - Add reviewers based on impacted areas
 
-**Modify interactive session:**
-Edit `post-design.md` and workflow.json:
+**Keep the session open for follow-up questions:**
+The step ends as soon as the design is posted. To let users ask follow-up questions in the
+same run instead, edit the `post-design` step in workflow.json:
 
-- Disable session: Remove `listenToComments` and reduce duration
+- Set `listenToComments` and `keepSessionOpenForComments` to `true`
+- Raise `exitCriteria.timeLimit.maxDurationMinutes` to the window you want
+- Also raise the workflow's `timeoutMs` above that window, otherwise the run is cut off
+  while the session is still waiting
+
+**Other adjustments:**
+Edit `post-design.md` to:
+
 - Add auto-PR: Include logic to create implementation branch immediately
-- Change exit criteria: Add different commands or time limits
+- Change assignment behavior, or remove the assignment step entirely
 
 ## Related Workflows
 
