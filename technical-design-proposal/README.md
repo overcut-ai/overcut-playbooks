@@ -2,7 +2,7 @@
 
 ## Overview
 
-Automatically generates comprehensive technical design documents from issue requirements. Analyzes the codebase context, creates detailed design proposals with architecture diagrams (Mermaid), identifies risks and mitigations, and posts the design as a comment. Reply with `/pr` on the issue to kick off the **Create PR from Design** workflow.
+Automatically generates comprehensive technical design documents from issue requirements. Analyzes the codebase context, creates detailed design proposals with architecture diagrams (Mermaid), identifies risks and mitigations, and posts the design as a comment.
 
 ## Triggers
 
@@ -57,7 +57,7 @@ Automatically generates comprehensive technical design documents from issue requ
    - Posts design as issue comment with `/pr` prompt
    - Assigns issue to creator (skipped automatically if the provider rejects the assignment)
    - Removes `needs-design` label (if present) and adds `design-needs-info` or `design-complete` label based on open questions
-   - Ends as soon as posting is complete; reply with `/pr` on the issue to continue
+   - Ends as soon as posting is complete
 
 ```
 [Identify] → [Clone] → [Create Design] → [Post Design]
@@ -108,12 +108,6 @@ same run instead, edit the `post-design` step in workflow.json:
 - Raise `exitCriteria.timeLimit.maxDurationMinutes` to the window you want
 - Also raise the workflow's `timeoutMs` above that window, otherwise the run is cut off
   while the session is still waiting
-
-**Other adjustments:**
-Edit `post-design.md` to:
-
-- Add auto-PR: Include logic to create implementation branch immediately
-- Change assignment behavior, or remove the assignment step entirely
 
 ## Related Workflows
 

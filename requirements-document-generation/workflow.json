@@ -115,7 +115,7 @@
             "agentEngine": "overcut",
             "exitCriteria": {
               "timeLimit": {
-                "maxDurationMinutes": 15
+                "maxDurationMinutes": 30
               },
               "userSignals": {
                 "explicit": [
