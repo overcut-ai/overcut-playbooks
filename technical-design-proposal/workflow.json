@@ -94,7 +94,7 @@
             ],
             "exitCriteria": {
               "timeLimit": {
-                "maxDurationMinutes": 120
+                "maxDurationMinutes": 30
               },
               "userSignals": {
                 "explicit": [
@@ -102,10 +102,10 @@
                 ]
               }
             },
-            "listenToComments": true,
-            "keepSessionOpenForComments": true
+            "listenToComments": false,
+            "keepSessionOpenForComments": false
           },
-          "instruction": "You are the **Coordinator Agent**.  \nYour responsibility is to handle the post-processing of the generated design document.  \n\n### Process  \n1. Take the Markdown design content produced in the previous step.  \n2. Use `add_comment_to_ticket` to post it as a comment on the issue.  \n   - Append the note:  \n     > If you'd like a draft implementation branch, comment `/pr`.  \n3. Use `update_ticket` to assign the issue to its creator (`{{trigger.issue.user.login}}`).  \n4. If the `needs-design` label is present on the issue, remove it (workflow is complete).  \n5. Check the \"Open Questions\" section of the design:  \n   - If any open questions exist \u2192 add the label `design-needs-info`.  \n   - Otherwise \u2192 add the label `design-complete`.  \n\n### Constraints  \n- Ensure only one final comment is added (idempotent).  \n- Do not modify or truncate the generated Markdown content.  \n- Always append the `/pr` note at the end of the comment."
+          "instruction": "You are the **Coordinator Agent**.  \nYour responsibility is to handle the post-processing of the generated design document.  \n\n### Process  \n1. Take the Markdown design content produced in the previous step.  \n2. Use `add_comment_to_ticket` to post it as a comment on the issue.  \n   - Append the note:  \n     > If you'd like a draft implementation branch, comment `/pr`.  \n3. Use `update_ticket` to assign the issue to its creator (`{{trigger.issue.user.login}}`).  \n   - If assignment fails (e.g. the user cannot be assigned, or the field is unavailable on this provider), skip it and continue \u2014 do not retry and do not treat it as an error.  \n4. If the `needs-design` label is present on the issue, remove it (workflow is complete).  \n5. Check the \"Open Questions\" section of the design:  \n   - If any open questions exist \u2192 add the label `design-needs-info`.  \n   - Otherwise \u2192 add the label `design-complete`.  \n\n### Constraints  \n- Ensure only one final comment is added (idempotent).  \n- Do not modify or truncate the generated Markdown content.  \n- Always append the `/pr` note at the end of the comment."
         }
       ],
       "triggers": [

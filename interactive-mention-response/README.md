@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-Responds to `@overcut` mentions in issues, PRs, and comments with context-aware answers using multi-agent coordination. Automatically identifies relevant repositories, clones them for full code access, and opens an interactive session where a coordinator delegates questions to specialized agents — providing concise, evidence-based answers grounded in your actual codebase.
+Responds to `@overcut` mentions in issues, PRs, and comments with context-aware answers using multi-agent coordination. Automatically identifies relevant repositories, clones them for full code access, and runs a session where a coordinator delegates questions to specialized agents — providing concise, evidence-based answers grounded in your actual codebase. Reply with another `@overcut` mention to continue the conversation.
 
 ## ⚡ Triggers
 
@@ -47,29 +47,27 @@ Responds to `@overcut` mentions in issues, PRs, and comments with context-aware 
    - Duration: ~1 min
    - Shallow clone (depth 1, single branch) for efficiency
 
-3. **Multi-Agent Session** (`agent.session`) — Interactive session to answer the user's question
+3. **Multi-Agent Session** (`agent.session`) — Answers the user's question
 
    - Agents: Product Manager, DevOps Engineer, Senior Developer, Code Reviewer, RCA Expert, Technical Writer (coordinated by Coordinator)
-   - Duration: Up to 120 min (interactive session)
+   - Duration: Up to 30 min
    - Process:
      1. **Parse & Plan**: Extract intent, scope, and artifacts from the `@overcut` mention
      2. **Gather Evidence**: Read diffs, search code, open relevant files
      3. **Respond**: Deliver concise, cited answer with supporting details
-     4. **Follow-up**: Keep session open for continued conversation
-   - Listens for follow-up comments in the same thread
-   - Session remains open until `/done`, "thanks", or timeout
+   - Ends as soon as the answer is posted
+   - A follow-up `@overcut` mention starts a new run with the full comment thread as context
 
 ```
 [Identify Repos] → [Clone Repo] → [Multi-Agent Session]
-                                          ↕
-                                   (listens for follow-up
-                                    @overcut comments)
+        ↑                                   |
+        └──── new @overcut mention ─────────┘
 ```
 
 ## 🔑 Key Features
 
-- **Interactive session**: The session stays open and listens for follow-up comments, enabling a conversational flow without restarting the workflow
-- **Comment listening**: Responds to subsequent `@overcut` mentions in the same thread with full prior context
+- **Conversational follow-up**: Reply with another `@overcut` mention to continue; the new run reads the full comment thread, so prior context is preserved
+- **No idle time**: The run ends once the answer is posted rather than holding resources open waiting for a reply
 - **Multi-agent coordination**: The coordinator delegates to the best-suited agent for each question (e.g., RCA Expert for debugging, Senior Developer for code analysis)
 - **Read-only by default**: Agents browse code and analyze but do not push changes or modify settings unless explicitly asked
 - **Evidence-based answers**: Every response cites specific files, lines, commits, or diffs
@@ -105,8 +103,13 @@ Swap or add agents in `workflow.json` under the `agent-session` step's `agentIds
 ### Exit Criteria
 
 Edit the `exitCriteria` in `workflow.json` to adjust:
-- `maxDurationMinutes` — Session timeout (default: 120 min)
-- `userSignals.explicit` — Commands that end the session (default: `/done`, `thanks`)
+- `maxDurationMinutes` — Maximum time the agent may spend answering (default: 30 min)
+- `userSignals.explicit` — Commands that end the session early (default: `/done`, `thanks`)
+
+To keep a single run open for follow-up comments instead of starting a new run per mention,
+set `listenToComments` and `keepSessionOpenForComments` to `true` on the `agent-session` step.
+If you do, raise the workflow's `timeoutMs` above `maxDurationMinutes` as well — otherwise the
+run is cut off while the session is still waiting for a reply.
 
 ### Common Adjustments
 

@@ -50,7 +50,7 @@
             ],
             "exitCriteria": {
               "timeLimit": {
-                "maxDurationMinutes": 120
+                "maxDurationMinutes": 30
               },
               "userSignals": {
                 "explicit": [

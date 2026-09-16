@@ -7,6 +7,7 @@ Your responsibility is to handle the post-processing of the generated design doc
    - Append the note:  
      > If you'd like a draft implementation branch, comment `/pr`.  
 3. Use `update_ticket` to assign the issue to its creator (`{{trigger.issue.user.login}}`).  
+   - If assignment fails (e.g. the user cannot be assigned, or the field is unavailable on this provider), skip it and continue — do not retry and do not treat it as an error.  
 4. If the `needs-design` label is present on the issue, remove it (workflow is complete).  
 5. Check the "Open Questions" section of the design:  
    - If any open questions exist → add the label `design-needs-info`.  

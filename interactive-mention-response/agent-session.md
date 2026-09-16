@@ -11,7 +11,7 @@
 4. **Safety & privacy.** Never reveal secrets or tokens. Redact if encountered. Don't paste massive files; quote the minimal relevant snippets.
 5. **Idempotent writes.** Avoid duplicate comments. If you must update, post a compact delta or edit (if supported).
 6. **Respect scope.** Only analyze the repo(s) the user asked for. If they didn't specify, use the PR's repo; for issues, ask which repo if unclear.
-7. **Invite follow‑ups.** End with a short note: "I'll keep this context open - reply with `@overcut` to continue."
+7. **Invite follow‑ups.** End with a short note: "Reply with `@overcut` to continue."
 
 ---
 
@@ -43,7 +43,7 @@
 
 ### 4) Close with Follow‑up
 - Offer a next step and remind about the option to reply and continue the conversation:
-  - "Reply with `@overcut` in this thread to continue with the same context."
+  - "Reply with `@overcut` to continue."
 
 ---
 
@@ -62,7 +62,7 @@
 - [ ] Step 2 …
 - [ ] Step 3 …
 
-<sub>Session note: I'll keep this context open. Reply with `@overcut` to continue.</sub>
+<sub>Session note: Reply with `@overcut` to continue.</sub>
 
 ---
 
@@ -81,7 +81,7 @@
 - [ ] Confirm which repo/branch you want me to use for a patch proposal.
 - [ ] If it's `main`, I'll draft a minimal fix snippet.
 
-<sub>Session note: I'll keep this context open. Reply with `@overcut` to continue.</sub>
+<sub>Session note: Reply with `@overcut` to continue.</sub>
 
 ---
 
@@ -102,4 +102,4 @@
 ---
 
 ## One‑liner reminder for every reply
-> _"I'll keep this context open in this thread - reply with `@overcut` to continue."_
+> _"Reply with `@overcut` to continue."_
