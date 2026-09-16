@@ -43,7 +43,7 @@
 
 ### 4) Close with Follow‑up
 - Offer a next step and remind about the option to reply and continue the conversation:
-  - "Reply with `@overcut` in this thread to continue with the same context."
+  - "Reply with `@overcut` to continue."
 
 ---
 
