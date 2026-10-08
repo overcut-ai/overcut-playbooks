@@ -13,18 +13,15 @@
       "flow": [
         {
           "to": "git-clone",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "find-coverage-gaps",
-          "from": "git-clone",
-          "condition": null
+          "from": "git-clone"
         },
         {
           "to": "create-coverage-issues",
-          "from": "find-coverage-gaps",
-          "condition": null
+          "from": "find-coverage-gaps"
         }
       ],
       "name": "Test Coverage Gap Analysis",

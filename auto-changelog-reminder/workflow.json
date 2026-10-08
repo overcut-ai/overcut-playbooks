@@ -13,13 +13,11 @@
       "flow": [
         {
           "to": "clone-repo",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "validate-changelog",
-          "from": "clone-repo",
-          "condition": null
+          "from": "clone-repo"
         }
       ],
       "name": "Auto-Changelog Reminder",

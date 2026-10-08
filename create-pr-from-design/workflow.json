@@ -13,43 +13,35 @@
       "flow": [
         {
           "to": "identify-repos",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "clone-repo",
-          "from": "identify-repos",
-          "condition": null
+          "from": "identify-repos"
         },
         {
           "to": "prep-context",
-          "from": "clone-repo",
-          "condition": null
+          "from": "clone-repo"
         },
         {
           "to": "planning",
-          "from": "prep-context",
-          "condition": null
+          "from": "prep-context"
         },
         {
           "to": "setup-pr",
-          "from": "planning",
-          "condition": null
+          "from": "planning"
         },
         {
           "to": "implement-changes",
-          "from": "setup-pr",
-          "condition": null
+          "from": "setup-pr"
         },
         {
           "to": "validate-implementation",
-          "from": "implement-changes",
-          "condition": null
+          "from": "implement-changes"
         },
         {
           "to": "finalize-pr",
-          "from": "validate-implementation",
-          "condition": null
+          "from": "validate-implementation"
         }
       ],
       "name": "Create PR from Design",

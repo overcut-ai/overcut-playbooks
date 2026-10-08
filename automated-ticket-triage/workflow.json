@@ -13,18 +13,15 @@
       "flow": [
         {
           "to": "triage-ticket",
-          "from": "git-clone",
-          "condition": null
+          "from": "git-clone"
         },
         {
           "to": "identify-repos",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "git-clone",
-          "from": "identify-repos",
-          "condition": null
+          "from": "identify-repos"
         }
       ],
       "name": "Automated Ticket Triage ",

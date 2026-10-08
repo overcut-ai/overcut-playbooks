@@ -13,28 +13,23 @@
       "flow": [
         {
           "to": "analyze-ticket",
-          "from": "clone-repo",
-          "condition": null
+          "from": "clone-repo"
         },
         {
           "to": "requirements-session",
-          "from": "analyze-ticket",
-          "condition": null
+          "from": "analyze-ticket"
         },
         {
           "to": "identify-repos",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "clone-repo",
-          "from": "identify-repos",
-          "condition": null
+          "from": "identify-repos"
         },
         {
           "to": "post-requirements",
-          "from": "requirements-session",
-          "condition": null
+          "from": "requirements-session"
         }
       ],
       "name": "Generate Requirements",

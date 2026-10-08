@@ -13,18 +13,15 @@
       "flow": [
         {
           "to": "git-clone",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "analyze-ci-failure",
-          "from": "git-clone",
-          "condition": null
+          "from": "git-clone"
         },
         {
           "to": "fix-and-commit",
-          "from": "analyze-ci-failure",
-          "condition": null
+          "from": "analyze-ci-failure"
         }
       ],
       "name": "Fix CI",

@@ -13,18 +13,15 @@
       "flow": [
         {
           "to": "clone-code",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "clone-docs",
-          "from": "clone-code",
-          "condition": null
+          "from": "clone-code"
         },
         {
           "to": "plan-docs",
-          "from": "clone-docs",
-          "condition": null
+          "from": "clone-docs"
         }
       ],
       "name": "Auto Docs Update on Merge",

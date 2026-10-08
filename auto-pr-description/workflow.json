@@ -13,18 +13,15 @@
       "flow": [
         {
           "to": "git-clone",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "prepare-pr-description",
-          "from": "git-clone",
-          "condition": null
+          "from": "git-clone"
         },
         {
           "to": "update-pr-description",
-          "from": "prepare-pr-description",
-          "condition": null
+          "from": "prepare-pr-description"
         }
       ],
       "name": "Auto PR Description",

@@ -13,23 +13,19 @@
       "flow": [
         {
           "to": "create-design",
-          "from": "clone-repo",
-          "condition": null
+          "from": "clone-repo"
         },
         {
           "to": "identify-repos",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "clone-repo",
-          "from": "identify-repos",
-          "condition": null
+          "from": "identify-repos"
         },
         {
           "to": "post-design",
-          "from": "create-design",
-          "condition": null
+          "from": "create-design"
         }
       ],
       "name": "Generate Technical Design Proposal",

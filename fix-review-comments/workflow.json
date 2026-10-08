@@ -13,18 +13,15 @@
       "flow": [
         {
           "to": "plan-fixes",
-          "from": "git-clone",
-          "condition": null
+          "from": "git-clone"
         },
         {
           "to": "apply-fixes",
-          "from": "plan-fixes",
-          "condition": null
+          "from": "plan-fixes"
         },
         {
           "to": "git-clone",
-          "from": "",
-          "condition": null
+          "from": ""
         }
       ],
       "name": "Fix Review Comments",
