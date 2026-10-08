@@ -13,33 +13,27 @@
       "flow": [
         {
           "to": "clone-docs",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "clone-product",
-          "from": "clone-docs",
-          "condition": null
+          "from": "clone-docs"
         },
         {
           "to": "analyze-issue",
-          "from": "clone-product",
-          "condition": null
+          "from": "clone-product"
         },
         {
           "to": "plan-docs-structure",
-          "from": "analyze-issue",
-          "condition": null
+          "from": "analyze-issue"
         },
         {
           "to": "implement-docs",
-          "from": "plan-docs-structure",
-          "condition": null
+          "from": "plan-docs-structure"
         },
         {
           "to": "create-pr",
-          "from": "implement-docs",
-          "condition": null
+          "from": "implement-docs"
         }
       ],
       "name": "Implement Documentation from Issue",

@@ -13,33 +13,27 @@
       "flow": [
         {
           "to": "git-clone",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "prepare-branch",
-          "from": "git-clone",
-          "condition": null
+          "from": "git-clone"
         },
         {
           "to": "analyze-repo",
-          "from": "prepare-branch",
-          "condition": null
+          "from": "prepare-branch"
         },
         {
           "to": "generate-agents-md",
-          "from": "analyze-repo",
-          "condition": null
+          "from": "analyze-repo"
         },
         {
           "to": "review-changes",
-          "from": "generate-agents-md",
-          "condition": null
+          "from": "generate-agents-md"
         },
         {
           "to": "commit-changes",
-          "from": "review-changes",
-          "condition": null
+          "from": "review-changes"
         }
       ],
       "name": "Auto Update AGENTS.md",

@@ -13,23 +13,19 @@
       "flow": [
         {
           "to": "identify-repos",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "clone-repo",
-          "from": "identify-repos",
-          "condition": null
+          "from": "identify-repos"
         },
         {
           "to": "evaluate-ticket",
-          "from": "clone-repo",
-          "condition": null
+          "from": "clone-repo"
         },
         {
           "to": "create-sub-tickets",
-          "from": "evaluate-ticket",
-          "condition": null
+          "from": "evaluate-ticket"
         }
       ],
       "name": "Break Down Ticket",

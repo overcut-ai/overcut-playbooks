@@ -13,28 +13,23 @@
       "flow": [
         {
           "to": "git-clone",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "prepare-review-plan",
-          "from": "git-clone",
-          "condition": null
+          "from": "git-clone"
         },
         {
           "to": "code-review",
-          "from": "prepare-review-plan",
-          "condition": null
+          "from": "prepare-review-plan"
         },
         {
           "to": "optimize-review-item",
-          "from": "code-review",
-          "condition": null
+          "from": "code-review"
         },
         {
           "to": "submit-review",
-          "from": "optimize-review-item",
-          "condition": null
+          "from": "optimize-review-item"
         }
       ],
       "name": "Code Review",

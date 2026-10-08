@@ -13,23 +13,19 @@
       "flow": [
         {
           "to": "identify-repos",
-          "from": "",
-          "condition": null
+          "from": ""
         },
         {
           "to": "clone-repo",
-          "from": "identify-repos",
-          "condition": null
+          "from": "identify-repos"
         },
         {
           "to": "analyze-cve-and-plan",
-          "from": "clone-repo",
-          "condition": null
+          "from": "clone-repo"
         },
         {
           "to": "post-remediation-plan",
-          "from": "analyze-cve-and-plan",
-          "condition": null
+          "from": "analyze-cve-and-plan"
         }
       ],
       "name": "Remediate CVEs",
