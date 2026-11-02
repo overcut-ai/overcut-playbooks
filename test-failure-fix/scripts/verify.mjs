@@ -1,5 +1,7 @@
-import { rmSync, realpathSync } from 'node:fs';
-import { join, posix } from 'node:path';
+import { rmSync, realpathSync, readdirSync, readFileSync, readlinkSync, lstatSync } from 'node:fs';
+import { join, posix, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import { homedir } from 'node:os';
 import { runSuite, git, sh, repoDir, outputJson } from '../../scripts/lib/nightly/exec.mjs';
 import { statusById, summarize } from '../../scripts/lib/nightly/junit.mjs';
 import { parseMarker } from '../../scripts/lib/nightly/marker.mjs';
@@ -14,6 +16,7 @@ import { compareResults, redCheck } from '../../scripts/lib/nightly/compare.mjs'
 const VERIFY_BUDGET_MS = 235 * 60 * 1000;
 const VERIFY_COMMAND_MS = 55 * 60 * 1000;
 const VERIFY_BUDGET_REASON = 'verification time budget exhausted';
+const VERIFY_CONFIG_REASON = 'git config changed during verification';
 // Repo config must not reshape what git reports: no replace refs, no pathspec magic, no fsmonitor command.
 const VERIFY_GIT_OPTS = ['--no-replace-objects', '--literal-pathspecs', '-c', 'core.fsmonitor=false'];
 const VERIFY_DIFF_FLAGS = ['-M', '-z', '--no-ext-diff', '--no-textconv', '--no-color', '--no-relative'];
@@ -93,25 +96,59 @@ export function verifyCommandPaths(cmd) {
   return [...out].sort();
 }
 
-// The cause's test files plus the test source files the fix adds or changes. Deleted and
-// renamed entries never choose the mode; non-code files count only when JUnit names them.
-export function verifyModePaths({ marker, fixCases, nameStatus, isTest, junitFiles, dirs }) {
+// Language mode. The cause's test files decide when known; otherwise the test source files
+// the fix adds or changes, interpreted if any of them is. Deleted and renamed entries never
+// count; non-code files count only when JUnit names them. Compiled and interpreted test files
+// together need a person.
+export function verifyMode({ marker, fixCases, nameStatus, isTest, junitFiles, dirs }) {
   const causeIds = new Set(marker.tests);
-  const cause = marker.junit
+  const causeFiles = [...new Set(marker.junit
     ? (fixCases || []).filter((c) => causeIds.has(c.id) && c.file).map((c) => verifyRelPath(c.file, dirs))
-    : verifyCommandPaths(marker.causeCommand);
-  const touched = nameStatus
+    : verifyCommandPaths(marker.causeCommand))].sort();
+  const touched = [...new Set(nameStatus
     .filter((e) => ['A', 'M', 'T', 'C'].includes(e.status) && isTest(e.path)
       && (VERIFY_CODE_EXTENSIONS.has(verifyExt(e.path)) || junitFiles.has(e.path)))
-    .map((e) => e.path);
-  return [...new Set([...cause, ...touched])].sort();
+    .map((e) => e.path))].sort();
+  const interpreted = (p) => INTERPRETED_EXTENSIONS.has(verifyExt(p));
+  const compiled = (p) => COMPILED_EXTENSIONS.has(verifyExt(p));
+  let mode;
+  if (causeFiles.length > 0) mode = languageMode(causeFiles);
+  else mode = touched.some(interpreted) ? 'interpreted' : 'compiled';
+  const all = [...new Set([...causeFiles, ...touched])].sort();
+  const mixed = all.some(compiled) && all.some(interpreted) ? `mixed-language test files: ${all.join(', ')}` : null;
+  return { mode, paths: causeFiles.length > 0 ? causeFiles : touched, mixed };
 }
 
-// url.*.insteadOf / pushInsteadOf rules (all scopes, includes resolved).
-function verifyUrlRules(deps, dir) {
-  return verifyGit(deps, ['config', '--list', '-z'], dir).split('\0')
-    .filter((e) => e.slice(0, e.indexOf('\n') < 0 ? e.length : e.indexOf('\n')).toLowerCase().startsWith('url.'))
-    .join('\0');
+function verifyListDir(p, acc, depth) {
+  let st;
+  try { st = lstatSync(p); } catch { acc.push(`${p}: missing`); return acc; }
+  if (st.isSymbolicLink()) acc.push(`${p} -> ${readlinkSync(p)}`);
+  else if (st.isFile()) acc.push(`${p} ${st.mode} ${createHash('sha256').update(readFileSync(p)).digest('hex')}`);
+  else if (st.isDirectory() && depth < 4) {
+    acc.push(`${p}/`);
+    for (const n of readdirSync(p).sort()) verifyListDir(join(p, n), acc, depth + 1);
+  } else acc.push(`${p}: ${st.mode}`);
+  return acc;
+}
+
+// What later git commands (ours and later steps') depend on: repo-local config, URL rewrite
+// rules from every scope, and the files of the hooks dir git would use without our override.
+export function verifyConfigState(deps, dir) {
+  const local = verifyGit(deps, ['config', '--local', '--list', '-z'], dir);
+  const parts = verifyGit(deps, ['config', '--list', '-z', '--show-scope'], dir).split('\0');
+  const urls = [];
+  let hooksPath = null;
+  for (let i = 0; i + 1 < parts.length; i += 2) {
+    if (parts[i] === 'command') continue;
+    const nl = parts[i + 1].indexOf('\n');
+    const key = (nl < 0 ? parts[i + 1] : parts[i + 1].slice(0, nl)).toLowerCase();
+    if (key.startsWith('url.')) urls.push(`${parts[i]} ${parts[i + 1]}`);
+    if (key === 'core.hookspath') hooksPath = nl < 0 ? '' : parts[i + 1].slice(nl + 1);
+  }
+  const common = verifyGit(deps, ['rev-parse', '--path-format=absolute', '--git-common-dir'], dir).trim();
+  const expanded = hooksPath && hooksPath.startsWith('~/') ? join(homedir(), hooksPath.slice(2)) : hooksPath;
+  const hooksDir = expanded ? resolve(dir, expanded) : join(common, 'hooks');
+  return JSON.stringify({ local, urls, hooksDir, hooks: verifyListDir(hooksDir, [], 0) });
 }
 
 // Pin the commit to verify, reset the work tree to exactly that commit, and capture everything
@@ -132,7 +169,7 @@ export function verifyPin(deps, dir, base) {
   const numstat = parseNumstat(verifyGit(deps, ['diff', '--numstat', ...VERIFY_DIFF_FLAGS, base, sha, '--'], dir));
   const pushUrl = verifyGit(deps, ['remote', 'get-url', '--push', 'origin'], dir).trim();
   if (!pushUrl || /[\r\n]/.test(pushUrl)) throw new Error('origin has no single push URL');
-  return { sha, nameStatus, numstat, pushUrl, publicUrl: verifyPublicUrl(pushUrl), urlRules: verifyUrlRules(deps, dir) };
+  return { sha, nameStatus, numstat, pushUrl, publicUrl: verifyPublicUrl(pushUrl), config: verifyConfigState(deps, dir) };
 }
 
 function verifyRemaining(ctx) {
@@ -269,7 +306,7 @@ function verifyRun(env, deps) {
   const dir = repoDir(env);
   const checks = [];
 
-  // 1. Pin; capture the diff, push URL and URL rewrite rules before anything runs.
+  // 1. Pin; capture the diff, push URL and git config before anything runs.
   const pin = verifyPin(deps, dir, base);
   const { sha, pushUrl } = pin;
   checks.push(`commit ${sha} descends from base ${base}; tree clean`);
@@ -287,8 +324,8 @@ function verifyRun(env, deps) {
   checks.push(`diff: ${pin.nameStatus.length} file(s) changed, ${violations.length} rule violation(s)`);
 
   // 5. Language mode from test source files only.
-  const modePaths = verifyModePaths({ marker, fixCases: fix.cases, nameStatus: pin.nameStatus, isTest, junitFiles, dirs });
-  const mode = languageMode(modePaths);
+  const { mode, paths: modePaths, mixed } = verifyMode({ marker, fixCases: fix.cases, nameStatus: pin.nameStatus, isTest, junitFiles, dirs });
+  const humanReasons = mixed ? [...violations, mixed] : violations;
   const reasons = [];
 
   // 6. Old-code red check (interpreted only).
@@ -307,15 +344,15 @@ function verifyRun(env, deps) {
   checks.push(...res.checks);
   const needsHuman = !marker.junit;
 
-  // 8. The runs must not have moved HEAD, changed tracked files or added URL rewrites.
+  // 8. The runs must not have moved HEAD, changed tracked files or changed git config or hooks.
   const head = verifyGit(deps, ['rev-parse', '--verify', 'HEAD^{commit}'], dir).trim().toLowerCase();
   if (head !== sha || verifyGit(deps, VERIFY_STATUS, dir).trim() !== '') reasons.push('tracked files changed during verification');
   else checks.push('HEAD and tracked files unchanged after the runs');
-  if (verifyUrlRules(deps, dir) !== pin.urlRules) reasons.push('git URL rewrite config changed during verification');
+  if (verifyConfigState(deps, dir) !== pin.config) reasons.push(VERIFY_CONFIG_REASON);
 
   // 9. Reject: nothing is pushed. Diff violations follow so a retry sees the full picture.
   if (reasons.length > 0) {
-    const all = [...reasons, ...violations];
+    const all = [...reasons, ...humanReasons];
     console.log(verifyRedact(`verify: REJECT\n${[...checks, ...all].join('\n')}`, pushUrl, pin.publicUrl));
     deps.outputJson({ verified: false, reasons: all });
     const e = new Error(verifyRedact(`verify rejected: ${all.join('; ')}`, pushUrl, pin.publicUrl));
@@ -330,11 +367,11 @@ function verifyRun(env, deps) {
     throw new Error(verifyRedact(`push of ${sha} to ${branch} failed: ${e.message}`, pushUrl, pin.publicUrl));
   }
   const out = {
-    verified: violations.length === 0 && !needsHuman,
-    needsHuman: needsHuman || violations.length > 0,
-    reasons: violations, checks, branch, sha, pushUrl: pin.publicUrl,
+    verified: humanReasons.length === 0 && !needsHuman,
+    needsHuman: needsHuman || humanReasons.length > 0,
+    reasons: humanReasons, checks, branch, sha, pushUrl: pin.publicUrl,
   };
-  console.log(verifyRedact(`verify: pushed ${branch} @ ${sha} (verified ${out.verified})\n${[...checks, ...violations].join('\n')}`, pushUrl, pin.publicUrl));
+  console.log(verifyRedact(`verify: pushed ${branch} @ ${sha} (verified ${out.verified})\n${[...checks, ...humanReasons].join('\n')}`, pushUrl, pin.publicUrl));
   deps.outputJson(out);
   return out;
 }

@@ -168,14 +168,14 @@ confirms the failing ids.
   A new test that passes on the old code does not catch the bug: reject.
 - Compiled: nothing runs on the old code; the fix's new tests may not compile there.
   "Fails before" evidence is Nightly's baseline plus Triage's re-run.
-- Classification (deterministic): by file extension of the cause's test files and the
-  test source files the fix adds or changes. Non-code files (fixtures, data such as
-  `tests/fixtures/data.json`) are ignored for the mode decision unless JUnit names them as
-  a test source, and deleted or renamed files never decide it. Compiled table: `.go .rs .java .kt .kts .scala .groovy .cs .fs
+- Classification (deterministic), by file extension of test source files only:
+  - **Cause files decide when known.** The cause's test files (JUnit `file` attribute; without JUnit, code-file arguments of the cause command) decide alone: any compiled or unknown extension makes the run compiled.
+  - **Otherwise the fix's test files decide.** When no cause file is known, the test source files the fix adds or changes decide: interpreted if any of them is interpreted, compiled only if all are compiled (or none exist).
+  - **Ignored.** Non-code files (fixtures, data such as `tests/fixtures/data.json`) are ignored unless JUnit names them as a test source. Deleted or renamed files never decide.
+  - **Mixed means human review.** If the cause files and the fix's test files include both compiled and interpreted ones, the PR is `needs-human-review` (`mixed-language test files: ...`), never verified.
+  - Compiled table: `.go .rs .java .kt .kts .scala .groovy .cs .fs
   .vb .c .h .cc .cpp .cxx .hpp .m .mm .swift .dart .zig .hs .ml .erl .ex .exs .cr .nim .d`.
-  Anything else (`.py .rb .js .mjs .cjs .ts .tsx .jsx .php .pl .lua .r .sh`, ...) is
-  interpreted. Any compiled file involved makes the run compiled. An unknown extension
-  counts as compiled (the old-code run is skipped rather than risking a false reject).
+  Interpreted: `.py .rb .js .mjs .cjs .ts .tsx .jsx .php .pl .lua .r .sh .bash`.
 
 **Layer A: results on the fix commit (needs JUnit XML).** Full suite, compared with the
 baseline:

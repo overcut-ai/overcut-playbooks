@@ -645,23 +645,25 @@ function otherBare(t) {
   return { other, head };
 }
 
-test('push URL: a run that rewrites remote.origin.url does not redirect the push or assert-head', async () => {
+test('push URL: a run that rewrites remote.origin.url -> exit 1, nothing pushed to either remote', async () => {
   const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
   try {
-    const sha = t.commit(GO_FIX);
+    t.commit(GO_FIX);
     const o = otherBare(t);
     const cmd = `${t.test}; ec=$?; git remote set-url origin ${JSON.stringify(o.other)}; exit $ec`;
-    await main(t.env({ OC_PARAM_NIGHTLY_TEST_COMMAND: cmd }), t.deps);
-    const out = t.calls.out.at(-1);
-    assert.equal(out.pushUrl, t.origin);
-    assert.equal(t.remoteHead('nightly-fix/7'), sha);
+    const out = await rejected(t, /git config changed during verification/, { OC_PARAM_NIGHTLY_TEST_COMMAND: cmd });
+    assert.deepEqual(out.reasons, ['git config changed during verification']);
     assert.equal(o.head('nightly-fix/7'), null);
+  } finally { t.cleanup(); }
+});
+
+test('push URL: the push goes to the literal pin-time URL, not the remote name', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    t.commit(GO_FIX);
+    await main(t.env(), t.deps);
+    assert.equal(t.calls.out.at(-1).pushUrl, t.origin);
     assert.ok(t.calls.git.some((g) => g.args.includes('push') && g.args.includes(t.origin) && !g.args.includes('origin')));
-    const ah = [];
-    await assertHead({ AGENT_WORKSPACE_PATH: t.ws, REPO_FULL_NAME: 'o/repo', BRANCH: 'nightly-fix/7', SHA: sha, PUSH_URL: out.pushUrl }, { git, outputJson: (x) => ah.push(x) });
-    assert.equal(ah.length, 1);
-    // With the rewritten origin, a plain `origin` lookup would see no branch:
-    await assert.rejects(assertHead({ AGENT_WORKSPACE_PATH: t.ws, REPO_FULL_NAME: 'o/repo', BRANCH: 'nightly-fix/7', SHA: sha, PUSH_URL: o.other }, { git, outputJson: () => {} }), /does not match/);
   } finally { t.cleanup(); }
 });
 
@@ -671,8 +673,8 @@ test('push URL: a run that adds url.*.insteadOf -> exit 1, nothing pushed anywhe
     t.commit(GO_FIX);
     const o = otherBare(t);
     const cmd = `${t.test}; ec=$?; git config ${JSON.stringify(`url.${o.other}.insteadOf`)} ${JSON.stringify(t.origin)}; git config ${JSON.stringify(`url.${o.other}.pushInsteadOf`)} ${JSON.stringify(t.origin)}; exit $ec`;
-    const out = await rejected(t, /git URL rewrite config changed during verification/, { OC_PARAM_NIGHTLY_TEST_COMMAND: cmd });
-    assert.deepEqual(out.reasons, ['git URL rewrite config changed during verification']);
+    const out = await rejected(t, /git config changed during verification/, { OC_PARAM_NIGHTLY_TEST_COMMAND: cmd });
+    assert.deepEqual(out.reasons, ['git config changed during verification']);
     assert.equal(o.head('nightly-fix/7'), null);
   } finally { t.cleanup(); }
 });
@@ -779,5 +781,113 @@ test('a failed push to a token URL leaks neither the literal nor the stripped UR
     for (const text of [err.message, String(err.stack), JSON.stringify(t.calls.out.at(-1))]) {
       assert.equal(text.includes('SECRET') || text.includes('git.example.com'), false, text);
     }
+  } finally { t.cleanup(); }
+});
+
+// --- fix round 3: mode from cause files first; mixed languages need a human; config tamper ---
+
+const GO_HELPER = { 'tests/helper_test.go': '// helper\n' };
+const MIXED_PY = 'mixed-language test files: tests/helper_test.go, tests/test_calc.py';
+
+test('mixed: cause .py + vacuous new .py + added _test.go -> interpreted, red check rejects, mixed reason listed', async () => {
+  const t = setup(PY);
+  try {
+    t.commit({ ...PY_FIX, ...VACUOUS, ...GO_HELPER });
+    const out = await rejected(t, /new test passes on old code/);
+    assert.deepEqual(out.reasons, [
+      'new test passes on old code: tests.test_vacuous::test_vacuous',
+      `${MIXED_PY}, tests/test_vacuous.py`,
+    ]);
+    assert.ok(t.worktreeCalls().length > 0);
+  } finally { t.cleanup(); }
+});
+
+test('mixed: cause .py + real new .py + added _test.go -> red check passes, pushed, needs human', async () => {
+  const t = setup(PY);
+  try {
+    const sha = t.commit({ ...PY_FIX, ...PY_NEW_TEST, ...GO_HELPER });
+    await main(t.env(), t.deps);
+    const out = t.calls.out.at(-1);
+    assert.equal(out.verified, false);
+    assert.equal(out.needsHuman, true);
+    assert.deepEqual(out.reasons, [`${MIXED_PY}, tests/test_more.py`]);
+    assert.ok(out.checks.some((c) => /language mode: interpreted — old-code red check passed/.test(c)));
+    assert.equal(t.remoteHead('nightly-fix/7'), sha);
+  } finally { t.cleanup(); }
+});
+
+test('mixed: no JUnit file attributes + vacuous new .py + added _test.go -> interpreted, red check rejects', async () => {
+  const t = setup(PY);
+  try {
+    t.commit({ ...PY_FIX, ...VACUOUS, ...GO_HELPER });
+    const out = await rejected(t, /new test passes on old code/, { OC_PARAM_NIGHTLY_TEST_COMMAND: `FAKE_FILE_STYLE=none ${t.test}` });
+    assert.deepEqual(out.reasons, [
+      'new test passes on old code: tests.test_vacuous::test_vacuous',
+      'mixed-language test files: tests/helper_test.go, tests/test_vacuous.py',
+    ]);
+  } finally { t.cleanup(); }
+});
+
+test('no JUnit file attributes + only compiled test sources touched -> compiled', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    t.commit({ ...GO_FIX, 'add_test.go': '// CASE TestAddMore calc.go return a + b\n' });
+    await main(t.env({ OC_PARAM_NIGHTLY_TEST_COMMAND: `FAKE_FILE_STYLE=none ${t.test}` }), t.deps);
+    assert.equal(t.calls.out.at(-1).verified, true);
+    assert.deepEqual(t.worktreeCalls(), []);
+  } finally { t.cleanup(); }
+});
+
+test('mixed: cause .go + added .py test -> compiled (no old-code run), pushed, needs human', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    const sha = t.commit({ ...GO_FIX, 'extra_test.py': '# CASE test_extra calc.go func Add\n' });
+    await main(t.env(), t.deps);
+    const out = t.calls.out.at(-1);
+    assert.deepEqual(t.worktreeCalls(), []);
+    assert.equal(out.verified, false);
+    assert.equal(out.needsHuman, true);
+    assert.deepEqual(out.reasons, ['mixed-language test files: calc_test.go, extra_test.py']);
+    assert.equal(t.remoteHead('nightly-fix/7'), sha);
+  } finally { t.cleanup(); }
+});
+
+test('Go-only fix: compiled, no mixed reason', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    t.commit({ ...GO_FIX, 'add_test.go': '// CASE TestAddMore calc.go return a + b\n' });
+    await main(t.env(), t.deps);
+    const out = t.calls.out.at(-1);
+    assert.equal(out.verified, true);
+    assert.deepEqual(out.reasons, []);
+  } finally { t.cleanup(); }
+});
+
+for (const [label, cmdTail] of [
+  ['sets http.proxy', 'git config http.proxy http://127.0.0.1:9'],
+  ['sets core.sshCommand', "git config core.sshCommand 'ssh -o ProxyCommand=nc'"],
+  ['adds a hook to .git/hooks', 'printf "#!/bin/sh\\n" > .git/hooks/pre-push; chmod +x .git/hooks/pre-push'],
+  ['edits an existing hook', 'echo "# x" >> .git/hooks/pre-commit.sample'],
+]) {
+  test(`config tamper: a run that ${label} -> exit 1 "git config changed during verification"`, async () => {
+    const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+    try {
+      t.commit(GO_FIX);
+      const cmd = `${t.test}; ec=$?; ${cmdTail}; exit $ec`;
+      const out = await rejected(t, /git config changed during verification/, { OC_PARAM_NIGHTLY_TEST_COMMAND: cmd });
+      assert.deepEqual(out.reasons, ['git config changed during verification']);
+    } finally { t.cleanup(); }
+  });
+}
+
+test('config tamper: a hook added to a repo-configured core.hooksPath dir is detected', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    t.commit(GO_FIX);
+    const hooks = join(t.ws, 'myhooks');
+    mkdirSync(hooks);
+    tgit(['config', 'core.hooksPath', hooks], t.dir);
+    const cmd = `${t.test}; ec=$?; printf "#!/bin/sh\\n" > ${JSON.stringify(join(hooks, 'post-merge'))}; exit $ec`;
+    await rejected(t, /git config changed during verification/, { OC_PARAM_NIGHTLY_TEST_COMMAND: cmd });
   } finally { t.cleanup(); }
 });

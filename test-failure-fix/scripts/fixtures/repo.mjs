@@ -9,7 +9,7 @@ import { formatMarker } from '../../../scripts/lib/nightly/marker.mjs';
 // Test files declare cases as lines `# CASE <name> <target file> <needle>` (or `// CASE ...`):
 // a case passes when <target file> contains <needle>. `CASE-FLAKY <name>` fails on the first
 // run of the workspace and passes afterwards. Env: FAKE_NO_XML=1 exits 2 with no XML (a
-// compile error); FAKE_FILE_STYLE=rel|abs|dot|back picks the JUnit `file` attribute form.
+// compile error); FAKE_FILE_STYLE=rel|abs|dot|back|none picks the JUnit `file` attribute form.
 const RUNNER = String.raw`
 import { readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -42,7 +42,7 @@ for (const f of files) {
       try { ok = readFileSync(join(root, m[3]), 'utf8').includes(m[4]); } catch { ok = false; }
     }
     if (!ok) failed = true;
-    xml += '<testcase classname="' + esc(cls) + '" name="' + esc(m[2]) + '" file="' + esc(file) + '">' +
+    xml += '<testcase classname="' + esc(cls) + '" name="' + esc(m[2]) + '"' + (style === 'none' ? '' : ' file="' + esc(file) + '"') + '>' +
       (ok ? '' : '<failure message="assertion failed"/>') + '</testcase>';
   }
 }
