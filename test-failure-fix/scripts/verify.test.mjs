@@ -4,7 +4,7 @@ import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { git, runSuite, sh } from '../../scripts/lib/nightly/exec.mjs';
 import { makeRepo, issueBody, installHooks, tgit } from './fixtures/repo.mjs';
-import { main, verifyRelPath, verifyCommandPaths } from './verify.mjs';
+import { main, verifyRelPath, verifyCommandPaths, verifyPublicUrl } from './verify.mjs';
 import { main as assertHead } from './assert-head.mjs';
 
 const CAUSE = 'tests.test_calc::test_add';
@@ -712,4 +712,72 @@ test('push URL is not logged on success either', async () => {
     assert.equal(out.pushUrl, t.origin);
     for (const text of [...logged, JSON.stringify(out.checks), JSON.stringify(out.reasons)]) assert.equal(text.includes(t.origin), false, text);
   } finally { console.log = orig; t.cleanup(); }
+});
+
+// --- fix round 2: userinfo stripped from the output URL ---
+
+test('verifyPublicUrl strips userinfo from http(s) URLs and keeps scp-style and paths', () => {
+  assert.equal(verifyPublicUrl('https://x-access-token:SECRET@github.com/o/r.git'), 'https://github.com/o/r.git');
+  assert.equal(verifyPublicUrl('http://user@host:8080/o/r.git'), 'http://host:8080/o/r.git');
+  assert.equal(verifyPublicUrl('https://github.com/o/r.git'), 'https://github.com/o/r.git');
+  assert.equal(verifyPublicUrl('git@github.com:o/r.git'), 'git@github.com:o/r.git');
+  assert.equal(verifyPublicUrl('ssh://git:pw@host/o/r.git'), 'ssh://git@host/o/r.git');
+  assert.equal(verifyPublicUrl('/tmp/origin.git'), '/tmp/origin.git');
+  assert.throws(() => verifyPublicUrl('https://[bad'), /push URL/);
+});
+
+test('a token in the remote URL: pushed to the literal URL, output pushUrl has no userinfo, nothing logs it', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  const secretUrl = 'https://x-access-token:SECRET@git.example.com/o/repo.git';
+  const logged = [];
+  const orig = console.log;
+  try {
+    const sha = t.commit(GO_FIX);
+    const pushes = [];
+    const deps = {
+      ...t.deps,
+      git: (args, cwd) => {
+        const i = args.indexOf('get-url');
+        if (i >= 0) return `${secretUrl}\n`;
+        if (args.includes('push')) {
+          pushes.push(args);
+          return git(args.map((a) => (a === secretUrl ? t.origin : a)), cwd);
+        }
+        return t.deps.git(args, cwd);
+      },
+    };
+    console.log = (...a) => logged.push(a.join(' '));
+    await main(t.env(), deps);
+    console.log = orig;
+    assert.equal(pushes.length, 1);
+    assert.ok(pushes[0].includes(secretUrl), 'push goes to the literal pinned URL');
+    assert.equal(t.remoteHead('nightly-fix/7'), sha);
+    const out = t.calls.out.at(-1);
+    assert.equal(out.pushUrl, 'https://git.example.com/o/repo.git');
+    const json = JSON.stringify(out);
+    assert.equal(json.includes('SECRET'), false);
+    assert.equal(out.pushUrl.includes('@'), false);
+    for (const line of logged) assert.equal(line.includes('SECRET') || line.includes('git.example.com'), false, line);
+  } finally { console.log = orig; t.cleanup(); }
+});
+
+test('a failed push to a token URL leaks neither the literal nor the stripped URL', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  const secretUrl = 'https://x-access-token:SECRET@git.example.com/o/repo.git';
+  try {
+    t.commit(GO_FIX);
+    const deps = {
+      ...t.deps,
+      git: (args, cwd) => {
+        if (args.includes('get-url')) return `${secretUrl}\n`;
+        if (args.includes('push')) throw new Error(`git ${args.join(' ')} failed: To https://git.example.com/o/repo.git ! [rejected]`);
+        return t.deps.git(args, cwd);
+      },
+    };
+    const err = await main(t.env(), deps).then(() => null, (e) => e);
+    assert.ok(err);
+    for (const text of [err.message, String(err.stack), JSON.stringify(t.calls.out.at(-1))]) {
+      assert.equal(text.includes('SECRET') || text.includes('git.example.com'), false, text);
+    }
+  } finally { t.cleanup(); }
 });

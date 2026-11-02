@@ -27,10 +27,22 @@ export function verifyGit(deps, args, cwd) {
 }
 
 // The push URL may embed a token: never let it reach a log line, a reason or a check.
-export function verifyRedact(msg, url) {
+export function verifyRedact(msg, ...urls) {
   let s = String(msg);
-  if (url) s = s.split(url).join('<push-url>');
+  for (const url of urls) if (url) s = s.split(url).join('<push-url>');
   return s.replace(/([a-z][a-z0-9+.-]*:\/\/)[^@/\s]+@/gi, '$1***@');
+}
+
+// The push URL as it may be stored and shown: http(s) userinfo removed (auth then comes from the
+// credential helper), passwords removed from other scheme URLs, scp-style and paths kept.
+export function verifyPublicUrl(raw) {
+  const u = String(raw);
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(u)) return u;
+  let p;
+  try { p = new URL(u); } catch { throw new Error('push URL is not a valid URL'); }
+  if (/^https?:$/i.test(p.protocol)) p.username = '';
+  p.password = '';
+  return p.toString();
 }
 
 function verifySetting(v) {
@@ -120,7 +132,7 @@ export function verifyPin(deps, dir, base) {
   const numstat = parseNumstat(verifyGit(deps, ['diff', '--numstat', ...VERIFY_DIFF_FLAGS, base, sha, '--'], dir));
   const pushUrl = verifyGit(deps, ['remote', 'get-url', '--push', 'origin'], dir).trim();
   if (!pushUrl || /[\r\n]/.test(pushUrl)) throw new Error('origin has no single push URL');
-  return { sha, nameStatus, numstat, pushUrl, urlRules: verifyUrlRules(deps, dir) };
+  return { sha, nameStatus, numstat, pushUrl, publicUrl: verifyPublicUrl(pushUrl), urlRules: verifyUrlRules(deps, dir) };
 }
 
 function verifyRemaining(ctx) {
@@ -304,9 +316,9 @@ function verifyRun(env, deps) {
   // 9. Reject: nothing is pushed. Diff violations follow so a retry sees the full picture.
   if (reasons.length > 0) {
     const all = [...reasons, ...violations];
-    console.log(verifyRedact(`verify: REJECT\n${[...checks, ...all].join('\n')}`, pushUrl));
+    console.log(verifyRedact(`verify: REJECT\n${[...checks, ...all].join('\n')}`, pushUrl, pin.publicUrl));
     deps.outputJson({ verified: false, reasons: all });
-    const e = new Error(verifyRedact(`verify rejected: ${all.join('; ')}`, pushUrl));
+    const e = new Error(verifyRedact(`verify rejected: ${all.join('; ')}`, pushUrl, pin.publicUrl));
     e.verifyRejected = true;
     throw e;
   }
@@ -315,14 +327,14 @@ function verifyRun(env, deps) {
   try {
     verifyGit(deps, ['push', `--force-with-lease=refs/heads/${branch}:`, pushUrl, `${sha}:refs/heads/${branch}`], dir);
   } catch (e) {
-    throw new Error(verifyRedact(`push of ${sha} to ${branch} failed: ${e.message}`, pushUrl));
+    throw new Error(verifyRedact(`push of ${sha} to ${branch} failed: ${e.message}`, pushUrl, pin.publicUrl));
   }
   const out = {
     verified: violations.length === 0 && !needsHuman,
     needsHuman: needsHuman || violations.length > 0,
-    reasons: violations, checks, branch, sha, pushUrl,
+    reasons: violations, checks, branch, sha, pushUrl: pin.publicUrl,
   };
-  console.log(verifyRedact(`verify: pushed ${branch} @ ${sha} (verified ${out.verified})\n${[...checks, ...violations].join('\n')}`, pushUrl));
+  console.log(verifyRedact(`verify: pushed ${branch} @ ${sha} (verified ${out.verified})\n${[...checks, ...violations].join('\n')}`, pushUrl, pin.publicUrl));
   deps.outputJson(out);
   return out;
 }

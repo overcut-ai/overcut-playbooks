@@ -65,13 +65,13 @@ A script that exits non-zero fails the run, so a skipped precheck or a rejected 
    - With JUnit: the fix run must produce JUnit (none means the build failed), the cause's tests must pass, no test may fail that was not failing in the baseline (a new failure is re-run once, so a flake does not reject a good fix), there may be no fewer tests and no more skipped tests than in the baseline.
    - Without JUnit: the marker's cause command must exit 0 at `SHA` (and, when interpreted, non-zero on old code). The PR always needs human review.
 7. **Tree check**: HEAD, tracked files and the URL rewrite rules must be unchanged after all runs.
-8. A failure in steps 5-7 (or any error) rejects the fix: output `{verified: false, reasons}` (the failures, then any diff-rule violations), exit 1, nothing pushed. Otherwise `SHA` is pushed to the push URL recorded at pin time, to `nightly-fix/<issue>` (only if the branch still does not exist), and the output is `{verified, needsHuman, reasons, checks, branch, sha, pushUrl}`. Diff-rule violations do not block the push; they set `needsHuman` and are listed in `reasons`. `verified` is true only with no violations and a JUnit baseline.
+8. A failure in steps 5-7 (or any error) rejects the fix: output `{verified: false, reasons}` (the failures, then any diff-rule violations), exit 1, nothing pushed. Otherwise `SHA` is pushed to the push URL recorded at pin time, to `nightly-fix/<issue>` (only if the branch still does not exist), and the output is `{verified, needsHuman, reasons, checks, branch, sha, pushUrl}`, where `pushUrl` is that URL with any `user:token@` part removed from an http(s) URL (step outputs are stored and shown in the UI). Diff-rule violations do not block the push; they set `needsHuman` and are listed in `reasons`. `verified` is true only with no violations and a JUnit baseline.
 
 **Step 6: Open Draft PR** — Opens a draft PR from the fix branch into the default branch, titled `fix: <issue title>`, with `Fixes #<issue>`, a summary, and the verify `checks` and `reasons` verbatim. Labels: `nightly-fix`, plus `needs-human-review` when `needsHuman` is true.
 
 **Time budget**: verify stops after 235 minutes in total (the step limit is 245). Each setup or test command may take up to 55 minutes, as in the nightly run, or what is left of the budget if that is less. When the budget runs out the fix is rejected with `verification time budget exhausted`.
 
-**Step 7: Assert PR Head** (script) — The fix branch at the push URL verify used must still point at exactly the verified `SHA`, so nothing pushed after verify can ride along in the PR. The URL is never logged, because it may contain a token.
+**Step 7: Assert PR Head** (script) — The fix branch at the push URL verify used must still point at exactly the verified `SHA`, so nothing pushed after verify can ride along in the PR. It reads the stripped `pushUrl`, so authentication comes from the git credential helper; if that fails, the step fails. Neither URL is ever logged.
 
 ### Data Flow
 
