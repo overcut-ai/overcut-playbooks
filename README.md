@@ -65,6 +65,13 @@ Use AI to help you:
 - [Implement Documentation from Issue](./implement-docs-from-issue/) - Automatically implements documentation updates based on issues, analyzing product PRs and creating documentation pull requests following existing standards and structure.
 - [Test Coverage Gap Analysis](./test-coverage-gap-analysis/) - Identifies test coverage gaps using targeted search strategies, validates against existing issues, and creates actionable issues for uncovered critical paths.
 
+### Testing
+
+- [Nightly Test Run](./nightly-test-run/) - Runs the repository's test suite every night and files one GitHub issue per root cause of failing tests, deduplicated against open issues.
+- [Test Failure Triage](./test-failure-triage/) - Re-runs the failing tests of one nightly-test-failure issue at the tested commit, classifies the cause as fixable, flaky, environment or needs-human, and posts a fix brief or labels the issue.
+- [Test Failure Fix](./test-failure-fix/) - Fixes one fixable nightly-test-failure root cause, verifies the fix deterministically against the nightly baseline (including checks for test weakening), and opens a draft PR only when it passes.
+- [Nightly Test Failures to Fix](./orchestrations/nightly-test-failures-to-fix/) (orchestration template) - Routes each nightly-test-failure issue through Triage and, after approval, Fix, with one retry when verify rejects the fix. Installed into a workspace Library with `scripts/install-library-templates.py`.
+
 ### Security
 
 - [Remediate CVEs](./remediate-cves/) - Analyzes CVEs with context-aware risk assessment, evaluates multiple remediation strategies with trade-offs, and creates comprehensive implementation plans that automatically trigger PR creation.
