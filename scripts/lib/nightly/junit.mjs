@@ -81,7 +81,7 @@ export function readJUnitDir(dir) {
   return cases;
 }
 
-export function summarize(cases) {
+export function statusById(cases) {
   const byId = new Map();
   for (const c of cases) {
     const prev = byId.get(c.id);
@@ -89,6 +89,11 @@ export function summarize(cases) {
       byId.set(c.id, c.status);
     }
   }
+  return byId;
+}
+
+export function summarize(cases) {
+  const byId = statusById(cases);
   let skipped = 0;
   const failing = [];
   for (const [id, status] of byId) {

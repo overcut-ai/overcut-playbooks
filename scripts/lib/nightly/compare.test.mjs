@@ -52,3 +52,21 @@ test('redCheck passing new/cause tests give reasons', () => {
   assert.deepEqual(r.reasons, ['cause test passes on old code: a', 'new test passes on old code: n1', 'new test passes on old code: n2']);
   assert.deepEqual(r.newIds, ['n1', 'n2']);
 });
+
+test('duplicate cause id: failed wins in either order', () => {
+  for (const cases of [[c('a', 'failed'), c('a', 'passed')], [c('a', 'passed'), c('a', 'failed')]]) {
+    const r = compareResults({ baseline: { allFailing: [], total: 1, skipped: 0 }, fixCases: cases, causeIds: ['a'], rerunFailed: () => { throw new Error('no'); } });
+    assert.deepEqual(r.reasons, ['cause test still failing: a']);
+  }
+});
+
+test('redCheck duplicate ids: failed wins', () => {
+  const r = redCheck({ unmodifiedCases: [], overlayCases: [c('n', 'failed'), c('n', 'passed'), c('k', 'passed'), c('k', 'failed')], causeIds: ['k'] });
+  assert.deepEqual(r, { ok: true, reasons: [], newIds: ['k', 'n'] });
+});
+
+test('rerunFailed non-array throws', () => {
+  for (const bad of [undefined, 'n1', [1]]) {
+    assert.throws(() => compareResults({ baseline: base, fixCases: [c('n1', 'failed'), c('old1', 'failed'), c('x', 'passed'), c('y', 'passed')], causeIds: [], rerunFailed: () => bad }), TypeError);
+  }
+});

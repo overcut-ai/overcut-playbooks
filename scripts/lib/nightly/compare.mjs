@@ -1,13 +1,7 @@
-import { summarize } from './junit.mjs';
-
-function compareStatusMap(cases) {
-  const m = new Map();
-  for (const t of cases) m.set(t.id, t.status);
-  return m;
-}
+import { summarize, statusById } from './junit.mjs';
 
 export function compareResults({ baseline, fixCases, causeIds, rerunFailed }) {
-  const status = compareStatusMap(fixCases);
+  const status = statusById(fixCases);
   const sum = summarize(fixCases);
   const causeReasons = [...causeIds].sort()
     .filter((id) => !status.has(id) || status.get(id) === 'skipped' || status.get(id) === 'failed')
@@ -16,7 +10,9 @@ export function compareResults({ baseline, fixCases, causeIds, rerunFailed }) {
   const candidates = [...sum.failing].filter((id) => !known.has(id)).sort();
   const newReasons = [];
   if (candidates.length > 0) {
-    const still = new Set(rerunFailed(candidates));
+    const ret = rerunFailed(candidates);
+    if (!Array.isArray(ret) || !ret.every((x) => typeof x === 'string')) throw new TypeError('rerunFailed must return string[]');
+    const still = new Set(ret);
     for (const id of candidates) if (still.has(id)) newReasons.push(`new failure: ${id}`);
   }
   const countReasons = [];
@@ -29,7 +25,7 @@ export function compareResults({ baseline, fixCases, causeIds, rerunFailed }) {
 
 export function redCheck({ unmodifiedCases, overlayCases, causeIds }) {
   const before = new Set(unmodifiedCases.map((t) => t.id));
-  const status = compareStatusMap(overlayCases);
+  const status = statusById(overlayCases);
   const newIds = [...new Set(overlayCases.map((t) => t.id))].filter((id) => !before.has(id)).sort();
   const reasons = [];
   for (const id of [...causeIds].sort()) {
