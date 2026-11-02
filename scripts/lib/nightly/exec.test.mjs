@@ -168,3 +168,21 @@ test('outputJson writes to OC_OUTPUT_FILE only when set', () => {
     rmSync(d, { recursive: true, force: true });
   }
 });
+
+test('runSuite: timed-out test (124) yields cases null even with partial XML', () => {
+  const d = tmp();
+  try {
+    const junitDir = join(d, 'junit');
+    const r = runSuite({
+      dir: d,
+      setup: '',
+      test: `echo '${XML}' > "$NIGHTLY_JUNIT_DIR/partial.xml"; sleep 5`,
+      junitDir,
+      timeoutMs: 500,
+    });
+    assert.equal(r.testCode, 124);
+    assert.equal(r.cases, null);
+  } finally {
+    rmSync(d, { recursive: true, force: true });
+  }
+});

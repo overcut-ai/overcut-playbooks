@@ -74,6 +74,12 @@ class SyncScriptsTest(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         self.assertIn("orphan", r.stdout + r.stderr)
 
+    def test_ignores_test_files(self):
+        self.write(os.path.join(self.pb, "scripts", "run.test.mjs"), "import { main } from './run.mjs';\n")
+        r = self.sync()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.sync("--check").returncode, 0)
+
     def test_rejects_duplicate_top_level_name(self):
         self.write_entry(IMPORT_A + "function a(){}\nexport async function main(env){ a(); }\n")
         r = self.sync()

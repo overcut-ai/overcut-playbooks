@@ -2,7 +2,7 @@
 """
 Bundle tested Node step scripts into workflow.json script.run steps.
 
-For each <playbook>/scripts/<step-id>.mjs, the entry file and every file it
+For each <playbook>/scripts/<step-id>.mjs (*.test.mjs files are skipped), the entry file and every file it
 imports from scripts/lib/nightly/ (recursively, depth-first, each once) are
 concatenated into one bash script that runs them with node via a heredoc, and
 the result is written to that step's params.script. node:* imports are hoisted
@@ -155,7 +155,10 @@ def sync_scripts(playbook_dir, check):
     steps = {s["id"]: s for s in workflow["workflow"]["definition"]["steps"]}
     lib_root = os.path.join(playbook_dir, "..", "scripts", "lib", "nightly")
 
-    entries = sorted(glob.glob(os.path.join(playbook_dir, "scripts", "*.mjs")))
+    entries = sorted(
+        e for e in glob.glob(os.path.join(playbook_dir, "scripts", "*.mjs"))
+        if not e.endswith(".test.mjs")
+    )
     if not entries:
         raise BundleError(f"no scripts/*.mjs entry files in {playbook_dir}")
 

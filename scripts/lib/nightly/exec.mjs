@@ -86,11 +86,14 @@ export function runSuite({ dir, setup, test, junitDir, timeoutMs }) {
   }
   const t = sh(test, { cwd: dir, env: { NIGHTLY_JUNIT_DIR: jd }, timeoutMs });
   log += `== test\n${t.out}\n`;
+  // A killed run's partial XML must never read as a result.
   let cases = null;
-  try {
-    cases = readJUnitDir(jd);
-  } catch (e) {
-    cases = null;
+  if (t.code !== 124) {
+    try {
+      cases = readJUnitDir(jd);
+    } catch (e) {
+      cases = null;
+    }
   }
   return { setupCode, testCode: t.code, cases, log: execTail(log) };
 }
