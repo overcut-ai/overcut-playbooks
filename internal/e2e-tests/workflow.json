@@ -1,0 +1,137 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "E2E Tests",
+    "description": "Runs Overcut's live E2E suite against staging (next) or production (main), nightly and on demand, and posts the results to Slack with a Test results page.",
+    "definition": {
+      "name": "E2E Tests",
+      "version": "1.0.0",
+      "priority": 3,
+      "timeoutMs": 5400000,
+      "allowTaskOutcome": true,
+      "triggers": [
+        {
+          "event": "scheduled",
+          "schedule": {
+            "cronExpression": "0 0 * * *"
+          }
+        },
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "e2e-tests",
+            "requireMention": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "clone",
+          "name": "Clone E2E suite",
+          "action": "git.clone",
+          "params": {
+            "repoFullName": "{{params.e2e_suite_repo}}",
+            "branch": "{{params.e2e_suite_ref}}"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 10
+        },
+        {
+          "id": "run",
+          "name": "Run E2E tests",
+          "action": "script.run",
+          "params": {
+            "script": "bash -c 'set -euo pipefail\nM=(\"${AGENT_WORKSPACE_PATH:?}\"/*/.e2e-harness)\n[ ${#M[@]} -eq 1 ] && [ -e \"${M[0]}\" ] || { echo \"harness marker: ${#M[@]} matches\" >&2; exit 1; }\nH=\"${M[0]%/*}\"\ncd \"$H\"\n# e2e-run bounds itself (45 min); cap npm ci so the fallback below still runs within the step.\n[ -d node_modules ] || timeout 600 npm ci --no-audit --no-fund\nnpx tsx src/sandbox/e2e-run.ts\n' || echo \"e2e-run: setup failed before the run\" >&2\n# e2e-run.ts always writes its own result; this covers a setup failure before it starts.\n[ -s \"${OC_OUTPUT_FILE:?}\" ] || node -e 'const b = process.env.E2E_TARGET_BRANCH || \"(no branch)\";\nconst u = process.env.RUN_URL ? `<${process.env.RUN_URL}|Test results and logs>` : \"Test results: (no run link)\";\nrequire(\"fs\").writeFileSync(process.env.OC_OUTPUT_FILE, JSON.stringify({ verdict: \"red\", text: `:red_circle: *Overcut E2E tests \u2014 ${b}: red*\\nNo result: setup failed before e2e-run (harness marker, or npm ci failed or took over 10 minutes)\\n:page_facing_up: ${u}`, reason: \"setup failed before e2e-run (harness marker, or npm ci failed or took over 10 minutes)\", env: \"\", report: `### Overcut E2E tests \u2014 ${b}: red\\n\\nNo result: setup failed before e2e-run (harness marker, or npm ci failed or took over 10 minutes).\\n` }));'\nexit 0\n",
+            "timeoutSeconds": 3600,
+            "env": {
+              "RUN_URL": "{{meta.uiRunUrl}}",
+              "E2E_TARGET_BRANCH": "{{params.e2e_target_branch}}",
+              "E2E_ENV_OVERRIDE": "{{params.e2e_env_override}}",
+              "E2E_LIVE_UI_URL": "{{params.e2e_ui_url}}"
+            }
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 65
+        },
+        {
+          "id": "notify",
+          "name": "Post to Slack",
+          "action": "agent.run",
+          "params": {
+            "agentId": "e2e-tests-reporter-agent-id",
+            "agentEngine": "overcut"
+          },
+          "instruction": "Post one Slack message. This step only delivers a message that was already decided; do not investigate, summarise or change anything.\n\nCall the `post_channel_message` tool exactly once, with:\n\n- `channelId`: the channel ID given below;\n- `threadId`: `null` (post at the channel root, not in a thread);\n- `text`: the text given below, verbatim \u2014 every character between the BEGIN and END lines, with nothing added, removed, reworded, reformatted or wrapped in quotes or code. It spans several lines and contains Slack markup such as `*bold*`, `<url|label>` links and escapes like `&lt;` and `&amp;`: keep all of it exactly as given, including the line breaks.\n\nDo not post anything else, and do not call `post_channel_message` a second time, even to retry or correct.\n\nThen end the step with `task_completed`:\n\n- the post succeeded: call `task_completed` with `success: true`;\n- the channel ID or the text is empty (do not post), or the post failed: call `task_completed` with `success: false` and a one-line reason (e.g. the tool's error).\n\nDo not set `quitWorkflow`, and do not raise an error or stop the run in any other way: the workflow must continue to the next step whatever happens here.\nchannelId: `{{params.e2e_slack_channel_id}}`\ntext (between the BEGIN and END lines):\nBEGIN\n{{{outputs.run.output.text}}}\nEND",
+          "stepMaxDurationMinutes": 5
+        },
+        {
+          "id": "report",
+          "name": "Test results",
+          "action": "agent.run",
+          "params": {
+            "agentId": "e2e-tests-reporter-agent-id",
+            "agentEngine": "overcut"
+          },
+          "instruction": "Show the test results page. This step only displays a page that was already built; do not investigate, run, summarise, check or change anything, and do not call any tool except `task_completed`.\n\nReply with one message whose text is the page given below, verbatim \u2014 every character between the BEGIN and END lines, as Markdown: nothing added before or after it, nothing removed, reworded or reformatted, and not wrapped in quotes or in a code block. The page's links and table must stay exactly as given.\n\nThen end the step with `task_completed`:\n\n- the page below is not empty: call `task_completed` with `success: true`;\n- the page below is empty: reply `No test results page was produced.` instead, and call `task_completed` with `success: false` and that same line as the reason.\n\nDo not set `quitWorkflow`, and do not raise an error or stop the run in any other way: the workflow must continue to the next step whatever happens here.\npage (between the BEGIN and END lines):\nBEGIN\n{{{outputs.run.output.report}}}\nEND",
+          "stepMaxDurationMinutes": 5
+        }
+      ],
+      "flow": [
+        {
+          "from": "",
+          "to": "clone",
+          "condition": null
+        },
+        {
+          "from": "clone",
+          "to": "run",
+          "condition": null
+        },
+        {
+          "from": "run",
+          "to": "notify",
+          "condition": null
+        },
+        {
+          "from": "notify",
+          "to": "report",
+          "condition": null
+        }
+      ]
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "e2e-tests-reporter-agent-id",
+        "name": "E2E Tests Reporter"
+      }
+    ],
+    "contextParameters": [
+      {
+        "key": "e2e_target_branch",
+        "description": "overcut branch this copy tests: next (staging) or main (production)."
+      },
+      {
+        "key": "e2e_slack_channel_id",
+        "description": "Slack channel ID (C...) for the results; registered to the project."
+      },
+      {
+        "key": "e2e_suite_repo",
+        "description": "Repository of the E2E suite: overcut-ai/overcut-e2e-tests."
+      },
+      {
+        "key": "e2e_suite_ref",
+        "description": "Branch of the E2E suite to run."
+      },
+      {
+        "key": "e2e_ui_url",
+        "description": "Overcut UI base URL for links to each test's run (optional)."
+      },
+      {
+        "key": "e2e_env_override",
+        "description": "Leave empty; set only to run against a stand-in environment such as local."
+      }
+    ]
+  }
+}

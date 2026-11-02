@@ -77,6 +77,12 @@ Use AI to help you:
 
 - [Migration Package](./migration-package/) - Complete multi-workflow system for migrating code between architectures or frameworks.
 
+### Internal (not in the customer catalog yet)
+
+Playbooks under [`internal/`](./internal/) are hidden from the Overcut catalog for every workspace except those in the server's `INTERNAL_PLAYBOOKS_WORKSPACE_IDS`. Releasing one to customers = moving its folder to the repo root.
+
+- [E2E Tests](./internal/e2e-tests/) - Runs Overcut's live E2E suite against staging (`next`) or production (`main`), nightly and on demand, and posts the results to Slack with a Test results page.
+
 ## 🎨 Customization Guide
 
 ### Editing Prompts
