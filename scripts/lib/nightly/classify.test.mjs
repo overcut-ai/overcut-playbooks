@@ -21,6 +21,28 @@ test('isTestFile negatives and junit', () => {
   assert.equal(isTestFile('src/odd.py'), false);
   assert.equal(isTestFile('src/odd.py', new Set(['src/odd.py'])), true);
 });
+test('isTestFile: test data, snapshot, mock, fixture, e2e and cypress dirs', () => {
+  for (const p of ['pkg/parser/testdata/input.json', 'src/__snapshots__/App.test.js.snap', 'src/snapshots/home.png',
+    'src/__mocks__/axios.js', 'src/__fixtures__/user.json', 'cypress/support/commands.js',
+    'cypress/integration/login.js', 'e2e/login.ts', 'apps/web/e2e/helpers.ts', 'go/testdata/golden.txt']) {
+    assert.equal(isTestFile(p), true, p);
+  }
+});
+test('isTestFile: .cy., .snap and .golden basenames', () => {
+  for (const p of ['src/login.cy.ts', 'web/home.cy.js', 'x/a.snap', 'App.test.tsx.snap', 'out/render.golden', 'cmd/help.golden']) {
+    assert.equal(isTestFile(p), true, p);
+  }
+  for (const p of ['src/e2e.ts', 'src/cypress.ts', 'src/snapshot.js', 'src/golden.go', 'src/fixtures.py', 'src/cy.js',
+    'src/testdata.go', 'src/mocks/a.js']) {
+    assert.equal(isTestFile(p), false, p);
+  }
+});
+test('isProtectedFile: test setup files', () => {
+  for (const p of ['vitest.setup.ts', 'web/vitest.setup.js', 'src/setupTests.ts', 'setupTests.js']) {
+    assert.equal(isProtectedFile(p), true, p);
+  }
+  assert.equal(isProtectedFile('src/setup.ts'), false);
+});
 test('isProtectedFile extended list', () => {
   for (const p of ['setup.cfg', 'a/CMakeLists.txt', 'Makefile', 'GNUmakefile', 'build.sbt', 'x/A.fsproj',
     'Directory.Build.props', '.rspec', 'noxfile.py', 'vitest.workspace.ts', 'jest.setup.js',

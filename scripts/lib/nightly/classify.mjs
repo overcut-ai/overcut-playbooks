@@ -7,9 +7,14 @@ export const COMPILED_EXTENSIONS = new Set([
 export const INTERPRETED_EXTENSIONS = new Set([
   '.py', '.rb', '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.php', '.pl', '.lua', '.r', '.sh', '.bash',
 ]);
-const CLASSIFY_TEST_DIRS = new Set(['test', 'tests', 'spec', '__tests__']);
+// Test sources and the data they compare against (snapshots, golden files, fixtures, mocks).
+const CLASSIFY_TEST_DIRS = new Set([
+  'test', 'tests', 'spec', '__tests__', 'testdata', '__snapshots__', 'snapshots', '__mocks__', '__fixtures__',
+  'cypress', 'e2e',
+]);
 const CLASSIFY_TEST_BASENAMES = [
   /^.*_test\..*$/s, /^test_.*\..*$/s, /^.*Test\..*$/s, /^.*Tests\..*$/s, /^.*\.spec\..*$/s, /^.*\.test\..*$/s,
+  /^.*\.cy\..*$/s, /^.*\.snap$/s, /^.*\.golden$/s,
 ];
 const CLASSIFY_PROTECTED_PREFIXES = ['.github/', '.circleci/'];
 const CLASSIFY_PROTECTED_BASENAMES = [
@@ -23,7 +28,7 @@ const CLASSIFY_PROTECTED_BASENAMES = [
   'Package.resolved', 'pubspec.*',
   'setup.cfg', 'CMakeLists.txt', 'Makefile', 'makefile', 'GNUmakefile', 'build.sbt', '*.fsproj',
   '*.vbproj', 'Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props', '.rspec',
-  'noxfile.py', 'vitest.workspace.*', 'jest.setup.*', 'tsconfig*.json', 'deno.json', 'deno.jsonc',
+  'noxfile.py', 'vitest.workspace.*', 'jest.setup.*', 'vitest.setup.*', 'setupTests.*', 'tsconfig*.json', 'deno.json', 'deno.jsonc',
   'Rakefile', '.nycrc*', 'babel.config.*', '.babelrc*',
 ].map((g) => new RegExp('^' + g.split('*').map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$', 's'));
 

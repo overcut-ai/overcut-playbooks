@@ -493,6 +493,31 @@ test('mode: a .go fix with a fixture file stays compiled', async () => {
   } finally { t.cleanup(); }
 });
 
+test('mode: added snapshot, golden and cypress data files keep a .go fix compiled', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    t.commit({ ...GO_FIX, '__snapshots__/calc.snap': 'x\n', 'out/help.golden': 'y\n', 'cypress/fixtures/u.json': '{}\n' });
+    await main(t.env(), t.deps);
+    assert.equal(t.calls.out.at(-1).verified, true);
+    assert.deepEqual(t.worktreeCalls(), []);
+  } finally { t.cleanup(); }
+});
+
+test('an edited existing snapshot or golden file -> pushed, needs human (test data is a test file)', async () => {
+  const t = setup({ ...GO, '__snapshots__/calc.snap': 'old\n', 'testdata/help.golden': 'old\n' }, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    t.commit({ ...GO_FIX, '__snapshots__/calc.snap': 'new\n', 'testdata/help.golden': 'new\n' });
+    await main(t.env(), t.deps);
+    const out = t.calls.out.at(-1);
+    assert.equal(out.verified, false);
+    assert.equal(out.needsHuman, true);
+    assert.deepEqual(out.reasons, [
+      'existing test file changed: __snapshots__/calc.snap (+1 -1)',
+      'existing test file changed: testdata/help.golden (+1 -1)',
+    ]);
+  } finally { t.cleanup(); }
+});
+
 test('mode: deleted or renamed compiled test files do not choose the mode', async () => {
   const t = setup({ ...PY, 'tests/old_test.go': '// old\n', 'tests/keep_test.go': '// keep\n' });
   try {
