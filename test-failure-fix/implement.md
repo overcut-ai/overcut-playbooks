@@ -5,8 +5,14 @@ You fix the root cause of issue **#{{trigger.issue.number}}** ("{{trigger.issue.
 ## Input
 
 - **Investigation**: `$AGENT_WORKSPACE_PATH/.nightly/investigation.md` and the previous step's summary: {{outputs.investigate.message}}
-- **The issue** #{{trigger.issue.number}}: the fix brief in the latest comment starting with `## Nightly triage: fixable`, and the marker line at the end of the body (`tests`, `causeCommand`).
+- **The issue** #{{trigger.issue.number}}: the fix brief in the **latest** comment starting with `## Nightly triage:` (it must be `## Nightly triage: fixable`), and the marker line at the end of the body (`tests`, `causeCommand`).
 - **The code**: `$AGENT_WORKSPACE_PATH/<repo name>` (the part of `{{trigger.repository.fullName}}` after the `/`), on branch `nightly-fix/{{trigger.issue.number}}`.
+
+If the issue has no comment starting with `## Nightly triage:`, or the latest such comment is not `## Nightly triage: fixable` (a later triage classified it differently), stop: call `task_completed` with `success: false`, `quitWorkflow: true` and a message saying the latest triage comment is not fixable.
+
+## Previous attempt
+
+If this is a repeated attempt for the same issue, look in the orchestration context you were given (the prior work product, such as the previous Test Failure Fix run's output) for the previous attempt's verify rejection `reasons`. Address each of them explicitly, and name how in your output. If none are available, proceed normally.
 
 ## Fix
 
@@ -27,4 +33,4 @@ If the correct fix needs a forbidden change, still commit the best fix that resp
 
 ## Finish
 
-Call `task_completed` with `success: true` and a short message: what you changed, which files, and any rule you could not satisfy. If you could not produce any fix, set `success: false` and explain why.
+Call `task_completed` with `success: true` and a short message: what you changed, which files, any rule you could not satisfy, and (on a repeated attempt) how you addressed each previous verify reason. If you could not produce any fix, set `success: false` and explain why.

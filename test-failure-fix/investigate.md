@@ -5,10 +5,14 @@ You investigate issue **#{{trigger.issue.number}}** ("{{trigger.issue.title}}") 
 ## Input
 
 - **The issue**: read issue #{{trigger.issue.number}} (title, body, comments). The body ends with a hidden marker line `<!-- nightly-test-failure {...} -->`: `sha` (the tested commit), `tests` (this cause's failing test ids) and `causeCommand` (runs only this cause's tests).
-- **The fix brief**: the latest issue comment that starts with `## Nightly triage: fixable`. It names what is wrong, where, what the fix should change and which tests prove it.
+- **The fix brief**: the **latest** issue comment that starts with `## Nightly triage:`. It must be `## Nightly triage: fixable`; it names what is wrong, where, what the fix should change and which tests prove it.
 - **The code**: `$AGENT_WORKSPACE_PATH/<repo name>` (the part of `{{trigger.repository.fullName}}` after the `/`), checked out on branch `nightly-fix/{{trigger.issue.number}}` at the marker's `sha`.
 
-If the issue has no comment starting with `## Nightly triage: fixable`, stop: call `task_completed` with `success: false`, `quitWorkflow: true` and a message saying there is no fixable triage comment.
+If the issue has no comment starting with `## Nightly triage:`, or the latest such comment is not `## Nightly triage: fixable` (a later triage classified it differently), stop: call `task_completed` with `success: false`, `quitWorkflow: true` and a message saying the latest triage comment is not fixable.
+
+## Previous attempt
+
+If this is a repeated attempt for the same issue, look in the orchestration context you were given (the prior work product, such as the previous Test Failure Fix run's output) for the previous attempt's verify rejection `reasons`. Address each of them explicitly, and name how in your output. If none are available, proceed normally.
 
 ## Investigate
 
@@ -24,6 +28,7 @@ Write your findings to `$AGENT_WORKSPACE_PATH/.nightly/investigation.md` (create
 - **Root cause**: the defect, with file paths and line numbers.
 - **Planned change**: files and functions to change, and how.
 - **Tests that prove it**: the cause's test ids and `causeCommand`; any new test worth adding (it goes in a new test file).
+- **Previous rejection** (repeated attempts only): each earlier verify reason and how the planned change addresses it.
 - **Risks**: other code or tests the change may affect; anything that would need a forbidden change (existing test files, CI config, test runner config, dependency manifests or lockfiles).
 
 Call `task_completed` with `success: true` and a one-line summary of the root cause.

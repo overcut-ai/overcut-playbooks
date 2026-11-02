@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-An Overcut **orchestration template** that takes one `nightly-test-failure` issue (one root cause of failing tests, filed by the [Nightly Test Run](../../nightly-test-run/)) from triage to a verified draft PR. It runs [Test Failure Triage](../../test-failure-triage/) first, runs [Test Failure Fix](../../test-failure-fix/) only when Triage classified the cause fixable, and retries Fix once when its verify step rejects the fix. Each issue ends with a verified draft PR, or labelled `flaky`, `environment` or `needs-human` with the reason in the issue.
+An Overcut **orchestration template** that takes one `nightly-test-failure` issue (one root cause of failing tests, filed by the [Nightly Test Run](../../nightly-test-run/)) from triage to a verified draft PR. It runs [Test Failure Triage](../../test-failure-triage/) first, runs [Test Failure Fix](../../test-failure-fix/) only when Triage classified the cause fixable, and retries Fix once when its verify step rejects the fix. Each issue ends with a verified draft PR, or labelled `nightly-flaky`, `nightly-environment` or `nightly-needs-human` with the reason in the issue.
 
 This folder is not a playbook: it has no `workflow.json`, so the playbook catalog skips it. It ships through the workspace **Library** (Library → Orchestration templates).
 
@@ -20,11 +20,13 @@ The Nightly Test Run adds the `nightly-test-failure` label when it files an issu
 ```
 issue labelled nightly-test-failure
   → Test Failure Triage
-      ├─ flaky / environment / needs-human → finish (Triage labelled the issue)
+      ├─ flaky / environment / needs-human → finish (Triage labelled the issue nightly-<classification>)
       └─ fixable → [gate: approve-auto-fix] → Test Failure Fix
                        ├─ verified → finish (draft PR opened)
                        └─ verify failed → [gate] → Test Failure Fix again, with the failure as input → finish
 ```
+
+Known limit: the retry gets the verify failure only through the orchestration context (the prior step output); Test Failure Fix has no input of its own for it. Its agents use those reasons when present and otherwise retry like a first attempt. Verify this on a live retry.
 
 Allowed workflows: **Test Failure Triage** and **Test Failure Fix**. "Fixable" means Triage's step finished with `success: true` and posted a comment headed `## Nightly triage: fixable`.
 

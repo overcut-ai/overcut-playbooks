@@ -11,10 +11,10 @@ You triage issue **#{{trigger.issue.number}}** ("{{trigger.issue.title}}") in **
   {"junit": true, "sha": "...", "testCode": 1, "log": "<tail of setup/test output>",
    "stillFailing": ["<test id>"], "nowPassing": ["<test id>"], "cases": [...],
    "rerunError": "<only if the re-run gave no per-test results>",
-   "setupFailed": true, "setupCode": 3}
+   "setupFailed": true, "setupCode": 3, "testsTruncated": true}
   ```
 
-  With `junit: false`, `stillFailing` and `nowPassing` are booleans (exit code of `causeCommand`), not lists. `setupFailed`, `setupCode` and `rerunError` appear only when they apply.
+  With `junit: false`, `stillFailing` and `nowPassing` are booleans (exit code of `causeCommand`), not lists. `setupFailed`, `setupCode`, `rerunError` and `testsTruncated` appear only when they apply. `testsTruncated: true` means the marker kept only a sorted prefix of the cause's test ids (the full list did not fit in the issue body); `stillFailing` and `nowPassing` then cover only that prefix: say so in the comment's evidence.
 - **JUnit XML** of the re-run (messages, stack traces): `$AGENT_WORKSPACE_PATH/.nightly/junit/`.
 - **The code**: `$AGENT_WORKSPACE_PATH/<repo name>` (the part of `{{trigger.repository.fullName}}` after the `/`), checked out at `sha`.
 
@@ -53,7 +53,15 @@ Keep it brief and factual. Quote at most a few lines of log.
 
 ## Label
 
-For `flaky`, `environment` or `needs-human`, add the label with exactly that name to the issue (create it first if the repository does not have it). Add no label for `fixable`. Do not remove any label.
+Add the label for the classification, with exactly this name (create it first if the repository does not have it):
+
+| Classification | Label |
+|---|---|
+| `flaky` | `nightly-flaky` |
+| `environment` | `nightly-environment` |
+| `needs-human` | `nightly-needs-human` |
+
+Add no label for `fixable`. Do not remove any label.
 
 ## Finish
 

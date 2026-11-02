@@ -22,7 +22,7 @@ There is no automatic trigger. An orchestration starts the workflow on each new 
 
 - **Senior Developer** agent configured in Overcut (used by `classify-failure`).
 - Repository access that can read issues, comment on them, and create and apply labels.
-- Issues filed by the **Nightly Test Run**. The workflow needs the hidden marker line (`<!-- nightly-test-failure {...} -->`) at the end of the issue body: it holds the tested commit, the cause's test ids and the exact setup, test and cause commands. Without it the run fails at the `rerun` step.
+- Issues filed by the **Nightly Test Run**. The workflow needs the hidden marker line (`<!-- nightly-test-failure {...} -->`) at the end of the issue body: it holds the tested commit, the cause's test ids and the exact setup, test and cause commands. Without it the run fails at the `rerun` step. The issue must also carry the `nightly-test-failure` label.
 - The same container image the nightly run uses (set a per-repository `agentImage` if the suite needs tooling the default image lacks), so that the re-run sees the same environment.
 
 ## 🏗️ Workflow Steps
@@ -41,14 +41,15 @@ clone → rerun → classify-failure
 
 **Step 1: Clone Repo** — Clones `{{trigger.repository.fullName}}`.
 
-**Step 2: Re-run Failing Tests** (script, deterministic) — Reads the marker from the issue body; fails the run with `no baseline marker` if it is missing or malformed. Fetches and checks out the marker's commit (detached, git hooks off); fails with `cannot check out baseline <sha>` if it cannot. Runs the marker's commands only, never re-discovering them:
+**Step 2: Re-run Failing Tests** (script, deterministic) — Fails with `issue is not labelled nightly-test-failure` unless the trigger issue has that label (env `ISSUE_LABELS`; only triage+ users can add labels, so this shows the marker came through a trusted path), before anything runs. Reads the marker from the issue body; fails the run with `no baseline marker` if it is missing or malformed. Fetches the marker's commit if the clone lacks it and checks it out (detached, git hooks off); fails with `cannot check out baseline <sha>` if it cannot. Runs the marker's commands only, never re-discovering them:
 - **With JUnit** (`junit: true`): setup, then the full test command. Each of the cause's tests is still failing (failed, skipped or absent from the XML) or now passing. If there are no per-test results (no XML, a timeout, or a non-zero exit with no failing test in the XML), `rerunError` is set and every test counts as still failing.
 - **Without JUnit**: setup, then `causeCommand`; still failing means a non-zero exit.
 - **Setup fails**: records `setupFailed`, the exit code and the log tail.
+- **Truncated marker**: if the marker kept only a prefix of the cause's ids (`testsTruncated`), `rerun.json` says so with `testsTruncated: true`; only that prefix is judged.
 
 Exits 0 for every test outcome, so the agent always classifies.
 
-**Step 3: Classify Failure** — Reads the re-run result, the issue and the code at the tested commit, and picks one classification: everything now passing is `flaky`; a setup failure or `rerunError` is `environment` unless the code explains it; otherwise it judges from the errors and code. Posts one comment (evidence, suspected files, and for `fixable` a **Fix brief**: what is wrong, where, what the fix should change, which tests prove it and the command that runs them). Adds the `flaky`, `environment` or `needs-human` label when not fixable, creating it if needed. Finishes with `success: true` for fixable and `success: false` otherwise. It never edits code, pushes, or changes the issue body.
+**Step 3: Classify Failure** — Reads the re-run result, the issue and the code at the tested commit, and picks one classification: everything now passing is `flaky`; a setup failure or `rerunError` is `environment` unless the code explains it; otherwise it judges from the errors and code. Posts one comment (evidence, suspected files, and for `fixable` a **Fix brief**: what is wrong, where, what the fix should change, which tests prove it and the command that runs them). Adds the `nightly-flaky`, `nightly-environment` or `nightly-needs-human` label when not fixable, creating it if needed. Finishes with `success: true` for fixable and `success: false` otherwise. It never edits code, pushes, or changes the issue body.
 
 ### Data Flow
 
@@ -56,8 +57,8 @@ Exits 0 for every test outcome, so the agent always classifies.
 |---|---|---|
 | Issue body marker `{sha, junit, tests, allFailing, total, skipped, setup, test, causeCommand, greenNights}` | Nightly Test Run | `rerun` (env `ISSUE_BODY`), `classify-failure` |
 | `$AGENT_WORKSPACE_PATH/.nightly/junit/` (JUnit XML of the re-run) | test command | `rerun`, `classify-failure` |
-| `$AGENT_WORKSPACE_PATH/.nightly/rerun.json` `{junit, sha, testCode, log, stillFailing, nowPassing, cases, rerunError?, setupFailed?, setupCode?}` | `rerun` | `classify-failure` |
-| Step output `{junit, stillFailing, nowPassing, rerunError?, setupFailed?}` (counts with JUnit, booleans without) | `rerun` | run logs |
+| `$AGENT_WORKSPACE_PATH/.nightly/rerun.json` `{junit, sha, testCode, log, stillFailing, nowPassing, cases, rerunError?, setupFailed?, setupCode?, testsTruncated?}` | `rerun` | `classify-failure` |
+| Step output `{junit, stillFailing, nowPassing, rerunError?, setupFailed?, testsTruncated?}` (counts with JUnit, booleans without) | `rerun` | run logs |
 | `## Nightly triage: <classification>` comment, label | `classify-failure` | people, the fix workflow |
 | `task_completed` `success` and message (`<classification>: <reason>`) | `classify-failure` | the orchestration |
 
