@@ -58,6 +58,19 @@ test('overlap comments lowest issue and resets greenNights', () => {
   assert.ok(a.some((x) => x.type === 'set-marker' && x.issue === 9 && parseMarker(x.marker).greenNights === 0));
 });
 
+test('a night counts as green only when every tracked test passed', () => {
+  const partial = plan({
+    results: res({ cases: [cs('t1'), cs('t2', 'skipped')] }), causes: [],
+    openIssues: [issue(8, mk({ tests: ['t1', 't2', 't3'], greenNights: 2 }))], setupFailed: null,
+  });
+  assert.deepEqual(partial, []);
+  const all = plan({
+    results: res({ cases: [cs('t1'), cs('t2')] }), causes: [],
+    openIssues: [issue(8, mk({ tests: ['t1', 't2'], greenNights: 2 }))], setupFailed: null,
+  });
+  assert.equal(all[0].type, 'close');
+});
+
 test('green issue with 2 greenNights closes', () => {
   const a = plan({
     results: res({ cases: [cs('t1')] }), causes: [],

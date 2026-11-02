@@ -62,8 +62,18 @@ test('self-closing testcase', () => {
 });
 
 test('CDATA containing fake tags is ignored', () => {
-  const xml = '<testcase classname="c" name="n"><failure><![CDATA[</testcase><testcase name="fake"/>]]></failure></testcase>';
+  const xml = '<testsuite><testcase classname="c" name="n"><failure><![CDATA[</testcase><testcase name="fake"/>]]></failure></testcase></testsuite>';
   assert.deepEqual(pairs(parseJUnit(xml)), [['c::n', 'failed']]);
+});
+
+test('truncated or misnested XML is rejected, not read as results', () => {
+  const truncated = '<testsuite><testcase classname="c" name="a"/><testcase classname="c" name="b"><failure>';
+  assert.throws(() => parseJUnit(truncated), /malformed JUnit XML/);
+  const unclosed = '<testsuite><testcase classname="c" name="a"><testcase classname="c" name="b"/></testsuite>';
+  assert.throws(() => parseJUnit(unclosed), /malformed JUnit XML/);
+  const dir = mkdtempSync(join(tmpdir(), 'junit-bad-'));
+  writeFileSync(join(dir, 'r.xml'), truncated);
+  assert.throws(() => readJUnitDir(dir), /malformed JUnit XML/);
 });
 
 test('summarize: dedupe, failed wins, sorted failing', () => {

@@ -1,7 +1,7 @@
 {
   "name": "Nightly Test Failures to Fix",
   "goal": "The root cause in the issue ends with a verified draft PR, or is labelled nightly-flaky / nightly-environment / nightly-needs-human with a reason in the issue.",
-  "instructions": "Each instance handles one nightly-test-failure issue, which describes one root cause of failing tests.\n\n1. Run Test Failure Triage first.\n2. Run Test Failure Fix only if Triage reported the cause fixable: its step finished with success true and it posted a comment headed `## Nightly triage: fixable`. Otherwise (flaky, environment or needs-human) finish: Triage has already labelled the issue and explained why.\n3. If Fix's verify step failed (output verified false, with reasons), run Test Failure Fix once more and give it the verify failure as input. Run Fix at most twice per instance.\n4. Otherwise finish.",
+  "instructions": "Each instance handles one nightly-test-failure issue, which describes one root cause of failing tests.\n\n1. Run Test Failure Triage first.\n2. Run Test Failure Fix only if Triage reported the cause fixable: its step finished with success true and it posted a comment headed `## Nightly triage: fixable`. Otherwise (flaky, environment or needs-human) finish: Triage has already labelled the issue and explained why.\n3. If Fix's verify step failed and pushed nothing (output verified false, with reasons and no branch), run Test Failure Fix once more and give it the verify failure as input. Run Fix at most twice per instance.\n4. Otherwise finish. A verify output with a branch means Fix opened a draft PR, even when verified is false and needsHuman is true; leave that PR for review.",
   "allowedWorkflows": [
     {
       "name": "Test Failure Triage"

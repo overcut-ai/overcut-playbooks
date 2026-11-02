@@ -23,7 +23,8 @@ issue labelled nightly-test-failure
       ├─ flaky / environment / needs-human → finish (Triage labelled the issue nightly-<classification>)
       └─ fixable → [gate: approve-auto-fix] → Test Failure Fix
                        ├─ verified → finish (draft PR opened)
-                       └─ verify failed → [gate] → Test Failure Fix again, with the failure as input → finish
+                       ├─ pushed, needs human → finish (draft PR opened, labelled needs-human-review)
+                       └─ verify rejected, nothing pushed → [gate] → Test Failure Fix again, with the failure as input → finish
 ```
 
 Known limit: the retry gets the verify failure only through the orchestration context (the prior step output); Test Failure Fix has no input of its own for it. Its agents use those reasons when present and otherwise retry like a first attempt. Verify this on a live retry.

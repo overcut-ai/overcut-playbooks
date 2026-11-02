@@ -69,8 +69,8 @@ export function parseMarker(body) {
   return m;
 }
 
-// Provenance: only triage+ users (and the nightly run) can label an issue, so the label shows
-// the marker came through a trusted path. `raw` is the trigger issue's labels as JSON: an array
+// Only triage+ users (and the nightly run) can label an issue. The label proves who labelled it,
+// not who wrote the body. `raw` is the trigger issue's labels as JSON: an array
 // of names or of {name} objects. Anything else is untrusted.
 export function markerTrustedLabels(raw) {
   let a;

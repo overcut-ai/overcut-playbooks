@@ -115,6 +115,15 @@ class SyncScriptsTest(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         self.assertIn("left-pad", r.stdout + r.stderr)
 
+    def test_rejects_aliased_default_or_namespace_lib_imports(self):
+        # Inlining drops the import line, so an alias or a namespace would be undefined.
+        for clause in ("{ a as b }", "a", "* as lib"):
+            self.write_entry(f"import {clause} from '../../scripts/lib/nightly/a.mjs';\n"
+                             "export async function main(env){ b(); }\n")
+            r = self.sync()
+            self.assertEqual(r.returncode, 1, clause)
+            self.assertIn("only plain named imports", r.stderr, clause)
+
     def test_rejects_relative_import_outside_lib(self):
         self.write_entry("import { z } from './other.mjs';\n" + ENTRY)
         r = self.sync()
@@ -127,7 +136,7 @@ class SyncScriptsTest(unittest.TestCase):
                    "export function b(){ return join('x'); }\n")
         self.write(os.path.join(self.lib, "a.mjs"),
                    "import { b } from './b.mjs';\nimport { join, sep } from 'node:path';\n"
-                   "import * as os from 'node:os';\nimport { b as bb } from './b.mjs';\n"
+                   "import * as os from 'node:os';\nimport { b } from './b.mjs';\n"
                    "export function a(){ b(); return [sep, os, fs]; }\n")
         self.assertEqual(self.sync().returncode, 0)
         s = self.script()

@@ -50,6 +50,31 @@ test('sh timeout yields 124', () => {
   assert.equal(r.code, 124);
 });
 
+test('sh timeout kills background children too', async () => {
+  const d = tmp();
+  try {
+    const r = sh(`(sleep 1; touch "${d}/late") & sleep 5`, { timeoutMs: 300 });
+    assert.equal(r.code, 124);
+    await new Promise((ok) => setTimeout(ok, 1500));
+    assert.ok(!existsSync(join(d, 'late')));
+  } finally {
+    rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test('sh leaves background children running after a normal finish', async () => {
+  const d = tmp();
+  try {
+    const r = sh(`(sleep 0.5; touch "${d}/kept") & exit 3 # comment`, {});
+    assert.equal(r.code, 3);
+    assert.equal(r.out, '');
+    await new Promise((ok) => setTimeout(ok, 1500));
+    assert.ok(existsSync(join(d, 'kept')));
+  } finally {
+    rmSync(d, { recursive: true, force: true });
+  }
+});
+
 test('sh keeps only the last 1 MB', () => {
   const r = sh('head -c 2000000 /dev/zero | tr "\\0" x; echo END', {});
   assert.equal(r.out.length, 1048576);

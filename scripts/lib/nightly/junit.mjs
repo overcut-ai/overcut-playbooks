@@ -28,6 +28,10 @@ function junitAttrs(raw) {
 export function parseJUnit(xml) {
   // Drop comments and CDATA (failure bodies) so their text can't look like tags.
   const clean = xml.replace(/<!--[\s\S]*?-->/g, '').replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, '');
+  // A report cut short (e.g. a killed run) must not pass for a complete one.
+  if (!/(<\/testsuites?\s*>|<testsuites?\b[^>]*\/>)\s*$/.test(clean)) {
+    throw new Error('malformed JUnit XML: no closing testsuite tag (truncated?)');
+  }
   const tagRe = /<(\/?)(testcase|failure|error|skipped)\b((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/?)>/g;
   const cases = [];
   let cur = null;
@@ -45,7 +49,7 @@ export function parseJUnit(xml) {
       if (closing) {
         finish();
       } else {
-        finish();
+        if (cur) throw new Error(`malformed JUnit XML: testcase ${cur.name} is not closed`);
         const a = junitAttrs(rawAttrs);
         cur = { name: a.name ?? '', classname: a.classname ?? '', file: a.file || null, status: 'passed' };
         if (selfClose) finish();
@@ -58,7 +62,7 @@ export function parseJUnit(xml) {
       }
     }
   }
-  finish();
+  if (cur) throw new Error(`malformed JUnit XML: testcase ${cur.name} is not closed`);
   return cases;
 }
 

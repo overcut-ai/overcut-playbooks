@@ -72,7 +72,8 @@ export async function main(env, deps = { runSuite, git, outputJson }) {
   const dir = repoDir(env);
   rerunCheckout(deps, dir, marker.sha);
 
-  // Commands come only from the marker: re-run exactly what the nightly run ran.
+  // Commands come only from the marker. With JUnit, re-run `test`: only it writes JUnit XML
+  // (causeCommand need not), and the cause's tests are picked out of that XML.
   const r = deps.runSuite({
     dir,
     setup: marker.setup,

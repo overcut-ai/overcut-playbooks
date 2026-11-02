@@ -91,6 +91,11 @@ class Bundler:
                 if default or ns or named:
                     entry["bare"] = False
             elif spec.startswith("."):
+                default, ns, named = parse_clause(m.group("clause"))
+                if default or ns or any(" as " in n for n in named):
+                    raise BundleError(
+                        f"{path}: '{spec}' must use only plain named imports (inlining drops aliases)"
+                    )
                 target = os.path.realpath(os.path.join(os.path.dirname(path), spec))
                 if os.path.commonpath([target, self.lib_root]) != self.lib_root:
                     raise BundleError(

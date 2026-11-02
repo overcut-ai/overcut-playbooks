@@ -29,7 +29,8 @@ export function redCheck({ unmodifiedCases, overlayCases, causeIds }) {
   const newIds = [...new Set(overlayCases.map((t) => t.id))].filter((id) => !before.has(id)).sort();
   const reasons = [];
   for (const id of [...causeIds].sort()) {
-    if (status.has(id) && status.get(id) !== 'failed') reasons.push(`cause test passes on old code: ${id}`);
+    if (!status.has(id)) reasons.push(`cause test did not run on old code: ${id}`);
+    else if (status.get(id) !== 'failed') reasons.push(`cause test passes on old code: ${id}`);
   }
   for (const id of newIds) {
     if (status.get(id) !== 'failed') reasons.push(`new test passes on old code: ${id}`);

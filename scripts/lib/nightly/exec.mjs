@@ -19,11 +19,15 @@ function execTailOfFd(fd) {
   return buf.subarray(0, off).toString('utf8');
 }
 
+// cmd runs in its own process group; the timeout's SIGTERM kills that whole group,
+// while a normal finish leaves background children (setup daemons) running.
+const GROUP_WRAPPER = 'set -m; bash -c "$1" & p=$!; set +m; trap \'kill -KILL -- -$p 2>/dev/null; exit 143\' TERM; wait $p';
+
 export function sh(cmd, { cwd, env, timeoutMs } = {}) {
   const logPath = join(tmpdir(), `nightly-sh-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.log`);
   const fd = openSync(logPath, 'w+');
   try {
-    const r = spawnSync('bash', ['-c', cmd], {
+    const r = spawnSync('bash', ['-c', GROUP_WRAPPER, 'sh', cmd], {
       cwd,
       env: { ...process.env, ...(env || {}) },
       stdio: ['ignore', fd, fd],

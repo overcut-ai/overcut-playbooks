@@ -42,8 +42,14 @@ test('count reasons', () => {
 });
 
 test('redCheck all failing is ok with exact newIds', () => {
-  const r = redCheck({ unmodifiedCases: [c('a', 'passed')], overlayCases: [c('a', 'failed'), c('n2', 'failed'), c('n1', 'failed')], causeIds: ['a', 'missing'] });
+  const r = redCheck({ unmodifiedCases: [c('a', 'passed')], overlayCases: [c('a', 'failed'), c('n2', 'failed'), c('n1', 'failed')], causeIds: ['a'] });
   assert.deepEqual(r, { ok: true, reasons: [], newIds: ['n1', 'n2'] });
+});
+
+test('redCheck rejects a cause test absent from the old-code run (not shown to fail)', () => {
+  const r = redCheck({ unmodifiedCases: [c('a', 'passed')], overlayCases: [c('a', 'failed'), c('n1', 'failed')], causeIds: ['a', 'missing'] });
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.reasons, ['cause test did not run on old code: missing']);
 });
 
 test('redCheck passing new/cause tests give reasons', () => {

@@ -144,7 +144,7 @@ export function planIssues({ results, causes, openIssues, setupFailed }) {
     if (marker.junit) {
       if (!results.junit) continue;
       if (marker.tests.some((t) => failing.has(t))) green = false;
-      else if (marker.tests.some((t) => passed.has(t))) green = true;
+      else if (marker.tests.every((t) => passed.has(t))) green = true;
       else continue;
     } else {
       green = results.testCode === 0;
