@@ -21,6 +21,10 @@ const CLASSIFY_PROTECTED_BASENAMES = [
   'pom.xml', 'build.gradle*', 'settings.gradle*', 'gradle.lockfile', '*.csproj', 'packages.lock.json',
   'Gemfile*', 'composer.json', 'composer.lock', 'mix.exs', 'mix.lock', 'Package.swift',
   'Package.resolved', 'pubspec.*',
+  'setup.cfg', 'CMakeLists.txt', 'Makefile', 'makefile', 'GNUmakefile', 'build.sbt', '*.fsproj',
+  '*.vbproj', 'Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props', '.rspec',
+  'noxfile.py', 'vitest.workspace.*', 'jest.setup.*', 'tsconfig*.json', 'deno.json', 'deno.jsonc',
+  'Rakefile', '.nycrc*', 'babel.config.*', '.babelrc*',
 ].map((g) => new RegExp('^' + g.split('*').map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$', 's'));
 
 function classifyBasename(path) {

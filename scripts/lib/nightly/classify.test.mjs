@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -20,6 +20,13 @@ test('isTestFile negatives and junit', () => {
   assert.equal(isTestFile('Test/a.py'), false);
   assert.equal(isTestFile('src/odd.py'), false);
   assert.equal(isTestFile('src/odd.py', new Set(['src/odd.py'])), true);
+});
+test('isProtectedFile extended list', () => {
+  for (const p of ['setup.cfg', 'a/CMakeLists.txt', 'Makefile', 'GNUmakefile', 'build.sbt', 'x/A.fsproj',
+    'Directory.Build.props', '.rspec', 'noxfile.py', 'vitest.workspace.ts', 'jest.setup.js',
+    'tsconfig.build.json', 'deno.jsonc', 'Rakefile', '.nycrc.json', 'babel.config.js', '.babelrc']) {
+    assert.equal(isProtectedFile(p), true, p);
+  }
 });
 test('isProtectedFile', () => {
   for (const p of ['.github/workflows/ci.yml', '.circleci/config.yml', 'Jenkinsfile', 'pkg/a/package.json',
@@ -59,30 +66,35 @@ test('parseNameStatus malformed throws', () => {
 });
 test('parseNameStatus matches real git output', () => {
   const dir = mkdtempSync(join(tmpdir(), 'cls-'));
-  const git = (...a) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd: dir }).toString();
-  git('init', '-q');
-  mkdirSync(join(dir, 'd e'));
-  const names = ['d e/sp ace.py', 'ünï.py', 'q"uote.py', 'keep.txt', 'ren ame.py'];
-  for (const n of names) writeFileSync(join(dir, n), `content of ${n}\nline2\nline3\n`);
-  git('add', '-A'); git('commit', '-q', '-m', 'one');
-  writeFileSync(join(dir, 'd e/sp ace.py'), 'changed\n');
-  writeFileSync(join(dir, 'ünï.py'), 'x\n');
-  git('mv', 'ren ame.py', 'rén"amed.py');
-  git('rm', '-q', 'q"uote.py');
-  git('add', '-A');
-  const ns = parseNameStatus(git('diff', '--cached', '--name-status', '-M', '-z'));
-  const by = Object.fromEntries(ns.map((e) => [e.path, e]));
-  assert.equal(by['d e/sp ace.py'].status, 'M');
-  assert.equal(by['ünï.py'].status, 'M');
-  assert.equal(by['q"uote.py'].status, 'D');
-  assert.equal(by['rén"amed.py'].status, 'R');
-  assert.equal(by['rén"amed.py'].oldPath, 'ren ame.py');
-  const nu = parseNumstat(git('diff', '--cached', '--numstat', '-M', '-z'));
-  const nby = Object.fromEntries(nu.map((e) => [e.path, e]));
-  assert.equal(nby['rén"amed.py'].added, 0);
-  assert.equal(nby['d e/sp ace.py'].added, 1);
-  assert.equal(nby['q"uote.py'].deleted, 3);
+  try {
+    const git = (...a) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd: dir }).toString();
+    git('init', '-q');
+    mkdirSync(join(dir, 'd e'));
+    const names = ['d e/sp ace.py', 'ünï.py', 'q"uote.py', 'keep.txt', 'ren ame.py'];
+    for (const n of names) writeFileSync(join(dir, n), `content of ${n}\nline2\nline3\n`);
+    git('add', '-A'); git('commit', '-q', '-m', 'one');
+    writeFileSync(join(dir, 'd e/sp ace.py'), 'changed\n');
+    writeFileSync(join(dir, 'ünï.py'), 'x\n');
+    git('mv', 'ren ame.py', 'rén"amed.py');
+    git('rm', '-q', 'q"uote.py');
+    git('add', '-A');
+    const ns = parseNameStatus(git('diff', '--cached', '--name-status', '-M', '-z'));
+    const by = Object.fromEntries(ns.map((e) => [e.path, e]));
+    assert.equal(by['d e/sp ace.py'].status, 'M');
+    assert.equal(by['ünï.py'].status, 'M');
+    assert.equal(by['q"uote.py'].status, 'D');
+    assert.equal(by['rén"amed.py'].status, 'R');
+    assert.equal(by['rén"amed.py'].oldPath, 'ren ame.py');
+    const nu = parseNumstat(git('diff', '--cached', '--numstat', '-M', '-z'));
+    const nby = Object.fromEntries(nu.map((e) => [e.path, e]));
+    assert.equal(nby['rén"amed.py'].added, 0);
+    assert.equal(nby['d e/sp ace.py'].added, 1);
+    assert.equal(nby['q"uote.py'].deleted, 3);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
+
 test('parseNumstat', () => {
   const out = '3\t1\ta b.py\0-\t-\timg.png\x002\t0\t\0old.py\0new.py\0';
   assert.deepEqual(parseNumstat(out), [
