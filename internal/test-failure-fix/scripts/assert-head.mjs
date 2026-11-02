@@ -1,4 +1,4 @@
-import { git, repoDir, outputJson } from '../../scripts/lib/nightly/exec.mjs';
+import { git, repoDir, outputJson } from '../../../scripts/lib/nightly/exec.mjs';
 
 // The URL may embed a token: keep it out of every message.
 function assertHeadRedact(msg, url) {

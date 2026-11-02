@@ -49,6 +49,22 @@ class SyncScriptsTest(unittest.TestCase):
         self.assertNotIn("export ", s)
         self.assertTrue(s.endswith("await main(process.env);\nNIGHTLY_JS_EOF"))
 
+    def test_bundles_a_playbook_nested_one_level_deeper(self):
+        # internal/<playbook>/ (not yet in the customer catalog) imports from ../../../scripts/lib.
+        pb = os.path.join(self.root, "internal", "pb2")
+        os.makedirs(os.path.join(pb, "scripts"))
+        self.write(os.path.join(pb, "scripts", "run.mjs"),
+                   "import { a } from '../../../scripts/lib/nightly/a.mjs';\n"
+                   "export async function main(env){ a(); }\n")
+        wf = {"_formatVersion": "1.0.0", "workflow": {"name": "t", "definition": {
+            "steps": [{"id": "run", "action": "script.run", "params": {"script": "old"}}]}}}
+        self.write(os.path.join(pb, "workflow.json"), json.dumps(wf))
+        r = subprocess.run([sys.executable, SCRIPT, pb], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        with open(os.path.join(pb, "workflow.json")) as f:
+            s = json.load(f)["workflow"]["definition"]["steps"][0]["params"]["script"]
+        self.assertEqual(s.count("function a(){}"), 1)
+
     def test_check_detects_drift(self):
         self.assertEqual(self.sync("--check").returncode, 1)
         self.assertEqual(self.sync().returncode, 0)

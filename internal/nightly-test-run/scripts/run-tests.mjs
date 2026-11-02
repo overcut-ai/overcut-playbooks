@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { runSuite, git, repoDir, outputJson } from '../../scripts/lib/nightly/exec.mjs';
-import { summarize } from '../../scripts/lib/nightly/junit.mjs';
+import { runSuite, git, repoDir, outputJson } from '../../../scripts/lib/nightly/exec.mjs';
+import { summarize } from '../../../scripts/lib/nightly/junit.mjs';
 
 // Per command (setup, then test). Two of these stay under the step's 7200 s limit.
 const RUN_TESTS_TIMEOUT_MS = 55 * 60 * 1000;

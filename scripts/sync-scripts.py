@@ -146,6 +146,20 @@ def build_script(entry_path, lib_root):
     return b.render()
 
 
+def find_lib_root(playbook_dir):
+    """scripts/lib/nightly in the nearest ancestor of the playbook (a top-level playbook's
+    parent, or the repo root for one under internal/)."""
+    d = os.path.dirname(os.path.abspath(playbook_dir))
+    while True:
+        lib = os.path.join(d, "scripts", "lib", "nightly")
+        if os.path.isdir(lib):
+            return lib
+        parent = os.path.dirname(d)
+        if parent == d:
+            raise BundleError(f"no scripts/lib/nightly above {playbook_dir}")
+        d = parent
+
+
 def sync_scripts(playbook_dir, check):
     workflow_path = os.path.join(playbook_dir, "workflow.json")
     if not os.path.isfile(workflow_path):
@@ -153,7 +167,7 @@ def sync_scripts(playbook_dir, check):
     with open(workflow_path) as f:
         workflow = json.load(f)
     steps = {s["id"]: s for s in workflow["workflow"]["definition"]["steps"]}
-    lib_root = os.path.join(playbook_dir, "..", "scripts", "lib", "nightly")
+    lib_root = find_lib_root(playbook_dir)
 
     entries = sorted(
         e for e in glob.glob(os.path.join(playbook_dir, "scripts", "*.mjs"))

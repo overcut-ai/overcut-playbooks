@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { git } from '../../scripts/lib/nightly/exec.mjs';
+import { git } from '../../../scripts/lib/nightly/exec.mjs';
 import { makeRepo, issueBody, tgit } from './fixtures/repo.mjs';
 import { main } from './precheck.mjs';
 

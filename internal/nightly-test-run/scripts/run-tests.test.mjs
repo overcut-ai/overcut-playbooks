@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runSuite } from '../../scripts/lib/nightly/exec.mjs';
+import { runSuite } from '../../../scripts/lib/nightly/exec.mjs';
 import { main } from './run-tests.mjs';
 
 const SHA = 'a'.repeat(40);

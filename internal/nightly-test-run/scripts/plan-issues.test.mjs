@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseMarker, formatMarker } from '../../scripts/lib/nightly/marker.mjs';
+import { parseMarker, formatMarker } from '../../../scripts/lib/nightly/marker.mjs';
 import { main } from './plan-issues.mjs';
 
 const SHA = 'b'.repeat(40);

@@ -122,4 +122,4 @@ Known limits:
 
 - [Nightly Test Run](../nightly-test-run/) — Files the issues and writes the baseline marker
 - [Test Failure Triage](../test-failure-triage/) — Classifies each cause and writes the fix brief
-- [Fix CI](../fix-ci/) — Fix CI failures on pull request branches
+- [Fix CI](../../fix-ci/) — Fix CI failures on pull request branches

@@ -1,13 +1,13 @@
 import { rmSync, realpathSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, posix } from 'node:path';
-import { runSuite, git, sh, repoDir, outputJson } from '../../scripts/lib/nightly/exec.mjs';
-import { statusById, summarize } from '../../scripts/lib/nightly/junit.mjs';
-import { parseMarker } from '../../scripts/lib/nightly/marker.mjs';
+import { runSuite, git, sh, repoDir, outputJson } from '../../../scripts/lib/nightly/exec.mjs';
+import { statusById, summarize } from '../../../scripts/lib/nightly/junit.mjs';
+import { parseMarker } from '../../../scripts/lib/nightly/marker.mjs';
 import {
   COMPILED_EXTENSIONS, INTERPRETED_EXTENSIONS, isTestFile, isProtectedFile, languageMode, parseNameStatus, parseNumstat,
-} from '../../scripts/lib/nightly/classify.mjs';
-import { diffRules } from '../../scripts/lib/nightly/diff-rules.mjs';
-import { compareResults, redCheck } from '../../scripts/lib/nightly/compare.mjs';
+} from '../../../scripts/lib/nightly/classify.mjs';
+import { diffRules } from '../../../scripts/lib/nightly/diff-rules.mjs';
+import { compareResults, redCheck } from '../../../scripts/lib/nightly/compare.mjs';
 
 // Total wall-clock budget, inside the step's 245 min limit. Each command (setup or test)
 // gets the baseline's 55 min limit, or what is left of the budget if that is less.

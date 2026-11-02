@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { git, runSuite, sh } from '../../scripts/lib/nightly/exec.mjs';
+import { git, runSuite, sh } from '../../../scripts/lib/nightly/exec.mjs';
 import { makeRepo, issueBody, installHooks, tgit } from './fixtures/repo.mjs';
 import { main, verifyRelPath, verifyCommandPaths, verifyPublicUrl } from './verify.mjs';
 import { main as assertHead } from './assert-head.mjs';

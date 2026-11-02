@@ -73,5 +73,5 @@ Exits 0 for every test outcome, so the agent always classifies.
 ## 🔗 Related Workflows
 
 - [Nightly Test Run](../nightly-test-run/) — Files the issues this workflow triages
-- [Fix CI](../fix-ci/) — Fix CI failures on pull request branches
-- [Auto Root Cause Analysis](../auto-root-cause-analysis/) — Deep-dive RCA for bug issues
+- [Fix CI](../../fix-ci/) — Fix CI failures on pull request branches
+- [Auto Root Cause Analysis](../../auto-root-cause-analysis/) — Deep-dive RCA for bug issues

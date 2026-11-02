@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { planIssues } from '../../scripts/lib/nightly/dedupe.mjs';
-import { outputJson } from '../../scripts/lib/nightly/exec.mjs';
+import { planIssues } from '../../../scripts/lib/nightly/dedupe.mjs';
+import { outputJson } from '../../../scripts/lib/nightly/exec.mjs';
 
 // GitHub caps issue bodies at 65536 characters; keep the setup log's tail well under it.
 const PLAN_SETUP_LOG_MAX = 20000;

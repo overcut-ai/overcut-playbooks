@@ -7,10 +7,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { planIssues } from './dedupe.mjs';
 import { parseMarker, formatMarker } from './marker.mjs';
-import { planOpenIssues } from '../../../nightly-test-run/scripts/plan-issues.mjs';
-import { main as rerun } from '../../../test-failure-triage/scripts/rerun.mjs';
-import { main as precheck } from '../../../test-failure-fix/scripts/precheck.mjs';
-import { verifyCommands } from '../../../test-failure-fix/scripts/verify.mjs';
+import { planOpenIssues } from '../../../internal/nightly-test-run/scripts/plan-issues.mjs';
+import { main as rerun } from '../../../internal/test-failure-triage/scripts/rerun.mjs';
+import { main as precheck } from '../../../internal/test-failure-fix/scripts/precheck.mjs';
+import { verifyCommands } from '../../../internal/test-failure-fix/scripts/verify.mjs';
 
 const SHA = 'd'.repeat(40);
 const LABELS = JSON.stringify([{ name: 'nightly-test-failure' }]);

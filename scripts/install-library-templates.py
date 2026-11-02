@@ -5,7 +5,8 @@ Overcut workspace Library, so they appear under Library -> Workflow templates
 and Library -> Orchestration templates.
 
 What it writes (upsert by exact name in the workspace's library project, then commit):
-  - the workflows of nightly-test-run/, test-failure-triage/ and test-failure-fix/
+  - the workflows of internal/nightly-test-run/, internal/test-failure-triage/ and
+    internal/test-failure-fix/
     (workflow.definition from each workflow.json, with the agent placeholder
     "senior-developer-agent-id" replaced by --agent-id)
   - the orchestration in orchestrations/nightly-test-failures-to-fix/orchestration.json
@@ -36,7 +37,8 @@ import urllib.error
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PLAYBOOKS = ["nightly-test-run", "test-failure-triage", "test-failure-fix"]
+# Under internal/: hidden from the customer catalog until released (moved to the repo root).
+PLAYBOOKS = ["internal/nightly-test-run", "internal/test-failure-triage", "internal/test-failure-fix"]
 ORCHESTRATION_TEMPLATE = os.path.join(ROOT, "orchestrations", "nightly-test-failures-to-fix", "orchestration.json")
 AGENT_PLACEHOLDER = "senior-developer-agent-id"
 TOKEN_ENV = "OVERCUT_API_TOKEN"

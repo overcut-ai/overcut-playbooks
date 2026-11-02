@@ -1,8 +1,8 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { runSuite, git, repoDir, outputJson } from '../../scripts/lib/nightly/exec.mjs';
-import { statusById, summarize } from '../../scripts/lib/nightly/junit.mjs';
-import { parseMarker, markerTrustedLabels } from '../../scripts/lib/nightly/marker.mjs';
+import { runSuite, git, repoDir, outputJson } from '../../../scripts/lib/nightly/exec.mjs';
+import { statusById, summarize } from '../../../scripts/lib/nightly/junit.mjs';
+import { parseMarker, markerTrustedLabels } from '../../../scripts/lib/nightly/marker.mjs';
 
 // Per command (setup, then test), as in the nightly run. Two stay under the step's 7200 s limit.
 const RERUN_TIMEOUT_MS = 55 * 60 * 1000;

@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { formatMarker } from '../../../scripts/lib/nightly/marker.mjs';
+import { formatMarker } from '../../../../scripts/lib/nightly/marker.mjs';
 
 // Test files declare cases as lines `# CASE <name> <target file> <needle>` (or `// CASE ...`):
 // a case passes when <target file> contains <needle>. `CASE-FLAKY <name>` fails on the first

@@ -108,6 +108,6 @@ Each issue body ends with a hidden marker line, `<!-- nightly-test-failure {...}
 
 ## 🔗 Related Workflows
 
-- [Fix CI](../fix-ci/) — Fix CI failures on pull request branches
-- [Auto Root Cause Analysis](../auto-root-cause-analysis/) — Deep-dive RCA for bug issues
-- [Test Coverage Gap Analysis](../test-coverage-gap-analysis/) — Find untested code
+- [Fix CI](../../fix-ci/) — Fix CI failures on pull request branches
+- [Auto Root Cause Analysis](../../auto-root-cause-analysis/) — Deep-dive RCA for bug issues
+- [Test Coverage Gap Analysis](../../test-coverage-gap-analysis/) — Find untested code

@@ -4,6 +4,8 @@ Status: design, awaiting approval · Author: Eyal Golan · 2026-11-02
 All code references verified against `overcut-ai/overcut` `next` at `955fad946`
 (2026-11-01) unless marked "doc only".
 
+**Release gate (Eyal, 2026-11-02):** internal first. The three playbooks live under `internal/` (paths below that say `nightly-test-run/`, `test-failure-triage/`, `test-failure-fix/` now mean `internal/<name>/`). Overcut lists `internal/` playbooks only for workspaces in the server setting `INTERNAL_PLAYBOOKS_WORKSPACE_IDS` (overcut-ai/overcut PR "internal playbooks"); every other workspace, self-hosted included, does not see them. Releasing to customers = moving the three folders to the repo root.
+
 ## Intent
 
 Overcut customers should be able to pick, from the product, a ready-made loop that runs

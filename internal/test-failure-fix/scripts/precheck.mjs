@@ -1,5 +1,5 @@
-import { git, repoDir, outputJson } from '../../scripts/lib/nightly/exec.mjs';
-import { parseMarker, markerTrustedLabels } from '../../scripts/lib/nightly/marker.mjs';
+import { git, repoDir, outputJson } from '../../../scripts/lib/nightly/exec.mjs';
+import { parseMarker, markerTrustedLabels } from '../../../scripts/lib/nightly/marker.mjs';
 
 const PRECHECK_MAX_OPEN = 3;
 const PRECHECK_PREFIX = 'refs/heads/nightly-fix/';
