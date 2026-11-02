@@ -102,7 +102,7 @@ Each issue body ends with a hidden marker line, `<!-- nightly-test-failure {...}
 - **Commands** — Pin `nightly_setup_command` / `nightly_test_command` (per workspace or per repository) instead of editing prompts.
 - **Discovery hints** — Edit `discover-commands.md` to add your stack's conventions or reporter flags.
 - **Grouping style** — Edit `group-failures.md` to change how finely failures are split into causes or how titles and summaries read.
-- **Time limits** — Each of setup and test may take up to 55 minutes (`RUN_TESTS_TIMEOUT_MS` in `scripts/run-tests.mjs`; run `python3 scripts/sync-scripts.py nightly-test-run` after editing) within the step's 7200-second limit.
+- **Time limits** — Each of setup and test may take up to 55 minutes (`RUN_TESTS_TIMEOUT_MS` in `scripts/run-tests.mjs`; run `python3 scripts/sync-scripts.py internal/nightly-test-run` after editing) within the step's 7200-second limit.
 - **Execution engine** — Agent steps run on the Overcut engine. If your workspace model only supports the Claude engine (e.g. a Claude subscription token), switch "Execution engine" to Claude on each agent step.
 - **Do not edit** the `script` fields in `workflow.json` by hand; they are generated from `scripts/*.mjs` and the shared `scripts/lib/nightly/` library.
 

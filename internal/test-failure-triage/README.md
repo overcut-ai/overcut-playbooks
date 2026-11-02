@@ -66,7 +66,7 @@ Exits 0 for every test outcome, so the agent always classifies.
 
 - **Classification rules and comment format** — Edit `classify-failure.md`. Keep the `## Nightly triage: <classification>` heading and the `success` rule if an orchestration or fix workflow depends on them.
 - **Label names** — Change them in `classify-failure.md` (and in any orchestration that filters on them).
-- **Time limits** — Each of setup and test may take up to 55 minutes (`RERUN_TIMEOUT_MS` in `scripts/rerun.mjs`; run `python3 scripts/sync-scripts.py test-failure-triage` after editing) within the step's 7200-second limit.
+- **Time limits** — Each of setup and test may take up to 55 minutes (`RERUN_TIMEOUT_MS` in `scripts/rerun.mjs`; run `python3 scripts/sync-scripts.py internal/test-failure-triage` after editing) within the step's 7200-second limit.
 - **Execution engine** — Agent steps run on the Overcut engine. If your workspace model only supports the Claude engine (e.g. a Claude subscription token), switch "Execution engine" to Claude on each agent step.
 - **Do not edit** the `script` field in `workflow.json` by hand; it is generated from `scripts/rerun.mjs` and the shared `scripts/lib/nightly/` library.
 

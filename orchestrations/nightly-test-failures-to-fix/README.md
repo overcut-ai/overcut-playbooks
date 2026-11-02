@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-An Overcut **orchestration template** that takes one `nightly-test-failure` issue (one root cause of failing tests, filed by the [Nightly Test Run](../../nightly-test-run/)) from triage to a verified draft PR. It runs [Test Failure Triage](../../test-failure-triage/) first, runs [Test Failure Fix](../../test-failure-fix/) only when Triage classified the cause fixable, and retries Fix once when its verify step rejects the fix. Each issue ends with a verified draft PR, or labelled `nightly-flaky`, `nightly-environment` or `nightly-needs-human` with the reason in the issue.
+An Overcut **orchestration template** that takes one `nightly-test-failure` issue (one root cause of failing tests, filed by the [Nightly Test Run](../../internal/nightly-test-run/)) from triage to a verified draft PR. It runs [Test Failure Triage](../../internal/test-failure-triage/) first, runs [Test Failure Fix](../../internal/test-failure-fix/) only when Triage classified the cause fixable, and retries Fix once when its verify step rejects the fix. Each issue ends with a verified draft PR, or labelled `nightly-flaky`, `nightly-environment` or `nightly-needs-human` with the reason in the issue.
 
 This folder is not a playbook: it has no `workflow.json`, so the playbook catalog skips it. It ships through the workspace **Library** (Library → Orchestration templates).
 
@@ -87,6 +87,6 @@ In your project, open Library → Orchestration templates → **Nightly Test Fai
 
 ## 🔗 Related Workflows
 
-- [Nightly Test Run](../../nightly-test-run/) — files the `nightly-test-failure` issues.
-- [Test Failure Triage](../../test-failure-triage/) — confirms and classifies one cause.
-- [Test Failure Fix](../../test-failure-fix/) — fixes, verifies and opens the draft PR.
+- [Nightly Test Run](../../internal/nightly-test-run/) — files the `nightly-test-failure` issues.
+- [Test Failure Triage](../../internal/test-failure-triage/) — confirms and classifies one cause.
+- [Test Failure Fix](../../internal/test-failure-fix/) — fixes, verifies and opens the draft PR.

@@ -1,5 +1,7 @@
 # Nightly Test Failures Implementation Plan
 
+> Since written, the three playbooks moved under `internal/` (internal-first release, see the design doc): paths below such as `nightly-test-run/` now mean `internal/nightly-test-run/`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Three catalog playbooks (Nightly Test Run, Test Failure Triage, Test Failure Fix), one orchestration template, and an installer that writes them into a workspace library, proven live on local Overcut.
