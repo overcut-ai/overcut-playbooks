@@ -1,0 +1,137 @@
+{
+  "_formatVersion": "1.0.0",
+  "workflow": {
+    "name": "E2E Tests",
+    "description": "Runs Overcut's live E2E suite against staging (next) or production (main), nightly and on demand, and posts the results to Slack with a Test results page.",
+    "definition": {
+      "name": "E2E Tests",
+      "version": "1.0.0",
+      "priority": 3,
+      "timeoutMs": 5400000,
+      "allowTaskOutcome": true,
+      "triggers": [
+        {
+          "event": "scheduled",
+          "schedule": {
+            "cronExpression": "0 0 * * *"
+          }
+        },
+        {
+          "event": "manual",
+          "slashCommand": {
+            "command": "sanity",
+            "requireMention": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "clone",
+          "name": "Clone sanity suite",
+          "action": "git.clone",
+          "params": {
+            "repoFullName": "{{params.sanity_suite_repo}}",
+            "branch": "{{params.sanity_suite_ref}}"
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 10
+        },
+        {
+          "id": "run",
+          "name": "Run sanity",
+          "action": "script.run",
+          "params": {
+            "script": "bash -c 'set -euo pipefail\nM=(\"${AGENT_WORKSPACE_PATH:?}\"/*/.e2e-harness)\n[ ${#M[@]} -eq 1 ] && [ -e \"${M[0]}\" ] || { echo \"harness marker: ${#M[@]} matches\" >&2; exit 1; }\nH=\"${M[0]%/*}\"\ncd \"$H\"\n[ -d node_modules ] || npm ci --no-audit --no-fund\nnpx tsx src/sandbox/sanity-run.ts\n' || echo \"sanity-run: setup failed before the run\" >&2\n# sanity-run.ts always writes its output; if setup failed first, still hand notify and report a red text and page.\n[ -s \"${OC_OUTPUT_FILE:?}\" ] || node -e 'const b = process.env.OC_PARAM_SANITY_TARGET_BRANCH || \"(no branch)\";\nconst u = process.env.RUN_URL ? `<${process.env.RUN_URL}|Test results and logs>` : \"Test results: (no run link)\";\nrequire(\"fs\").writeFileSync(process.env.OC_OUTPUT_FILE, JSON.stringify({ verdict: \"red\", text: `:red_circle: *Overcut sanity \u2014 ${b}: red*\\nNo tests ran: setup failed before sanity-run (harness marker or npm ci)\\n:page_facing_up: ${u}`, reason: \"setup failed before sanity-run (harness marker or npm ci)\", env: \"\", report: `### Overcut sanity \u2014 ${b}: red\\n\\nNo tests ran: setup failed before sanity-run (harness marker or npm ci).\\n` }));'\nexit 0\n",
+            "timeoutSeconds": 3600,
+            "env": {
+              "RUN_URL": "{{meta.uiRunUrl}}",
+              "SANITY_TARGET_BRANCH": "{{params.sanity_target_branch}}",
+              "SANITY_ENV_OVERRIDE": "{{params.sanity_env_override}}",
+              "E2E_LIVE_UI_URL": "{{params.sanity_ui_url}}"
+            }
+          },
+          "instruction": null,
+          "stepMaxDurationMinutes": 65
+        },
+        {
+          "id": "notify",
+          "name": "Post to Slack",
+          "action": "agent.run",
+          "params": {
+            "agentId": "senior-developer-agent-id",
+            "agentEngine": "overcut"
+          },
+          "instruction": "Post one Slack message. This step only delivers a message that was already decided; do not investigate, summarise or change anything.\n\nCall the `post_channel_message` tool exactly once, with:\n\n- `channelId`: the channel ID given below;\n- `threadId`: `null` (post at the channel root, not in a thread);\n- `text`: the text given below, verbatim \u2014 every character between the BEGIN and END lines, with nothing added, removed, reworded, reformatted or wrapped in quotes or code. It spans several lines and contains Slack markup such as `*bold*`, `<url|label>` links and escapes like `&lt;` and `&amp;`: keep all of it exactly as given, including the line breaks.\n\nDo not post anything else, and do not call `post_channel_message` a second time, even to retry or correct.\n\nThen end the step with `task_completed`:\n\n- the post succeeded: call `task_completed` with `success: true`;\n- the channel ID or the text is empty (do not post), or the post failed: call `task_completed` with `success: false` and a one-line reason (e.g. the tool's error).\n\nDo not set `quitWorkflow`, and do not raise an error or stop the run in any other way: the workflow must continue to the next step whatever happens here.\nchannelId: `{{params.sanity_slack_channel_id}}`\ntext (between the BEGIN and END lines):\nBEGIN\n{{{outputs.run.output.text}}}\nEND",
+          "stepMaxDurationMinutes": 5
+        },
+        {
+          "id": "report",
+          "name": "Test results",
+          "action": "agent.run",
+          "params": {
+            "agentId": "senior-developer-agent-id",
+            "agentEngine": "overcut"
+          },
+          "instruction": "Show the test results page. This step only displays a page that was already built; do not investigate, run, summarise, check or change anything, and do not call any tool except `task_completed`.\n\nReply with one message whose text is the page given below, verbatim \u2014 every character between the BEGIN and END lines, as Markdown: nothing added before or after it, nothing removed, reworded or reformatted, and not wrapped in quotes or in a code block. The page's links and table must stay exactly as given.\n\nThen end the step with `task_completed`:\n\n- the page below is not empty: call `task_completed` with `success: true`;\n- the page below is empty: reply `No test results page was produced.` instead, and call `task_completed` with `success: false` and that same line as the reason.\n\nDo not set `quitWorkflow`, and do not raise an error or stop the run in any other way: the workflow must continue to the next step whatever happens here.\npage (between the BEGIN and END lines):\nBEGIN\n{{{outputs.run.output.report}}}\nEND",
+          "stepMaxDurationMinutes": 5
+        }
+      ],
+      "flow": [
+        {
+          "from": "",
+          "to": "clone",
+          "condition": null
+        },
+        {
+          "from": "clone",
+          "to": "run",
+          "condition": null
+        },
+        {
+          "from": "run",
+          "to": "notify",
+          "condition": null
+        },
+        {
+          "from": "notify",
+          "to": "report",
+          "condition": null
+        }
+      ]
+    }
+  },
+  "refs": {
+    "agents": [
+      {
+        "id": "senior-developer-agent-id",
+        "name": "Senior Developer"
+      }
+    ],
+    "contextParameters": [
+      {
+        "key": "sanity_target_branch",
+        "description": "overcut branch this copy tests: next (staging) or main (production)."
+      },
+      {
+        "key": "sanity_slack_channel_id",
+        "description": "Slack channel ID (C...) for the results; registered to the project."
+      },
+      {
+        "key": "sanity_suite_repo",
+        "description": "Repository of the E2E suite: overcut-ai/overcut-e2e-tests."
+      },
+      {
+        "key": "sanity_suite_ref",
+        "description": "Branch of the E2E suite to run."
+      },
+      {
+        "key": "sanity_ui_url",
+        "description": "Overcut UI base URL for links to each test's run (optional)."
+      },
+      {
+        "key": "sanity_env_override",
+        "description": "Leave empty; set only to run against a stand-in environment such as local."
+      }
+    ]
+  }
+}

@@ -81,10 +81,7 @@ Use AI to help you:
 
 Playbooks under [`internal/`](./internal/) are hidden from the Overcut catalog for every workspace except those in the server's `INTERNAL_PLAYBOOKS_WORKSPACE_IDS`. Releasing one to customers = moving its folder to the repo root.
 
-- [Nightly Test Run](./internal/nightly-test-run/) - Runs the repository's test suite every night and files one GitHub issue per root cause of failing tests, deduplicated against open issues.
-- [Test Failure Triage](./internal/test-failure-triage/) - Re-runs the failing tests of one nightly-test-failure issue at the tested commit, classifies the cause as fixable, flaky, environment or needs-human, and posts a fix brief or labels the issue.
-- [Test Failure Fix](./internal/test-failure-fix/) - Fixes one fixable nightly-test-failure root cause, verifies the fix deterministically against the nightly baseline (including checks for test weakening), and opens a draft PR only when it passes.
-- [Nightly Test Failures to Fix](./orchestrations/nightly-test-failures-to-fix/) (orchestration template) - Routes each nightly-test-failure issue through Triage and, after approval, Fix, with one retry when verify rejects the fix. Installed into a workspace Library with `scripts/install-library-templates.py`.
+- [E2E Tests](./internal/e2e-tests/) - Runs Overcut's live E2E suite against staging (`next`) or production (`main`), nightly and on demand, and posts the results to Slack with a Test results page.
 
 ## 🎨 Customization Guide
 
