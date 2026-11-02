@@ -65,9 +65,6 @@ Use AI to help you:
 - [Implement Documentation from Issue](./implement-docs-from-issue/) - Automatically implements documentation updates based on issues, analyzing product PRs and creating documentation pull requests following existing standards and structure.
 - [Test Coverage Gap Analysis](./test-coverage-gap-analysis/) - Identifies test coverage gaps using targeted search strategies, validates against existing issues, and creates actionable issues for uncovered critical paths.
 
-### Testing
-
-
 ### Security
 
 - [Remediate CVEs](./remediate-cves/) - Analyzes CVEs with context-aware risk assessment, evaluates multiple remediation strategies with trade-offs, and creates comprehensive implementation plans that automatically trigger PR creation.
