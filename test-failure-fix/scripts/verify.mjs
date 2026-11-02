@@ -334,7 +334,9 @@ function verifyRun(env, deps) {
     reasons.push(...old.reasons);
     checks.push(`language mode: interpreted — ${old.check}`);
   } else {
-    checks.push(`language mode: compiled — old-code run skipped (${modePaths.length ? modePaths.join(', ') : 'no test source files'})`);
+    checks.push(modePaths.length
+      ? `language mode: compiled — old-code run skipped (${modePaths.join(', ')})`
+      : 'language mode: not determined (no test source files involved) — old-code run not needed; failure on the old code is the nightly baseline');
   }
 
   // 7. Results on the fix commit.

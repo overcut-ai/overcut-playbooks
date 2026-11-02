@@ -191,6 +191,18 @@ test('compiled (.go): correct fix -> verified; no worktree and no old-code run',
     assert.deepEqual(t.worktreeCalls(), []);
     assert.equal(t.calls.suite.length, 1);
     assert.ok(out.checks.some((c) => /language mode: compiled/.test(c)));
+    assert.ok(out.checks.some((c) => c.startsWith('language mode: compiled — old-code run skipped (') && c.includes('calc_test.go')), out.checks.join('\n'));
+  } finally { t.cleanup(); }
+});
+
+test('no test source files involved: language-mode line says "not determined", not "compiled"', async () => {
+  const t = setup(PY);
+  try {
+    t.commit({ ...PY_FIX });
+    await main(t.env({ OC_PARAM_NIGHTLY_TEST_COMMAND: `FAKE_FILE_STYLE=none ${t.test}` }), t.deps);
+    const out = t.calls.out.at(-1);
+    assert.ok(out.checks.includes('language mode: not determined (no test source files involved) — old-code run not needed; failure on the old code is the nightly baseline'), out.checks.join('\n'));
+    assert.ok(!out.checks.some((c) => /language mode: compiled/.test(c)));
   } finally { t.cleanup(); }
 });
 
