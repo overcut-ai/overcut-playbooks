@@ -2,9 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { git, runSuite } from '../../scripts/lib/nightly/exec.mjs';
+import { git, runSuite, sh } from '../../scripts/lib/nightly/exec.mjs';
 import { makeRepo, issueBody, installHooks, tgit } from './fixtures/repo.mjs';
-import { main, verifyRelPath } from './verify.mjs';
+import { main, verifyRelPath, verifyCommandPaths } from './verify.mjs';
+import { main as assertHead } from './assert-head.mjs';
 
 const CAUSE = 'tests.test_calc::test_add';
 const PY = {
@@ -28,10 +29,12 @@ function setup(files, markerOver = {}, { cause = CAUSE, total = 3 } = {}) {
     sha: r.base, junit: true, tests: [cause], allFailing: [cause], total, skipped: 0,
     setup: '', test: r.test, causeCommand: r.test, greenNights: 0, ...markerOver,
   };
-  const calls = { git: [], suite: [], out: [] };
+  const calls = { git: [], suite: [], sh: [], out: [], events: [] };
   const deps = {
-    git: (args, cwd) => { calls.git.push({ args, cwd }); return git(args, cwd); },
-    runSuite: (a) => { calls.suite.push(a); return runSuite(a); },
+    git: (args, cwd) => { calls.git.push({ args, cwd }); calls.events.push(`git ${args.join(' ')}`); return git(args, cwd); },
+    runSuite: (a) => { calls.suite.push(a); calls.events.push('suite'); return runSuite(a); },
+    sh: (cmd, o) => { calls.sh.push({ cmd, ...o }); calls.events.push('sh'); return sh(cmd, o); },
+    now: Date.now,
     outputJson: (o) => calls.out.push(o),
   };
   const env = (extra = {}) => ({
@@ -261,7 +264,7 @@ test('a deleted test file -> exit 1 "fewer tests than baseline"', async () => {
   try {
     t.commit({ ...PY_FIX, 'tests/test_other.py': null });
     const out = await rejected(t, /fewer tests than baseline/);
-    assert.deepEqual(out.reasons, ['fewer tests than baseline: 2 < 3']);
+    assert.deepEqual(out.reasons, ['fewer tests than baseline: 2 < 3', 'test file deleted: tests/test_other.py']);
   } finally { t.cleanup(); }
 });
 
@@ -441,17 +444,272 @@ test('commands: settings override the marker; cause command always from the mark
   try {
     t.commit(GO_FIX);
     const suite = [];
-    const deps = { ...t.deps, runSuite: (a) => { suite.push(a); return { setupCode: 0, testCode: 0, cases: null, log: '' }; } };
+    const shs = [];
+    const deps = {
+      ...t.deps,
+      runSuite: (a) => { suite.push(a); return { setupCode: 0, testCode: 0, cases: null, log: '' }; },
+      sh: (cmd, o) => { shs.push([o.cwd, cmd]); return { code: 0, out: '' }; },
+    };
     await main(t.env({ OC_PARAM_NIGHTLY_SETUP_COMMAND: 's-setup', OC_PARAM_NIGHTLY_TEST_COMMAND: 's-test' }), deps);
     assert.deepEqual(suite.map((s) => [s.dir, s.setup, s.test, s.junitDir]), [
-      [t.dir, 's-setup', 's-test', join(t.ws, '.nightly', 'junit')],
-      [t.dir, 's-setup', 'm-cause', join(t.ws, '.nightly', 'junit-cause')],
+      [t.dir, '', 's-test', join(t.ws, '.nightly', 'junit')],
+      [t.dir, '', 'm-cause', join(t.ws, '.nightly', 'junit-cause')],
     ]);
+    assert.deepEqual(shs, [[t.dir, 's-setup'], [t.dir, 's-setup']]);
     for (const s of suite) assert.ok(s.timeoutMs > 0);
     suite.length = 0;
+    shs.length = 0;
     t.calls.out.length = 0;
     tgit(['push', '-q', 'origin', ':refs/heads/nightly-fix/7'], t.dir);
     await main(t.env({ OC_PARAM_NIGHTLY_SETUP_COMMAND: '  ', OC_PARAM_NIGHTLY_TEST_COMMAND: '' }), deps);
-    assert.deepEqual(suite.map((s) => [s.setup, s.test]), [['m-setup', 'm-test'], ['m-setup', 'm-cause']]);
+    assert.deepEqual(suite.map((s) => s.test), ['m-test', 'm-cause']);
+    assert.deepEqual(shs.map((x) => x[1]), ['m-setup', 'm-setup']);
   } finally { t.cleanup(); }
+});
+
+// --- fix round 1 ---
+
+const MIN = 60 * 1000;
+const FIXTURE = { 'tests/fixtures/data.json': '{"x": 1}\n' };
+const VACUOUS = { 'tests/test_vacuous.py': '# CASE test_vacuous src/calc.py def add\n' };
+
+test('mode: a non-code fixture file under tests/ does not make an interpreted run compiled', async () => {
+  const t = setup(PY);
+  try {
+    t.commit({ ...PY_FIX, ...VACUOUS, ...FIXTURE });
+    const out = await rejected(t, /new test passes on old code/);
+    assert.deepEqual(out.reasons, ['new test passes on old code: tests.test_vacuous::test_vacuous']);
+    assert.ok(t.worktreeCalls().length > 0);
+  } finally { t.cleanup(); }
+});
+
+test('mode: a .go fix with a fixture file stays compiled', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    t.commit({ ...GO_FIX, 'testdata/fixtures/x.json': '{}\n', ...FIXTURE });
+    await main(t.env(), t.deps);
+    assert.equal(t.calls.out.at(-1).verified, true);
+    assert.deepEqual(t.worktreeCalls(), []);
+  } finally { t.cleanup(); }
+});
+
+test('mode: deleted or renamed compiled test files do not choose the mode', async () => {
+  const t = setup({ ...PY, 'tests/old_test.go': '// old\n', 'tests/keep_test.go': '// keep\n' });
+  try {
+    t.commit({ ...PY_FIX, ...VACUOUS, 'tests/old_test.go': null, 'tests/keep_test.go': null, 'tests/kept_test.go': '// keep\n' });
+    const out = await rejected(t, /new test passes on old code/);
+    assert.deepEqual(out.reasons, [
+      'new test passes on old code: tests.test_vacuous::test_vacuous',
+      'test file renamed: tests/keep_test.go -> tests/kept_test.go',
+      'test file deleted: tests/old_test.go',
+    ]);
+  } finally { t.cleanup(); }
+});
+
+test('mode: a JUnit-named test file with an unknown extension still counts', async () => {
+  const files = { 'src/calc.py': PY['src/calc.py'], 'checks/calc.check': '# CASE test_add src/calc.py return a+b\n' };
+  const t = setup(files, {}, { cause: 'checks.calc::test_add', total: 1 });
+  try {
+    t.commit({ ...PY_FIX, 'checks/calc.check': files['checks/calc.check'] + '# note\n' });
+    await main(t.env(), t.deps);
+    assert.deepEqual(t.worktreeCalls(), [], 'unknown extension named by JUnit -> compiled');
+    assert.deepEqual(t.calls.out.at(-1).reasons, ['existing test file changed: checks/calc.check (+1 -0)']);
+  } finally { t.cleanup(); }
+});
+
+test('verifyCommandPaths keeps code-file tokens of a cause command', () => {
+  assert.deepEqual(verifyCommandPaths('python -m pytest "tests/test_a.py::test_x" ./tests/b_test.py -k "x or y"'), ['tests/b_test.py', 'tests/test_a.py']);
+  assert.deepEqual(verifyCommandPaths('go test ./pkg/... -run TestAdd'), []);
+  assert.deepEqual(verifyCommandPaths("npx jest 'src/a.test.ts' --config jest.config.json"), ['src/a.test.ts']);
+  assert.deepEqual(verifyCommandPaths(''), []);
+});
+
+test('junit:false: the cause command names a .py file -> interpreted even with no test file touched', async () => {
+  const t = setup(PY, { junit: false, tests: [], allFailing: [], total: 0, causeCommand: 'grep -q "a+b" src/calc.py' });
+  try {
+    t.commit(PY_FIX);
+    await main(t.env(), t.deps);
+    assert.equal(t.calls.out.at(-1).needsHuman, true);
+    assert.ok(t.calls.suite.some((s) => s.dir.endsWith('wt-overlay')));
+  } finally { t.cleanup(); }
+});
+
+test('junit:false: a cause command naming no file and no touched test -> compiled', async () => {
+  const t = setup(PY, { junit: false, tests: [], allFailing: [], total: 0, causeCommand: 'true' });
+  try {
+    t.commit(PY_FIX);
+    await main(t.env(), t.deps);
+    assert.deepEqual(t.worktreeCalls(), []);
+  } finally { t.cleanup(); }
+});
+
+// --- time budget ---
+
+function clocked(t, advance) {
+  let now = 0;
+  const timeouts = [];
+  const deps = {
+    ...t.deps,
+    now: () => now,
+    runSuite: (a) => { timeouts.push([a.dir, a.timeoutMs]); const r = runSuite(a); now += advance(a); return r; },
+  };
+  return { deps, timeouts };
+}
+
+test('budget: each command gets min(55 min, remaining of 235 min)', async () => {
+  const t = setup(PY);
+  try {
+    t.commit({ ...PY_FIX, ...PY_NEW_TEST });
+    const { deps, timeouts } = clocked(t, (a) => (a.dir === t.dir ? 200 * MIN : 10 * MIN));
+    await main(t.env(), deps);
+    assert.equal(t.calls.out.at(-1).verified, true);
+    assert.deepEqual(timeouts.map((x) => x[1]), [55 * MIN, 35 * MIN, 25 * MIN]);
+  } finally { t.cleanup(); }
+});
+
+test('budget: exhausted mid-run -> exit 1 "verification time budget exhausted", no push, worktrees removed', async () => {
+  const t = setup(PY);
+  try {
+    t.commit({ ...PY_FIX, ...PY_NEW_TEST });
+    const { deps, timeouts } = clocked(t, (a) => (a.dir === t.dir ? 200 * MIN : 40 * MIN));
+    await assert.rejects(main(t.env(), deps), /verification time budget exhausted/);
+    assert.equal(t.remoteHead('nightly-fix/7'), null);
+    assert.deepEqual(t.calls.out.at(-1), { verified: false, reasons: ['verification time budget exhausted'] });
+    assert.equal(timeouts.length, 2, 'no command starts after the budget is gone');
+    assertNoWorktrees(t);
+  } finally { t.cleanup(); }
+});
+
+test('budget: a last command that ends past the deadline still rejects', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    t.commit(GO_FIX);
+    const { deps } = clocked(t, () => 236 * MIN);
+    await assert.rejects(main(t.env(), deps), /verification time budget exhausted/);
+    assert.equal(t.remoteHead('nightly-fix/7'), null);
+  } finally { t.cleanup(); }
+});
+
+test('budget: setup commands run through sh with the same per-command limit', async () => {
+  const t = setup(GO, { setup: 'true' }, { cause: GO_CAUSE, total: 2 });
+  try {
+    t.commit(GO_FIX);
+    await main(t.env(), t.deps);
+    assert.equal(t.calls.out.at(-1).verified, true);
+    assert.deepEqual(t.calls.sh.map((x) => [x.cmd, x.cwd, x.timeoutMs]), [['true', t.dir, 55 * MIN]]);
+    assert.equal(t.calls.suite[0].setup, '');
+  } finally { t.cleanup(); }
+});
+
+test('setup failure at the fix commit -> no JUnit from fix run, exit 1', async () => {
+  const t = setup(GO, { setup: 'exit 5' }, { cause: GO_CAUSE, total: 2 });
+  try {
+    t.commit(GO_FIX);
+    const out = await rejected(t, /no JUnit from fix run/);
+    assert.equal(t.calls.suite.length, 0);
+    assert.deepEqual(out.reasons, ['no JUnit from fix run (build failed?)']);
+  } finally { t.cleanup(); }
+});
+
+// --- diff captured before any fix-controlled code runs ---
+
+test('the diff is read right after pinning, before the first command runs', async () => {
+  const t = setup(PY);
+  try {
+    t.commit({ ...PY_FIX, ...PY_NEW_TEST });
+    await main(t.env(), t.deps);
+    const ev = t.calls.events;
+    const firstRun = ev.findIndex((e) => e === 'suite' || e === 'sh');
+    const diffs = ev.map((e, i) => [e, i]).filter(([e]) => / diff /.test(` ${e} `));
+    assert.equal(diffs.length, 2);
+    for (const [, i] of diffs) assert.ok(i < firstRun, ev.join('\n'));
+  } finally { t.cleanup(); }
+});
+
+test('a run that marks a test file binary in .git/info/attributes does not change the diff used', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    t.commit({ ...GO_FIX, 'calc_test.go': GO['calc_test.go'] + '// note\n' });
+    const cmd = `${t.test}; ec=$?; mkdir -p .git/info; echo 'calc_test.go -diff' >> .git/info/attributes; exit $ec`;
+    await main(t.env({ OC_PARAM_NIGHTLY_TEST_COMMAND: cmd }), t.deps);
+    assert.deepEqual(t.calls.out.at(-1).reasons, ['existing test file changed: calc_test.go (+1 -0)']);
+  } finally { t.cleanup(); }
+});
+
+// --- push URL pinned at pin time ---
+
+function otherBare(t) {
+  const other = join(t.ws, 'other.git');
+  tgit(['init', '-q', '--bare', other], t.ws);
+  const head = (b) => tgit(['ls-remote', other, `refs/heads/${b}`], t.ws).trim() || null;
+  return { other, head };
+}
+
+test('push URL: a run that rewrites remote.origin.url does not redirect the push or assert-head', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    const sha = t.commit(GO_FIX);
+    const o = otherBare(t);
+    const cmd = `${t.test}; ec=$?; git remote set-url origin ${JSON.stringify(o.other)}; exit $ec`;
+    await main(t.env({ OC_PARAM_NIGHTLY_TEST_COMMAND: cmd }), t.deps);
+    const out = t.calls.out.at(-1);
+    assert.equal(out.pushUrl, t.origin);
+    assert.equal(t.remoteHead('nightly-fix/7'), sha);
+    assert.equal(o.head('nightly-fix/7'), null);
+    assert.ok(t.calls.git.some((g) => g.args.includes('push') && g.args.includes(t.origin) && !g.args.includes('origin')));
+    const ah = [];
+    await assertHead({ AGENT_WORKSPACE_PATH: t.ws, REPO_FULL_NAME: 'o/repo', BRANCH: 'nightly-fix/7', SHA: sha, PUSH_URL: out.pushUrl }, { git, outputJson: (x) => ah.push(x) });
+    assert.equal(ah.length, 1);
+    // With the rewritten origin, a plain `origin` lookup would see no branch:
+    await assert.rejects(assertHead({ AGENT_WORKSPACE_PATH: t.ws, REPO_FULL_NAME: 'o/repo', BRANCH: 'nightly-fix/7', SHA: sha, PUSH_URL: o.other }, { git, outputJson: () => {} }), /does not match/);
+  } finally { t.cleanup(); }
+});
+
+test('push URL: a run that adds url.*.insteadOf -> exit 1, nothing pushed anywhere', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    t.commit(GO_FIX);
+    const o = otherBare(t);
+    const cmd = `${t.test}; ec=$?; git config ${JSON.stringify(`url.${o.other}.insteadOf`)} ${JSON.stringify(t.origin)}; git config ${JSON.stringify(`url.${o.other}.pushInsteadOf`)} ${JSON.stringify(t.origin)}; exit $ec`;
+    const out = await rejected(t, /git URL rewrite config changed during verification/, { OC_PARAM_NIGHTLY_TEST_COMMAND: cmd });
+    assert.deepEqual(out.reasons, ['git URL rewrite config changed during verification']);
+    assert.equal(o.head('nightly-fix/7'), null);
+  } finally { t.cleanup(); }
+});
+
+test('push URL never appears in logs, reasons or checks, even when the push fails', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  const logged = [];
+  const orig = { log: console.log, error: console.error };
+  try {
+    t.commit(GO_FIX);
+    tgit(['push', '-q', 'origin', `${t.base}:refs/heads/nightly-fix/7`], t.dir);
+    console.log = (...a) => logged.push(a.join(' '));
+    console.error = (...a) => logged.push(a.join(' '));
+    let err;
+    try { await main(t.env(), t.deps); } catch (e) { err = e; }
+    console.log = orig.log;
+    console.error = orig.error;
+    assert.ok(err, 'push must fail');
+    const out = t.calls.out.at(-1);
+    assert.equal(out.verified, false);
+    for (const text of [...logged, err.message, String(err.stack), JSON.stringify(out.reasons), JSON.stringify(out.checks || [])]) {
+      assert.equal(text.includes(t.origin), false, text);
+    }
+  } finally { console.log = orig.log; console.error = orig.error; t.cleanup(); }
+});
+
+test('push URL is not logged on success either', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  const logged = [];
+  const orig = console.log;
+  try {
+    t.commit(GO_FIX);
+    console.log = (...a) => logged.push(a.join(' '));
+    await main(t.env(), t.deps);
+    console.log = orig;
+    const out = t.calls.out.at(-1);
+    assert.equal(out.pushUrl, t.origin);
+    for (const text of [...logged, JSON.stringify(out.checks), JSON.stringify(out.reasons)]) assert.equal(text.includes(t.origin), false, text);
+  } finally { console.log = orig; t.cleanup(); }
 });

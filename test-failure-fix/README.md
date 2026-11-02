@@ -56,20 +56,22 @@ A script that exits non-zero fails the run, so a skipped precheck or a rejected 
 
 **Step 5: Verify** (script, deterministic) — The safety gate. Git hooks are off for every git call. In order:
 
-1. **Pin**: `SHA = HEAD`. It must differ from the base, descend from it, and have no uncommitted tracked changes. Untracked and ignored files are deleted, so the run tests exactly what will be pushed.
+1. **Pin**: `SHA = HEAD`. It must differ from the base, descend from it, and have no uncommitted tracked changes. Untracked and ignored files are deleted, so the run tests exactly what will be pushed. Before any repository code runs, verify also reads the diff (`git diff --name-status` / `--numstat -M -z --no-ext-diff`, base to `SHA`), origin's push URL and the git URL rewrite rules (`url.*.insteadOf`).
 2. **Fix run**: setup and the full test command at `SHA`.
-3. **Diff rules** (`git diff --name-status` / `--numstat -M -z --no-ext-diff`, base to `SHA`). Test files are paths matching common conventions in any language (`test/`, `tests/`, `spec/`, `__tests__/`, `*_test.*`, `test_*.*`, `*Test.*`, `*Tests.*`, `*.spec.*`, `*.test.*`) or files the fix run's JUnit names as test sources. Existing test files are immutable: changing, deleting or renaming one, or changing a binary test file, is a violation. So is any change to a protected file (CI config, test runner config, dependency manifests, lockfiles).
-4. **Language mode**: from the extensions of the cause's test files and the test files the fix touches. Any compiled or unknown extension makes the run **compiled**.
+3. **Diff rules** on the diff read at pin time. Test files are paths matching common conventions in any language (`test/`, `tests/`, `spec/`, `__tests__/`, `*_test.*`, `test_*.*`, `*Test.*`, `*Tests.*`, `*.spec.*`, `*.test.*`) or files the fix run's JUnit names as test sources. Existing test files are immutable: changing, deleting or renaming one, or changing a binary test file, is a violation. So is any change to a protected file (CI config, test runner config, dependency manifests, lockfiles).
+4. **Language mode**: from the extensions of test **source** files only: the cause's test files (from the JUnit `file` attribute; without JUnit, code-file arguments of the cause command such as `tests/test_a.py`) and the test files the fix adds or changes. Non-code files such as fixtures (`tests/fixtures/data.json`) are ignored unless the JUnit XML names them; deleted and renamed files never decide. Any compiled or unknown extension among them makes the run **compiled**; no test source files at all also means compiled.
 5. **Old-code red check** (interpreted only): two temporary worktrees at the base commit, one unmodified and one with the fix's added and modified test files copied in. The cause's tests and every new test must fail there; a new test that passes on old code does not catch the bug. Compiled languages skip this, because new tests may not compile against old code; the nightly baseline and Triage's re-run are the "fails before" evidence.
 6. **Results** against the baseline:
    - With JUnit: the fix run must produce JUnit (none means the build failed), the cause's tests must pass, no test may fail that was not failing in the baseline (a new failure is re-run once, so a flake does not reject a good fix), there may be no fewer tests and no more skipped tests than in the baseline.
    - Without JUnit: the marker's cause command must exit 0 at `SHA` (and, when interpreted, non-zero on old code). The PR always needs human review.
-7. **Tree check**: HEAD and tracked files must be unchanged after all runs.
-8. A failure in steps 5-7 (or any error) rejects the fix: output `{verified: false, reasons}`, exit 1, nothing pushed. Otherwise `SHA` is pushed to `nightly-fix/<issue>` (only if the branch still does not exist) and the output is `{verified, needsHuman, reasons, checks, branch, sha}`. Diff-rule violations do not block the push; they set `needsHuman` and are listed in `reasons`. `verified` is true only with no violations and a JUnit baseline.
+7. **Tree check**: HEAD, tracked files and the URL rewrite rules must be unchanged after all runs.
+8. A failure in steps 5-7 (or any error) rejects the fix: output `{verified: false, reasons}` (the failures, then any diff-rule violations), exit 1, nothing pushed. Otherwise `SHA` is pushed to the push URL recorded at pin time, to `nightly-fix/<issue>` (only if the branch still does not exist), and the output is `{verified, needsHuman, reasons, checks, branch, sha, pushUrl}`. Diff-rule violations do not block the push; they set `needsHuman` and are listed in `reasons`. `verified` is true only with no violations and a JUnit baseline.
 
 **Step 6: Open Draft PR** — Opens a draft PR from the fix branch into the default branch, titled `fix: <issue title>`, with `Fixes #<issue>`, a summary, and the verify `checks` and `reasons` verbatim. Labels: `nightly-fix`, plus `needs-human-review` when `needsHuman` is true.
 
-**Step 7: Assert PR Head** (script) — The fix branch on origin must still point at exactly the verified `SHA`, so nothing pushed after verify can ride along in the PR.
+**Time budget**: verify stops after 235 minutes in total (the step limit is 245). Each setup or test command may take up to 55 minutes, as in the nightly run, or what is left of the budget if that is less. When the budget runs out the fix is rejected with `verification time budget exhausted`.
+
+**Step 7: Assert PR Head** (script) — The fix branch at the push URL verify used must still point at exactly the verified `SHA`, so nothing pushed after verify can ride along in the PR. The URL is never logged, because it may contain a token.
 
 ### Data Flow
 
@@ -81,7 +83,7 @@ A script that exits non-zero fails the run, so a skipped precheck or a rejected 
 | `$AGENT_WORKSPACE_PATH/.nightly/investigation.md` | `investigate` | `implement` |
 | Fix commit on `nightly-fix/<issue>` (local) | `implement` | `verify` |
 | `$AGENT_WORKSPACE_PATH/.nightly/junit*/` (JUnit XML of each run) | test command | `verify` |
-| Step output `{verified, needsHuman, reasons, checks, branch, sha}` | `verify` | `open-pr`, `assert-head` (env `SHA`), the orchestration |
+| Step output `{verified, needsHuman, reasons, checks, branch, sha, pushUrl}` | `verify` | `open-pr`, `assert-head` (env `SHA`, `PUSH_URL`), the orchestration |
 | Draft PR, labels | `open-pr` | reviewers |
 
 ### Threat model
@@ -91,16 +93,17 @@ The gate stops **accidental and prompt-injected test weakening**: edited, delete
 Known limits:
 
 - **Existing test files are immutable.** A fix whose root cause is a wrong test is still pushed, but labelled `needs-human-review`. New tests must go in new test files.
-- **Inline tests are not detected as test files** by path (for example Rust `#[cfg(test)]` modules in `src/`), unless the JUnit XML names their file. Changes there are judged only by the results check.
-- **Compiled vs interpreted**: compiled languages get no old-code run, so a new test that would pass on the old code is not caught there. An unknown extension among the test files (for example a fixture file in `tests/`) also counts as compiled.
-- **Without JUnit** only the cause command is checked; the PR always needs human review.
+- **Test files outside the naming conventions** are detected only through the fix run's JUnit `file` attribute. That includes inline tests (for example Rust `#[cfg(test)]` modules in `src/`). Many reporters (pytest's default among them) write no `file` attribute; changes to such files are then judged only by the results check.
+- **Compiled vs interpreted**: compiled languages get no old-code run, so a new test that would pass on the old code is not caught there. A test source file with an extension in neither table also counts as compiled.
+- **New tests absent from the old-code run are not proven**: the red check judges only test ids that appear in the overlay run's JUnit. A new test that never shows up there (for example a collection error because it imports a module the fix adds) is not shown to fail on old code.
+- **Without JUnit** only the cause command is checked, and the PR always needs human review. If the cause command names no code file and the fix adds no test file (for example a Python or JavaScript fix with a cause command like `make test`), the mode is compiled and the old-code check is skipped.
 
 ## 🎨 Customization
 
 - **Investigation and fix behavior** — Edit `investigate.md` and `implement.md`. Keep the hard rules in `implement.md`; verify enforces them anyway, but breaking them sends every PR to a person.
 - **PR format and labels** — Edit `open-pr.md` (and any orchestration that filters on the labels).
 - **Open-branch limit** — `PRECHECK_MAX_OPEN` in `scripts/precheck.mjs`.
-- **Time limits** — Each verify command may take up to 30 minutes (`VERIFY_TIMEOUT_MS` in `scripts/verify.mjs`) within the step's 14400-second limit.
+- **Time limits** — `VERIFY_BUDGET_MS` (235 min total) and `VERIFY_COMMAND_MS` (55 min per command) in `scripts/verify.mjs`, within the step's 14400-second script limit and 245-minute step limit.
 - **Test-file and protected-file lists, compiled extensions** — `scripts/lib/nightly/classify.mjs` (shared with the other nightly playbooks).
 - **Do not edit** the `script` fields in `workflow.json` by hand; they are generated from `scripts/*.mjs` and `scripts/lib/nightly/`. Run `python3 scripts/sync-scripts.py test-failure-fix` after editing, and `node --test test-failure-fix/scripts/` to test.
 

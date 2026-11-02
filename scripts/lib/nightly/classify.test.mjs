@@ -5,7 +5,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  COMPILED_EXTENSIONS, isTestFile, isProtectedFile, languageMode, parseNameStatus, parseNumstat,
+  COMPILED_EXTENSIONS, INTERPRETED_EXTENSIONS, isTestFile, isProtectedFile, languageMode, parseNameStatus, parseNumstat,
 } from './classify.mjs';
 
 test('isTestFile positives', () => {
@@ -46,6 +46,16 @@ test('languageMode', () => {
   assert.equal(languageMode(['a.R']), 'interpreted');
   assert.equal(languageMode([]), 'compiled');
   assert.ok(COMPILED_EXTENSIONS.has('.rs'));
+});
+test('INTERPRETED_EXTENSIONS is exported, lower-case, and disjoint from COMPILED_EXTENSIONS', () => {
+  for (const e of ['.py', '.rb', '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.php', '.pl', '.lua', '.r', '.sh', '.bash']) {
+    assert.ok(INTERPRETED_EXTENSIONS.has(e), e);
+  }
+  for (const e of INTERPRETED_EXTENSIONS) {
+    assert.equal(e, e.toLowerCase());
+    assert.equal(COMPILED_EXTENSIONS.has(e), false, e);
+  }
+  assert.equal(INTERPRETED_EXTENSIONS.has('.json'), false);
 });
 test('parseNameStatus basic', () => {
   const out = 'M\0a b/ü"x.py\0A\0n.js\0R100\0old.py\0new.py\0C075\0s\0t\0D\0d.go\0';

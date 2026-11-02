@@ -4,7 +4,7 @@ export const COMPILED_EXTENSIONS = new Set([
   '.cr', '.nim', '.d',
 ]);
 
-const CLASSIFY_INTERPRETED = new Set([
+export const INTERPRETED_EXTENSIONS = new Set([
   '.py', '.rb', '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.php', '.pl', '.lua', '.r', '.sh', '.bash',
 ]);
 const CLASSIFY_TEST_DIRS = new Set(['test', 'tests', 'spec', '__tests__']);
@@ -55,7 +55,7 @@ export function languageMode(paths) {
   if (paths.length === 0) return 'compiled';
   for (const p of paths) {
     const ext = classifyExt(p);
-    if (COMPILED_EXTENSIONS.has(ext) || !CLASSIFY_INTERPRETED.has(ext)) return 'compiled';
+    if (COMPILED_EXTENSIONS.has(ext) || !INTERPRETED_EXTENSIONS.has(ext)) return 'compiled';
   }
   return 'interpreted';
 }

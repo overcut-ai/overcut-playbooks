@@ -169,7 +169,9 @@ confirms the failing ids.
 - Compiled: nothing runs on the old code; the fix's new tests may not compile there.
   "Fails before" evidence is Nightly's baseline plus Triage's re-run.
 - Classification (deterministic): by file extension of the cause's test files and the
-  test files the fix adds. Compiled table: `.go .rs .java .kt .kts .scala .groovy .cs .fs
+  test source files the fix adds or changes. Non-code files (fixtures, data such as
+  `tests/fixtures/data.json`) are ignored for the mode decision unless JUnit names them as
+  a test source, and deleted or renamed files never decide it. Compiled table: `.go .rs .java .kt .kts .scala .groovy .cs .fs
   .vb .c .h .cc .cpp .cxx .hpp .m .mm .swift .dart .zig .hs .ml .erl .ex .exs .cr .nim .d`.
   Anything else (`.py .rb .js .mjs .cjs .ts .tsx .jsx .php .pl .lua .r .sh`, ...) is
   interpreted. Any compiled file involved makes the run compiled. An unknown extension
