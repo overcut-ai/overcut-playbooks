@@ -19,6 +19,7 @@ function setup() {
   };
   const env = (extra = {}) => ({
     AGENT_WORKSPACE_PATH: r.ws, REPO_FULL_NAME: 'o/repo', ISSUE_NUMBER: '7',
+    ISSUE_LABELS: JSON.stringify([{ name: 'nightly-test-failure' }]),
     ISSUE_BODY: issueBody({ sha: base, tests: ['t::a'], allFailing: ['t::a'], total: 1, test: 'x', causeCommand: 'x' }),
     ...extra,
   });
@@ -52,12 +53,14 @@ test('existing fix branch -> skip output, exit 1, no checkout', async () => {
   } finally { t.cleanup(); }
 });
 
-test('3 open nightly-fix branches -> skip output, exit 1, no checkout', async () => {
+const CAP_REASON = '3 nightly-fix/* branches exist on origin; delete merged/closed ones (or enable "Automatically delete head branches")';
+
+test('3 nightly-fix branches on origin -> skip output naming the cleanup, exit 1, no checkout', async () => {
   const t = setup();
   try {
     for (const n of [1, 2, 3]) t.pushBranch(`nightly-fix/${n}`);
-    await assert.rejects(main(t.env(), t.deps), /3 open nightly-fix branches/);
-    assert.deepEqual(t.calls.out, [{ skip: true, reason: '3 open nightly-fix branches' }]);
+    await assert.rejects(main(t.env(), t.deps), /3 nightly-fix\/\* branches exist on origin/);
+    assert.deepEqual(t.calls.out, [{ skip: true, reason: CAP_REASON }]);
     assert.deepEqual(checkouts(t), []);
   } finally { t.cleanup(); }
 });
@@ -68,6 +71,10 @@ for (const [label, extra, re] of [
   ['bad issue number', { ISSUE_NUMBER: '7; rm -rf /' }, /ISSUE_NUMBER/],
   ['zero issue number', { ISSUE_NUMBER: '0' }, /ISSUE_NUMBER/],
   ['empty issue number', { ISSUE_NUMBER: '' }, /ISSUE_NUMBER/],
+  ['no labels', { ISSUE_LABELS: undefined }, /issue is not labelled nightly-test-failure/],
+  ['label missing', { ISSUE_LABELS: '["bug"]' }, /issue is not labelled nightly-test-failure/],
+  ['labels not JSON', { ISSUE_LABELS: 'nightly-test-failure' }, /issue is not labelled nightly-test-failure/],
+  ['unlabelled issue with a valid marker', { ISSUE_LABELS: '[]' }, /issue is not labelled nightly-test-failure/],
 ]) {
   test(`${label} -> exit 1, no git calls, no output`, async () => {
     const t = setup();
@@ -78,3 +85,33 @@ for (const [label, extra, re] of [
     } finally { t.cleanup(); }
   });
 }
+
+test('marker sha already present: no fetch', async () => {
+  const t = setup();
+  try {
+    await main(t.env(), t.deps);
+    assert.deepEqual(t.calls.git.filter((a) => a[0] === 'fetch'), []);
+    assert.ok(t.calls.git.some((a) => a[0] === 'cat-file' && a[1] === '-e' && a[2] === `${t.base}^{commit}`));
+  } finally { t.cleanup(); }
+});
+
+test('marker sha missing locally: fetched before checkout', async () => {
+  const t = setup();
+  try {
+    const deps = { ...t.deps, git: (args, cwd) => {
+      if (args[0] === 'cat-file') { t.calls.git.push(args); throw new Error('missing'); }
+      return t.deps.git(args, cwd);
+    } };
+    await main(t.env(), deps);
+    const names = t.calls.git.map((a) => a[0]);
+    assert.deepEqual(names.slice(-3), ['cat-file', 'fetch', 'checkout']);
+    assert.deepEqual(t.calls.git.find((a) => a[0] === 'fetch'), ['fetch', 'origin', t.base]);
+  } finally { t.cleanup(); }
+});
+
+test('workflow passes the trigger issue labels to precheck as JSON', async () => {
+  const { readFileSync } = await import('node:fs');
+  const w = JSON.parse(readFileSync(new URL('../workflow.json', import.meta.url), 'utf8'));
+  const step = w.workflow.definition.steps.find((s) => s.id === 'precheck');
+  assert.equal(step.params.env.ISSUE_LABELS, '{{{json trigger.issue.labels}}}');
+});

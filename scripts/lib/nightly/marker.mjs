@@ -68,3 +68,13 @@ export function parseMarker(body) {
   if (o.testsTruncated) m.testsTruncated = true;
   return m;
 }
+
+// Provenance: only triage+ users (and the nightly run) can label an issue, so the label shows
+// the marker came through a trusted path. `raw` is the trigger issue's labels as JSON: an array
+// of names or of {name} objects. Anything else is untrusted.
+export function markerTrustedLabels(raw) {
+  let a;
+  try { a = JSON.parse(String(raw ?? '')); } catch { return false; }
+  if (!Array.isArray(a)) return false;
+  return a.some((l) => (typeof l === 'string' ? l : l && typeof l === 'object' ? l.name : null) === 'nightly-test-failure');
+}

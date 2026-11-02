@@ -239,6 +239,7 @@ export function verifyOldCode(ctx) {
 
 export function verifyResults(ctx, fix) {
   const { dir, marker, setup, test } = ctx;
+  if (fix.setupCode !== 0) return { reasons: [`setup command failed on the fix commit (exit ${fix.setupCode})`], checks: [] };
   if (!marker.junit) {
     const c = verifySuite(ctx, dir, setup, marker.causeCommand, 'junit-cause');
     if (c.setupCode !== 0 || c.testCode !== 0) {
@@ -261,7 +262,9 @@ export function verifyResults(ctx, fix) {
     const status = statusById(r.cases);
     return ids.filter((id) => status.get(id) !== 'passed');
   };
-  const cmp = compareResults({ baseline: marker, fixCases: fix.cases, causeIds: marker.tests, rerunFailed });
+  // A marker that dropped allFailing has no list of known failures: every non-cause failure is new.
+  const baseline = marker.allFailingTruncated ? { ...marker, allFailing: [] } : marker;
+  const cmp = compareResults({ baseline, fixCases: fix.cases, causeIds: marker.tests, rerunFailed });
   const sum = summarize(fix.cases);
   return {
     reasons: cmp.reasons,
@@ -319,7 +322,9 @@ function verifyRun(env, deps) {
 
   // 5. Language mode from test source files only.
   const { mode, paths: modePaths, mixed } = verifyMode({ marker, fixCases: fix.cases, nameStatus: pin.nameStatus, isTest, junitFiles, dirs });
-  const humanReasons = mixed ? [...violations, mixed] : violations;
+  const humanReasons = mixed ? [...violations, mixed] : [...violations];
+  // Only a prefix of the cause's ids survived in the marker: the gate cannot prove the whole cause fixed.
+  if (marker.testsTruncated) humanReasons.push('cause test list truncated in marker');
   const reasons = [];
 
   // 6. Old-code red check (interpreted only).

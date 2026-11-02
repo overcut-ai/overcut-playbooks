@@ -28,7 +28,7 @@ function harness(suiteResult, { gitFail } = {}) {
     runSuite: (args) => { calls.suite.push(args); return suiteResult; },
     git: (args, cwd) => {
       calls.git.push({ args, cwd });
-      if (gitFail && args[0] === gitFail) throw new Error(`git ${args.join(' ')} failed: nope`);
+      if (gitFail && [].concat(gitFail).includes(args[0])) throw new Error(`git ${args.join(' ')} failed: nope`);
       return '';
     },
     outputJson: (o) => calls.out.push(o),
@@ -36,7 +36,8 @@ function harness(suiteResult, { gitFail } = {}) {
   return { calls, deps };
 }
 
-const env = (ws, issueBody) => ({ AGENT_WORKSPACE_PATH: ws, REPO_FULL_NAME: 'o/repo', ISSUE_BODY: issueBody });
+const LABELS = JSON.stringify([{ name: 'nightly-test-failure' }]);
+const env = (ws, issueBody, labels = LABELS) => ({ AGENT_WORKSPACE_PATH: ws, REPO_FULL_NAME: 'o/repo', ISSUE_BODY: issueBody, ISSUE_LABELS: labels });
 const rerun = (ws) => JSON.parse(readFileSync(join(ws, '.nightly', 'rerun.json'), 'utf8'));
 const tc = (id, status) => ({ id, name: id, classname: 's', file: null, status });
 
@@ -53,13 +54,50 @@ for (const [label, b] of [['no marker', 'just text'], ['empty body', ''], ['unde
   });
 }
 
-test('checks out the baseline sha (fetch, then detached checkout) in the repo dir', async () => {
+for (const [label, labels] of [['no labels', undefined], ['label missing', '["bug"]'], ['labels not JSON', 'x'], ['empty list', '[]']]) {
+  test(`${label}: rejects "issue is not labelled nightly-test-failure" and runs nothing`, async () => {
+    const ws = workspace();
+    try {
+      const { calls, deps } = harness({});
+      await assert.rejects(main({ ...env(ws, body()), ISSUE_LABELS: labels }, deps), /issue is not labelled nightly-test-failure/);
+      assert.equal(calls.git.length, 0);
+      assert.equal(calls.suite.length, 0);
+      assert.equal(existsSync(join(ws, '.nightly', 'rerun.json')), false);
+    } finally { rmSync(ws, { recursive: true, force: true }); }
+  });
+}
+
+test('baseline sha missing locally: fetch, then detached checkout, in the repo dir', async () => {
+  const ws = workspace();
+  try {
+    const { calls, deps } = harness({ setupCode: 0, testCode: 1, cases: [tc('s::a', 'failed'), tc('s::b', 'failed')], log: '' }, { gitFail: 'cat-file' });
+    await main(env(ws, body()), deps);
+    assert.deepEqual(calls.git.map((g) => g.args), [['cat-file', '-e', `${SHA}^{commit}`], ['fetch', 'origin', SHA], ['checkout', '--detach', SHA]]);
+    for (const g of calls.git) assert.equal(g.cwd, join(ws, 'repo'));
+  } finally { rmSync(ws, { recursive: true, force: true }); }
+});
+
+test('baseline sha already present: no fetch', async () => {
   const ws = workspace();
   try {
     const { calls, deps } = harness({ setupCode: 0, testCode: 1, cases: [tc('s::a', 'failed'), tc('s::b', 'failed')], log: '' });
     await main(env(ws, body()), deps);
-    assert.deepEqual(calls.git.map((g) => g.args), [['fetch', 'origin', SHA], ['checkout', '--detach', SHA]]);
-    for (const g of calls.git) assert.equal(g.cwd, join(ws, 'repo'));
+    assert.deepEqual(calls.git.map((g) => g.args), [['cat-file', '-e', `${SHA}^{commit}`], ['checkout', '--detach', SHA]]);
+  } finally { rmSync(ws, { recursive: true, force: true }); }
+});
+
+test('testsTruncated marker: rerun.json and the summary say so', async () => {
+  const ws = workspace();
+  try {
+    const { calls, deps } = harness({ setupCode: 0, testCode: 1, cases: [tc('s::a', 'failed'), tc('s::b', 'failed')], log: '' });
+    const m = formatMarker({ sha: SHA, junit: true, tests: ['s::a', 's::b'], allFailing: [], allFailingTruncated: true, testsTruncated: true,
+      total: 10, skipped: 1, setup: 'npm ci', test: 'npm test', causeCommand: 'npx jest s', greenNights: 0 });
+    await main(env(ws, `x\n${m}`), deps);
+    assert.equal(rerun(ws).testsTruncated, true);
+    assert.equal(calls.out[0].testsTruncated, true);
+    const { deps: d2 } = harness({ setupCode: 0, testCode: 1, cases: [tc('s::a', 'failed'), tc('s::b', 'failed')], log: '' });
+    await main(env(ws, body()), d2);
+    assert.equal('testsTruncated' in rerun(ws), false);
   } finally { rmSync(ws, { recursive: true, force: true }); }
 });
 
@@ -67,7 +105,7 @@ for (const failing of ['fetch', 'checkout']) {
   test(`${failing} failure: rejects with "cannot check out baseline <sha>" and runs nothing`, async () => {
     const ws = workspace();
     try {
-      const { calls, deps } = harness({}, { gitFail: failing });
+      const { calls, deps } = harness({}, { gitFail: failing === 'fetch' ? ['cat-file', 'fetch'] : failing });
       await assert.rejects(main(env(ws, body()), deps), new RegExp(`cannot check out baseline ${SHA}`));
       assert.equal(calls.suite.length, 0);
     } finally { rmSync(ws, { recursive: true, force: true }); }
@@ -198,4 +236,10 @@ test('setup failure: setupFailed with code and log tail; resolves (exit 0)', asy
     assert.equal(r.cases, null);
     assert.deepEqual(calls.out, [{ junit: true, stillFailing: 2, nowPassing: 0, setupFailed: true }]);
   } finally { rmSync(ws, { recursive: true, force: true }); }
+});
+
+test('workflow passes the trigger issue labels to rerun as JSON', () => {
+  const w = JSON.parse(readFileSync(new URL('../workflow.json', import.meta.url), 'utf8'));
+  const step = w.workflow.definition.steps.find((s) => s.id === 'rerun');
+  assert.equal(step.params.env.ISSUE_LABELS, '{{{json trigger.issue.labels}}}');
 });

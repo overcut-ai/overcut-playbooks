@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatMarker, parseMarker, MARKER_BUDGET } from './marker.mjs';
+import { formatMarker, parseMarker, MARKER_BUDGET, markerTrustedLabels } from './marker.mjs';
 
 const SHA = 'a'.repeat(40);
 const base = () => ({
@@ -92,4 +92,13 @@ test('truncation flags must be true when present', () => {
   assert.equal(parseMarker(line), null);
   const f = formatMarker(base()).replace('"greenNights":0', '"greenNights":0,"allFailingTruncated":false');
   assert.equal(parseMarker(f), null);
+});
+
+test('markerTrustedLabels: JSON array of names or {name} objects containing nightly-test-failure', () => {
+  assert.equal(markerTrustedLabels('["bug","nightly-test-failure"]'), true);
+  assert.equal(markerTrustedLabels('[{"name":"nightly-test-failure","color":"ff0000"}]'), true);
+  for (const raw of [undefined, null, '', 'nightly-test-failure', '{"name":"nightly-test-failure"}', '[]',
+    '["bug"]', '["Nightly-Test-Failure"]', '[{"name":"nightly-test-failure-x"}]', '[null, 3]', '{{json trigger.issue.labels}}', 'not json']) {
+    assert.equal(markerTrustedLabels(raw), false, String(raw));
+  }
 });

@@ -2,7 +2,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { runSuite, git, repoDir, outputJson } from '../../scripts/lib/nightly/exec.mjs';
 import { statusById, summarize } from '../../scripts/lib/nightly/junit.mjs';
-import { parseMarker } from '../../scripts/lib/nightly/marker.mjs';
+import { parseMarker, markerTrustedLabels } from '../../scripts/lib/nightly/marker.mjs';
 
 // Per command (setup, then test), as in the nightly run. Two stay under the step's 7200 s limit.
 const RERUN_TIMEOUT_MS = 55 * 60 * 1000;
@@ -11,7 +11,10 @@ const RERUN_LOG_MAX = 20000;
 
 export function rerunCheckout(deps, dir, sha) {
   try {
-    deps.git(['fetch', 'origin', sha], dir);
+    // Fetch only when the clone does not already have the commit.
+    let present = true;
+    try { deps.git(['cat-file', '-e', `${sha}^{commit}`], dir); } catch { present = false; }
+    if (!present) deps.git(['fetch', 'origin', sha], dir);
     deps.git(['checkout', '--detach', sha], dir);
   } catch (e) {
     throw new Error(`cannot check out baseline ${sha}: ${e.message}`);
@@ -30,6 +33,8 @@ export function rerunSplit(tests, cases) {
 export function rerunResult(marker, r) {
   const log = String(r.log || '').slice(-RERUN_LOG_MAX);
   const base = { junit: marker.junit, sha: marker.sha, testCode: r.testCode, log };
+  // The marker kept only a prefix of the cause's ids: the rerun judged that prefix only.
+  if (marker.testsTruncated) base.testsTruncated = true;
   if (r.setupCode !== 0) {
     return {
       ...base, setupFailed: true, setupCode: r.setupCode,
@@ -55,10 +60,12 @@ export function rerunSummary(res) {
   const out = { junit: res.junit, stillFailing: n(res.stillFailing), nowPassing: n(res.nowPassing) };
   if (res.rerunError) out.rerunError = res.rerunError;
   if (res.setupFailed) out.setupFailed = true;
+  if (res.testsTruncated) out.testsTruncated = true;
   return out;
 }
 
 export async function main(env, deps = { runSuite, git, outputJson }) {
+  if (!markerTrustedLabels(env.ISSUE_LABELS)) throw new Error('issue is not labelled nightly-test-failure');
   const marker = parseMarker(env.ISSUE_BODY);
   if (!marker) throw new Error('no baseline marker in the issue body');
   const stateDir = join(env.AGENT_WORKSPACE_PATH || '', '.nightly');

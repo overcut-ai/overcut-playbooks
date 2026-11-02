@@ -626,13 +626,55 @@ test('budget: setup commands run through sh with the same per-command limit', as
   } finally { t.cleanup(); }
 });
 
-test('setup failure at the fix commit -> no JUnit from fix run, exit 1', async () => {
+test('setup failure at the fix commit -> exit 1 "setup command failed on the fix commit (exit 5)"', async () => {
   const t = setup(GO, { setup: 'exit 5' }, { cause: GO_CAUSE, total: 2 });
   try {
     t.commit(GO_FIX);
-    const out = await rejected(t, /no JUnit from fix run/);
+    const out = await rejected(t, /setup command failed on the fix commit \(exit 5\)/);
     assert.equal(t.calls.suite.length, 0);
-    assert.deepEqual(out.reasons, ['no JUnit from fix run (build failed?)']);
+    assert.deepEqual(out.reasons, ['setup command failed on the fix commit (exit 5)']);
+  } finally { t.cleanup(); }
+});
+
+test('junit:false: setup failure at the fix commit -> exit 1 with the setup reason', async () => {
+  const t = setup(GO, { junit: false, tests: [], allFailing: [], total: 0, setup: 'exit 6', causeCommand: 'true' }, { cause: GO_CAUSE, total: 2 });
+  try {
+    t.commit(GO_FIX);
+    const out = await rejected(t, /setup command failed on the fix commit \(exit 6\)/);
+    assert.deepEqual(out.reasons, ['setup command failed on the fix commit (exit 6)']);
+  } finally { t.cleanup(); }
+});
+
+// --- truncated markers (fail closed) ---
+
+const OTHER = { 'other_test.go': '// CASE TestOther calc.go not-in-the-code\n' };
+
+test('allFailingTruncated: a pre-existing failure the marker no longer lists counts as new', async () => {
+  const allFailing = [GO_CAUSE, 'other_test::TestOther'];
+  const t1 = setup({ ...GO, ...OTHER }, { allFailing }, { cause: GO_CAUSE, total: 3 });
+  try {
+    t1.commit(GO_FIX);
+    await main(t1.env(), t1.deps);
+    assert.equal(t1.calls.out.at(-1).verified, true, 'listed in allFailing: tolerated');
+  } finally { t1.cleanup(); }
+  const t2 = setup({ ...GO, ...OTHER }, { allFailing, allFailingTruncated: true }, { cause: GO_CAUSE, total: 3 });
+  try {
+    t2.commit(GO_FIX);
+    const out = await rejected(t2, /new failure: other_test::TestOther/);
+    assert.deepEqual(out.reasons, ['new failure: other_test::TestOther']);
+  } finally { t2.cleanup(); }
+});
+
+test('testsTruncated: a correct fix is pushed but never verified', async () => {
+  const t = setup(GO, { allFailing: [], allFailingTruncated: true, testsTruncated: true }, { cause: GO_CAUSE, total: 2 });
+  try {
+    const sha = t.commit(GO_FIX);
+    await main(t.env(), t.deps);
+    const out = t.calls.out.at(-1);
+    assert.equal(out.verified, false);
+    assert.equal(out.needsHuman, true);
+    assert.deepEqual(out.reasons, ['cause test list truncated in marker']);
+    assert.equal(t.remoteHead('nightly-fix/7'), sha);
   } finally { t.cleanup(); }
 });
 

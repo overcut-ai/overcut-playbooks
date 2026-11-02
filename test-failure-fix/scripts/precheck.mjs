@@ -1,5 +1,5 @@
 import { git, repoDir, outputJson } from '../../scripts/lib/nightly/exec.mjs';
-import { parseMarker } from '../../scripts/lib/nightly/marker.mjs';
+import { parseMarker, markerTrustedLabels } from '../../scripts/lib/nightly/marker.mjs';
 
 const PRECHECK_MAX_OPEN = 3;
 const PRECHECK_PREFIX = 'refs/heads/nightly-fix/';
@@ -12,6 +12,7 @@ export function precheckFixBranches(out) {
 }
 
 export async function main(env, deps = { git, outputJson }) {
+  if (!markerTrustedLabels(env.ISSUE_LABELS)) throw new Error('issue is not labelled nightly-test-failure');
   const marker = parseMarker(env.ISSUE_BODY);
   if (!marker) throw new Error('no baseline marker in the issue body');
   const n = String(env.ISSUE_NUMBER ?? '');
@@ -22,13 +23,21 @@ export async function main(env, deps = { git, outputJson }) {
   const heads = precheckFixBranches(deps.git(['ls-remote', '--heads', 'origin', `${PRECHECK_PREFIX}*`], dir));
   let reason = null;
   if (heads.includes(`refs/heads/${branch}`)) reason = `fix branch ${branch} already exists`;
-  else if (heads.length >= PRECHECK_MAX_OPEN) reason = `${PRECHECK_MAX_OPEN} open nightly-fix branches`;
+  // Counts branches, not open PRs: merged or closed fix branches still count until deleted.
+  else if (heads.length >= PRECHECK_MAX_OPEN) {
+    reason = `${heads.length} nightly-fix/* branches exist on origin; delete merged/closed ones (or enable "Automatically delete head branches")`;
+  }
   if (reason) {
     deps.outputJson({ skip: true, reason });
     throw new Error(`skip: ${reason}`);
   }
 
-  deps.git(['fetch', 'origin', marker.sha], dir);
+  // Fetch only when the clone does not already have the commit.
+  try {
+    deps.git(['cat-file', '-e', `${marker.sha}^{commit}`], dir);
+  } catch {
+    deps.git(['fetch', 'origin', marker.sha], dir);
+  }
   deps.git(['checkout', '-b', branch, marker.sha], dir);
   console.log(`precheck: ${branch} at ${marker.sha}`);
   deps.outputJson({ branch, base: marker.sha });
