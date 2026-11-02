@@ -4,60 +4,127 @@ export const NIGHTLY_LABEL = 'nightly-test-failure';
 export const NIGHTLY_SETUP_LABEL = 'nightly-setup-failure';
 export const NIGHTLY_NO_JUNIT_TITLE = 'Test suite failing (no per-test results)';
 
-export function dedupeCheckPartition(failing, causes, requireTests) {
-  const count = new Map();
-  for (const c of causes) for (const t of c.tests) count.set(t, (count.get(t) || 0) + 1);
+export const NIGHTLY_UNGROUPED_TITLE = 'Ungrouped failures';
+// GitHub caps issue and comment bodies at 65536 characters.
+const DEDUPE_BODY_MAX = 65000;
+const DEDUPE_LIST_MAX = 50;
+const DEDUPE_NOTE_IDS = 10;
+
+function dedupeTickRun(s) {
+  return Math.max(0, ...(String(s).match(/`+/g) || []).map((r) => r.length));
+}
+
+// A fenced block whose fence is longer than any backtick run in the content.
+export function dedupeFenced(content) {
+  const fence = '`'.repeat(Math.max(3, dedupeTickRun(content) + 1));
+  return `${fence}\n${content}\n${fence}`;
+}
+
+// Inline code that survives backticks in the content.
+export function dedupeInline(content) {
+  const n = dedupeTickRun(content);
+  const ticks = '`'.repeat(n + 1);
+  return n ? `${ticks} ${content} ${ticks}` : `${ticks}${content}${ticks}`;
+}
+
+// The first DEDUPE_LIST_MAX ids as list items, then a count of the rest.
+export function dedupeIdList(ids) {
+  const lines = ids.slice(0, DEDUPE_LIST_MAX).map((t) => `- ${t}`);
+  if (ids.length > DEDUPE_LIST_MAX) lines.push(`… and ${ids.length - DEDUPE_LIST_MAX} more`);
+  return lines;
+}
+
+// Cut human-readable text so it plus `tail` (the marker, if any) stays under the body cap.
+export function dedupeFit(text, tail = '') {
+  const room = DEDUPE_BODY_MAX - tail.length;
+  if (text.length <= room) return text + tail;
+  const cut = '\n… (truncated)\n\n';
+  let head = text.slice(0, Math.max(0, room - cut.length));
+  if (head.lastIndexOf('\n') > 0) head = head.slice(0, head.lastIndexOf('\n'));
+  return head + cut + tail;
+}
+
+function dedupeNoteIds(ids) {
+  const shown = ids.slice(0, DEDUPE_NOTE_IDS).join(', ');
+  return ids.length > DEDUPE_NOTE_IDS ? `${shown}, … and ${ids.length - DEDUPE_NOTE_IDS} more` : shown;
+}
+
+// Make the agent's causes a partition of the failing ids, deterministically: unknown ids are
+// dropped, a duplicate id stays only in its first cause, empty causes are dropped, and ids in no
+// cause go to an extra "Ungrouped failures" cause that runs the full test command.
+export function dedupePartition(failing, causes, testCommand) {
   const fset = new Set(failing);
-  const missing = [...fset].filter((t) => !count.has(t));
-  const duplicate = [...count].filter(([, n]) => n > 1).map(([t]) => t);
-  const unknown = [...count.keys()].filter((t) => !fset.has(t));
-  const empty = requireTests ? causes.filter((c) => c.tests.length === 0).map((c) => c.title) : [];
-  if (missing.length || duplicate.length || unknown.length || empty.length) {
-    throw new Error(`causes do not partition failing tests: missing [${missing.join(', ')}] duplicate [${duplicate.join(', ')}] unknown [${unknown.join(', ')}] empty [${empty.join(', ')}]`);
+  const owner = new Map();
+  const unknown = [];
+  const duplicate = [];
+  const notes = [];
+  const kept = [];
+  for (const c of causes) {
+    const tests = [];
+    for (const t of c.tests) {
+      if (!fset.has(t)) { unknown.push(t); continue; }
+      if (owner.has(t)) { duplicate.push(t); continue; }
+      owner.set(t, c.title);
+      tests.push(t);
+    }
+    if (tests.length === 0) notes.push(`cause "${c.title}" has no tests; dropped`);
+    else kept.push({ ...c, tests });
   }
+  if (unknown.length) notes.push(`${unknown.length} unknown test id(s) dropped: ${dedupeNoteIds(unknown)}`);
+  if (duplicate.length) notes.push(`${duplicate.length} duplicate test id(s) kept only in their first cause: ${dedupeNoteIds(duplicate)}`);
+  const missing = [...fset].filter((t) => !owner.has(t));
+  if (missing.length) {
+    notes.push(`${missing.length} failing test(s) in no cause moved to "${NIGHTLY_UNGROUPED_TITLE}": ${dedupeNoteIds(missing)}`);
+    kept.push({
+      title: NIGHTLY_UNGROUPED_TITLE,
+      summary: 'Failing tests the grouping step did not assign to any cause.',
+      tests: missing,
+      causeCommand: testCommand,
+    });
+  }
+  return { causes: kept, notes };
 }
 
 export function dedupeOpenBody(cause, results, marker) {
-  const lines = [cause.summary || cause.title, ''];
-  if (cause.tests.length) {
-    lines.push('Failing tests:', ...cause.tests.map((t) => `- ${t}`), '');
-  }
-  lines.push(`Commit: ${results.sha}`, `Setup: \`${results.setup}\``, `Test: \`${results.test}\``, '', formatMarker(marker));
-  return lines.join('\n');
+  const lines = [cause.summary || cause.title, '', `Commit: ${results.sha}`, `Setup: ${dedupeInline(results.setup)}`, `Test: ${dedupeInline(results.test)}`, ''];
+  if (cause.tests.length) lines.push('Failing tests:', ...dedupeIdList(cause.tests), '');
+  lines.push('');
+  return dedupeFit(lines.join('\n'), formatMarker(marker));
 }
 
 export function planIssues({ results, causes, openIssues, setupFailed }) {
   const labelled = (l) => openIssues.filter((i) => Array.isArray(i.labels) && i.labels.includes(l));
+  const setupIssues = labelled(NIGHTLY_SETUP_LABEL).sort((a, b) => a.number - b.number);
   if (setupFailed) {
-    const body = `Nightly setup failed on ${results.sha}.\n\n\`\`\`\n${setupFailed.log}\n\`\`\``;
-    const existing = labelled(NIGHTLY_SETUP_LABEL).sort((a, b) => a.number - b.number)[0];
-    if (existing) return [{ type: 'comment', issue: existing.number, body }];
-    return [{ type: 'open-setup', title: 'Nightly setup failing', body, labels: [NIGHTLY_SETUP_LABEL] }];
+    const body = dedupeFit(`Nightly setup failed on ${results.sha}.\n\n${dedupeFenced(setupFailed.log)}`);
+    const existing = setupIssues[0];
+    if (existing) return { actions: [{ type: 'comment', issue: existing.number, body }], notes: [] };
+    return { actions: [{ type: 'open-setup', title: 'Nightly setup failing', body, labels: [NIGHTLY_SETUP_LABEL] }], notes: [] };
   }
+  const actions = setupIssues.map((i) => ({ type: 'close', issue: i.number, body: `Setup succeeded on ${results.sha}; closing.` }));
 
   const noJunitFail = !results.junit && results.testCode !== 0;
-  const effective = results.junit
-    ? causes
-    : noJunitFail ? [{ title: NIGHTLY_NO_JUNIT_TITLE, summary: 'The test suite failed and produced no per-test results.', tests: [], causeCommand: results.test }] : [];
-  dedupeCheckPartition(results.junit ? results.failing : [], effective, results.junit);
+  let effective;
+  let notes = [];
+  if (results.junit) ({ causes: effective, notes } = dedupePartition(results.failing || [], causes, results.test));
+  else effective = noJunitFail ? [{ title: NIGHTLY_NO_JUNIT_TITLE, summary: 'The test suite failed and produced no per-test results.', tests: [], causeCommand: results.test }] : [];
 
   const issues = labelled(NIGHTLY_LABEL)
     .map((i) => ({ number: i.number, marker: parseMarker(i.body) }))
     .filter((i) => i.marker)
     .sort((a, b) => a.number - b.number);
 
-  const actions = [];
   const commented = new Set();
   for (const cause of effective) {
     const hit = issues.find((i) => (results.junit
       ? i.marker.junit && cause.tests.some((t) => i.marker.tests.includes(t))
       : !i.marker.junit));
     if (hit) {
-      const ids = cause.tests.length ? `\n\nFailing:\n${cause.tests.map((t) => `- ${t}`).join('\n')}` : '';
-      actions.push({ type: 'comment', issue: hit.number, body: `Still failing on ${results.sha}${ids}` });
+      const ids = cause.tests.length ? `\n\nFailing:\n${dedupeIdList(cause.tests).join('\n')}` : '';
+      actions.push({ type: 'comment', issue: hit.number, body: dedupeFit(`Still failing on ${results.sha}${ids}`) });
       if (!commented.has(hit.number)) {
         commented.add(hit.number);
-        actions.push({ type: 'set-marker', issue: hit.number, marker: formatMarker({ ...hit.marker, greenNights: 0 }) });
+        if (hit.marker.greenNights !== 0) actions.push({ type: 'set-marker', issue: hit.number, marker: formatMarker({ ...hit.marker, greenNights: 0 }) });
       }
     } else {
       const marker = {
@@ -89,5 +156,5 @@ export function planIssues({ results, causes, openIssues, setupFailed }) {
       actions.push({ type: 'set-marker', issue: number, marker: formatMarker({ ...marker, greenNights: next }) });
     }
   }
-  return actions;
+  return { actions, notes };
 }

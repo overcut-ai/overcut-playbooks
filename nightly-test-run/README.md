@@ -77,7 +77,7 @@ The flow is linear and every step runs every night; steps with nothing to do wri
 
 **Step 5: List Open Nightly Issues** — Collects the open `nightly-test-failure` and `nightly-setup-failure` issues with their exact bodies.
 
-**Step 6: Plan Issues** (script, deterministic) — Computes the exact actions: open, comment, update marker, or close. A cause sharing any failing test with an open issue's marker gets a comment there instead of a new issue. Fails the run if the causes do not cover every failing test exactly once.
+**Step 6: Plan Issues** (script, deterministic) — Computes the exact actions: open, comment, update marker, or close. A cause sharing any failing test with an open issue's marker gets a comment there instead of a new issue. If the causes do not cover every failing test exactly once, it corrects them deterministically instead of failing: unknown ids are dropped, a duplicate id stays in its first cause, empty causes are dropped, and uncovered ids go to an extra `Ungrouped failures` issue that runs the full test command; the step output's `notes` list each correction. The first night that gets past setup closes an open `nightly-setup-failure` issue. Issue bodies list at most 50 test ids (`… and K more`) and stay under GitHub's 65536-character limit.
 
 **Step 7: Apply Issue Plan** — Executes the plan exactly, in order, adding nothing.
 
@@ -94,7 +94,7 @@ All step files live in `$AGENT_WORKSPACE_PATH/.nightly/`, outside the repository
 | `open-issues.json` `[{number, labels, body}]` | `list-open-issues` | `plan-issues` |
 | `plan.json` (actions) | `plan-issues` | `apply-plan` |
 
-Each issue body ends with a hidden marker line, `<!-- nightly-test-failure {...} -->`, holding the commit SHA, the cause's test ids, all failing ids, totals, the commands and a green-night counter. The workflow uses it for dedupe and closing.
+Each issue body ends with a hidden marker line, `<!-- nightly-test-failure {...} -->`, holding the commit SHA, the cause's test ids, all failing ids, totals, the commands and a green-night counter. The workflow uses it for dedupe and closing. The marker is capped at 60000 characters: on a very red night it drops the all-failing list (`allFailingTruncated: true`, and the fix gate then counts every non-cause failure as new), and if still too long keeps a sorted prefix of the cause's ids (`testsTruncated: true`, and a fix always needs human review).
 
 ## 🎨 Customization
 

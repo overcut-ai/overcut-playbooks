@@ -45,8 +45,10 @@ export async function main(env, deps = { outputJson }) {
   const setupFailed = results.status === 'setup-failed' ? { log: String(results.log || '').slice(-PLAN_SETUP_LOG_MAX) } : null;
   // Causes only matter on a red night with per-test results; planIssues ignores them otherwise.
   const causes = results.status === 'red' && results.junit ? planCauses(planRead(stateDir, 'causes.json')) : [];
-  const actions = planIssues({ results, causes, openIssues, setupFailed });
+  // Causes that do not partition the failing ids are corrected deterministically; notes say how.
+  const { actions, notes } = planIssues({ results, causes, openIssues, setupFailed });
   writeFileSync(join(stateDir, 'plan.json'), JSON.stringify(actions, null, 2));
   console.log(`nightly plan: ${actions.length} action(s): ${actions.map((a) => a.type).join(', ') || 'none'}`);
-  deps.outputJson({ actions: actions.length });
+  for (const n of notes) console.log(`nightly plan note: ${n}`);
+  deps.outputJson({ actions: actions.length, notes });
 }

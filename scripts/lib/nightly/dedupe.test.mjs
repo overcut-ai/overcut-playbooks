@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { formatMarker, parseMarker } from './marker.mjs';
 import { planIssues } from './dedupe.mjs';
 
+const plan = (x) => planIssues(x).actions;
+
 const SHA = 'b'.repeat(40);
 const OLD = 'a'.repeat(40);
 const mk = (o = {}) => ({
@@ -19,7 +21,7 @@ const res = (o = {}) => ({ setup: 'make setup', test: 'make test',
 const cause = (title, tests) => ({ title, summary: `sum ${title}`, tests, causeCommand: `run ${title}` });
 
 test('two new causes open two issues', () => {
-  const a = planIssues({
+  const a = plan({
     results: res({ testCode: 1, failing: ['t1', 't2', 't3'], cases: [cs('t1', 'failed'), cs('t2', 'failed'), cs('t3', 'failed')] }),
     causes: [cause('A', ['t1', 't2']), cause('B', ['t3'])], openIssues: [], setupFailed: null,
   });
@@ -38,7 +40,7 @@ test('two new causes open two issues', () => {
 });
 
 test('overlap comments lowest issue and resets greenNights', () => {
-  const a = planIssues({
+  const a = plan({
     results: res({ testCode: 1, failing: ['t1'], cases: [cs('t1', 'failed')] }),
     causes: [cause('A', ['t1'])],
     openIssues: [issue(9, mk({ greenNights: 1 })), issue(7, mk({ greenNights: 1 }))], setupFailed: null,
@@ -57,7 +59,7 @@ test('overlap comments lowest issue and resets greenNights', () => {
 });
 
 test('green issue with 2 greenNights closes', () => {
-  const a = planIssues({
+  const a = plan({
     results: res({ cases: [cs('t1')] }), causes: [],
     openIssues: [issue(8, mk({ greenNights: 2 }))], setupFailed: null,
   });
@@ -68,56 +70,83 @@ test('green issue with 2 greenNights closes', () => {
 });
 
 test('green issue below 3 increments marker; absent tests unchanged', () => {
-  const a = planIssues({
+  const a = plan({
     results: res({ cases: [cs('t1')] }), causes: [],
     openIssues: [issue(8, mk({ greenNights: 0 }))], setupFailed: null,
   });
   assert.equal(a[0].type, 'set-marker');
   assert.equal(parseMarker(a[0].marker).greenNights, 1);
-  assert.deepEqual(planIssues({ results: res({ cases: [cs('zzz')] }), causes: [], openIssues: [issue(8, mk({ greenNights: 1 }))], setupFailed: null }), []);
-  assert.deepEqual(planIssues({ results: res({ junit: false, cases: null }), causes: [], openIssues: [issue(8, mk({ greenNights: 1 }))], setupFailed: null }), []);
+  assert.deepEqual(plan({ results: res({ cases: [cs('zzz')] }), causes: [], openIssues: [issue(8, mk({ greenNights: 1 }))], setupFailed: null }), []);
+  assert.deepEqual(plan({ results: res({ junit: false, cases: null }), causes: [], openIssues: [issue(8, mk({ greenNights: 1 }))], setupFailed: null }), []);
 });
 
 test('failed marker test with no greenNights emits nothing', () => {
-  const a = planIssues({
+  const a = plan({
     results: res({ testCode: 1, failing: ['t1'], cases: [cs('t1', 'failed')] }),
     causes: [cause('A', ['t1'])], openIssues: [], setupFailed: null,
   });
   assert.equal(a.length, 1);
-  assert.deepEqual(planIssues({ results: res({ testCode: 1, failing: ['q'], cases: [cs('q', 'failed'), cs('t1', 'failed')] }), causes: [cause('Q', ['q'])], openIssues: [issue(3, mk({ greenNights: 0 }))], setupFailed: null }).map((x) => x.type), ['open']);
+  assert.deepEqual(plan({ results: res({ testCode: 1, failing: ['q'], cases: [cs('q', 'failed'), cs('t1', 'failed')] }), causes: [cause('Q', ['q'])], openIssues: [issue(3, mk({ greenNights: 0 }))], setupFailed: null }).map((x) => x.type), ['open']);
 });
 
-test('partition errors', () => {
+test('partition fallback: missing ids go to "Ungrouped failures" with the full test command', () => {
+  const r = res({ testCode: 1, failing: ['a', 'b', 'c'], cases: [] });
+  const p = planIssues({ results: r, causes: [cause('X', ['a'])], openIssues: [], setupFailed: null });
+  assert.deepEqual(p.actions.map((x) => [x.type, x.title]), [['open', 'X'], ['open', 'Ungrouped failures']]);
+  const m = parseMarker(p.actions[1].body);
+  assert.deepEqual(m.tests, ['b', 'c']);
+  assert.equal(m.causeCommand, 'make test');
+  assert.equal(p.notes.length, 1);
+  assert.match(p.notes[0], /2 failing test\(s\) in no cause moved to "Ungrouped failures": b, c/);
+});
+
+test('partition fallback: duplicates keep their first cause, unknown ids are dropped', () => {
   const r = res({ testCode: 1, failing: ['a', 'b'], cases: [] });
-  const go = (causes) => () => planIssues({ results: r, causes, openIssues: [], setupFailed: null });
-  assert.throws(go([cause('X', ['a'])]), { message: 'causes do not partition failing tests: missing [b] duplicate [] unknown [] empty []' });
-  assert.throws(go([cause('X', ['a', 'b']), cause('Y', ['b'])]), { message: 'causes do not partition failing tests: missing [] duplicate [b] unknown [] empty []' });
-  assert.throws(go([cause('X', ['a', 'b', 'c'])]), { message: 'causes do not partition failing tests: missing [] duplicate [] unknown [c] empty []' });
+  const p = planIssues({ results: r, causes: [cause('X', ['a', 'b', 'c']), cause('Y', ['b', 'b'])], openIssues: [], setupFailed: null });
+  assert.deepEqual(p.actions.map((x) => x.title), ['X']);
+  assert.deepEqual(parseMarker(p.actions[0].body).tests, ['a', 'b']);
+  assert.ok(p.notes.some((n) => /duplicate/.test(n) && n.includes('b')));
+  assert.ok(p.notes.some((n) => /unknown/.test(n) && n.includes('c')));
+  assert.ok(p.notes.some((n) => /"Y".*no tests/.test(n)));
 });
 
-test('junit night rejects empty-tests cause', () => {
+test('partition fallback: a correct partition has no notes', () => {
+  const r = res({ testCode: 1, failing: ['a', 'b'], cases: [] });
+  const p = planIssues({ results: r, causes: [cause('X', ['a']), cause('Y', ['b'])], openIssues: [], setupFailed: null });
+  assert.deepEqual(p.notes, []);
+  assert.equal(p.actions.length, 2);
+});
+
+test('junit night drops an empty-tests cause', () => {
   const r = res({ testCode: 1, failing: ['a'], cases: [] });
-  assert.throws(() => planIssues({ results: r, causes: [cause('X', ['a']), cause('Empty', [])], openIssues: [], setupFailed: null }),
-    { message: 'causes do not partition failing tests: missing [] duplicate [] unknown [] empty [Empty]' });
+  const p = planIssues({ results: r, causes: [cause('X', ['a']), cause('Empty', [])], openIssues: [], setupFailed: null });
+  assert.deepEqual(p.actions.map((x) => x.title), ['X']);
+  assert.match(p.notes.join('\n'), /"Empty" has no tests; dropped/);
+});
+
+test('partition fallback: no causes at all on a red night still files every failing test', () => {
+  const r = res({ testCode: 1, failing: ['a'], cases: [] });
+  const p = planIssues({ results: r, causes: [], openIssues: [], setupFailed: null });
+  assert.deepEqual(p.actions.map((x) => x.title), ['Ungrouped failures']);
 });
 
 test('no-junit failing creates script cause; dedupes on junit:false marker', () => {
   const results = res({ junit: false, testCode: 1, cases: null, total: 0, failing: [] });
-  const o = planIssues({ results, causes: [cause('ignored', [])], openIssues: [], setupFailed: null });
+  const o = plan({ results, causes: [cause('ignored', [])], openIssues: [], setupFailed: null });
   assert.equal(o.length, 1);
   assert.equal(o[0].title, 'Test suite failing (no per-test results)');
   const m = parseMarker(o[0].body);
   assert.equal(m.junit, false);
   assert.deepEqual(m.tests, []);
   const open = issue(4, mk({ junit: false, tests: [], allFailing: [], total: 0, greenNights: 2 }));
-  const c = planIssues({ results, causes: [], openIssues: [open], setupFailed: null });
+  const c = plan({ results, causes: [], openIssues: [open], setupFailed: null });
   assert.deepEqual(c.map((x) => x.type), ['comment', 'set-marker']);
-  const g = planIssues({ results: res({ junit: false, testCode: 0, cases: null }), causes: [], openIssues: [open], setupFailed: null });
+  const g = plan({ results: res({ junit: false, testCode: 0, cases: null }), causes: [], openIssues: [open], setupFailed: null });
   assert.equal(g[0].type, 'close');
 });
 
 test('setup failure', () => {
-  const a = planIssues({
+  const a = plan({
     results: res(), causes: [],
     openIssues: [issue(9, mk(), 'nightly-setup-failure'), issue(8, mk({ greenNights: 2 }))],
     setupFailed: { log: 'boom' },
@@ -125,18 +154,87 @@ test('setup failure', () => {
   assert.equal(a.length, 1);
   assert.equal(a[0].type, 'comment');
   assert.equal(a[0].issue, 9);
-  const b = planIssues({ results: res(), causes: [], openIssues: [], setupFailed: { log: 'boom' } });
+  const b = plan({ results: res(), causes: [], openIssues: [], setupFailed: { log: 'boom' } });
   assert.equal(b[0].type, 'open-setup');
   assert.deepEqual(b[0].labels, ['nightly-setup-failure']);
 });
 
 test('unparseable-marker issues are ignored', () => {
   const bad = { number: 2, labels: ['nightly-test-failure'], body: 'no marker' };
-  const a = planIssues({ results: res({ testCode: 1, failing: ['t1'], cases: [cs('t1', 'failed')] }), causes: [cause('A', ['t1'])], openIssues: [bad], setupFailed: null });
+  const a = plan({ results: res({ testCode: 1, failing: ['t1'], cases: [cs('t1', 'failed')] }), causes: [cause('A', ['t1'])], openIssues: [bad], setupFailed: null });
   assert.deepEqual(a.map((x) => x.type), ['open']);
 });
 
 test('no-junit cause carries test command as causeCommand', () => {
-  const o = planIssues({ results: res({ junit: false, testCode: 1, cases: null, total: 0 }), causes: [], openIssues: [], setupFailed: null });
+  const o = plan({ results: res({ junit: false, testCode: 1, cases: null, total: 0 }), causes: [], openIssues: [], setupFailed: null });
   assert.equal(parseMarker(o[0].body).causeCommand, 'make test');
+});
+
+const longIds = (n) => Array.from({ length: n }, (_, i) => `pkg/sub/module_${String(i).padStart(5, '0')}_test.py::TestSomething::test_case_with_a_long_name_${i}`);
+
+for (const n of [400, 5000]) {
+  test(`${n} failing ids: open body and marker fit GitHub limits`, () => {
+    const failing = longIds(n);
+    const r = res({ testCode: 1, failing, cases: failing.map((id) => cs(id, 'failed')) });
+    const p = planIssues({ results: r, causes: [{ ...cause('Big', failing), summary: 'S'.repeat(3000) }], openIssues: [], setupFailed: null });
+    const body = p.actions[0].body;
+    assert.ok(body.length <= 65000, `body ${body.length}`);
+    const m = parseMarker(body);
+    assert.ok(m, 'marker parses');
+    assert.equal(m.allFailingTruncated, true);
+    assert.ok(body.startsWith('S'.repeat(3000)));
+    assert.ok(body.includes(`Commit: ${SHA}`));
+    if (n === 400) {
+      assert.equal((body.match(/^- /gm) || []).length, 50);
+      assert.ok(body.includes(`… and ${n - 50} more`));
+    } else {
+      // The marker nearly fills the body: the list is cut at a line and says so.
+      assert.equal(m.testsTruncated, true);
+      assert.ok((body.match(/^- /gm) || []).length < 50);
+      assert.match(body, /\n… \(truncated\)\n/);
+    }
+  });
+
+  test(`${n} failing ids: comment body is capped and set-marker fits`, () => {
+    const failing = longIds(n);
+    const r = res({ testCode: 1, failing, cases: failing.map((id) => cs(id, 'failed')) });
+    const a = plan({ results: r, causes: [cause('Big', failing)], openIssues: [issue(4, mk({ tests: [failing[0]], greenNights: 1 }))], setupFailed: null });
+    const c = a.find((x) => x.type === 'comment');
+    assert.ok(c.body.length <= 65000);
+    assert.equal((c.body.match(/^- /gm) || []).length, 50);
+    assert.ok(c.body.includes(`… and ${n - 50} more`));
+    for (const s of a.filter((x) => x.type === 'set-marker')) assert.ok(s.marker.length <= 60000);
+  });
+}
+
+test('comment hit with greenNights 0 emits no set-marker', () => {
+  const a = plan({
+    results: res({ testCode: 1, failing: ['t1'], cases: [cs('t1', 'failed')] }),
+    causes: [cause('A', ['t1'])], openIssues: [issue(7, mk({ greenNights: 0 }))], setupFailed: null,
+  });
+  assert.deepEqual(a.map((x) => [x.type, x.issue]), [['comment', 7]]);
+});
+
+test('first night after a setup failure closes the open setup issue', () => {
+  for (const results of [res({ cases: [cs('t1')] }), res({ testCode: 1, failing: ['t1'], cases: [cs('t1', 'failed')] })]) {
+    const a = plan({
+      results, causes: results.failing.length ? [cause('A', ['t1'])] : [],
+      openIssues: [issue(9, mk(), 'nightly-setup-failure')], setupFailed: null,
+    });
+    const close = a.filter((x) => x.type === 'close');
+    assert.deepEqual(close, [{ type: 'close', issue: 9, body: `Setup succeeded on ${SHA}; closing.` }]);
+  }
+  const s = plan({ results: res(), causes: [], openIssues: [issue(9, mk(), 'nightly-setup-failure')], setupFailed: { log: 'boom' } });
+  assert.deepEqual(s.map((x) => x.type), ['comment']);
+});
+
+test('fences and inline code are longer than any backtick run inside', () => {
+  const s = plan({ results: res(), causes: [], openIssues: [], setupFailed: { log: 'a\n```\nb ```` c' } });
+  assert.ok(s[0].body.includes('`````\na\n```\nb ```` c\n`````'), s[0].body);
+  const o = plan({
+    results: res({ testCode: 1, failing: ['a'], cases: [cs('a', 'failed')], setup: 'echo `x`', test: 'run ``y``' }),
+    causes: [cause('A', ['a'])], openIssues: [], setupFailed: null,
+  });
+  assert.ok(o[0].body.includes('Setup: `` echo `x` ``'), o[0].body);
+  assert.ok(o[0].body.includes('Test: ``` run ``y`` ```'), o[0].body);
 });

@@ -19,7 +19,7 @@ Failure messages and stack traces are in the JUnit XML files under `$AGENT_WORKS
 1. If `status` is not `"red"`, or `junit` is `false`: write `[]` to the output file and call `task_completed`. (A script files those cases without your grouping.)
 2. Otherwise group every id in `failing`:
    - Read each failing test's message and stack trace from the XML, and the code under test, to find the actual cause (for example one broken function, a changed API, a missing fixture). Tests failing for the same underlying reason belong to one cause; unrelated failures get separate causes.
-   - **Every id in `failing` must appear in exactly one cause.** Copy ids character for character from `failing`. Do not add ids that are not in `failing`, and do not leave any out. The next step fails the run if the causes do not partition `failing` exactly.
+   - **Every id in `failing` must appear in exactly one cause.** Copy ids character for character from `failing`. Do not add ids that are not in `failing`, and do not leave any out. If the causes do not partition `failing` exactly, the next step corrects them mechanically (ids you leave out are filed together under an `Ungrouped failures` issue), which is worse than grouping them yourself.
    - For each cause write:
      - `title`: one line naming the cause, e.g. `Null session in AuthService.refresh breaks login tests` (not "Tests failing").
      - `summary`: 2-6 sentences: what fails, the key error message excerpt, the likely source location. Plain Markdown.

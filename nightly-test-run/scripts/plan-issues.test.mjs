@@ -42,7 +42,7 @@ test('red without JUnit: single open with junit:false marker; agent causes ignor
     assert.equal(m.junit, false);
     assert.deepEqual(m.tests, []);
     assert.equal(m.causeCommand, 't');
-    assert.deepEqual(out, [{ actions: 1 }]);
+    assert.deepEqual(out, [{ actions: 1, notes: [] }]);
   } finally { rmSync(d, { recursive: true, force: true }); }
 });
 
@@ -58,7 +58,7 @@ test('setup-failed: single open-setup action', async () => {
     assert.equal(plan[0].type, 'open-setup');
     assert.deepEqual(plan[0].labels, ['nightly-setup-failure']);
     assert.match(plan[0].body, /apt failed/);
-    assert.deepEqual(out, [{ actions: 1 }]);
+    assert.deepEqual(out, [{ actions: 1, notes: [] }]);
   } finally { rmSync(d, { recursive: true, force: true }); }
 });
 
@@ -106,14 +106,20 @@ test('green: causes.json is ignored and may be absent; green nights advance', as
   } finally { rmSync(d, { recursive: true, force: true }); }
 });
 
-test('red with causes that do not partition: throws', async () => {
+test('red with causes that do not partition: falls back, notes in the output', async () => {
   const d = ws({
-    'results.json': base({ failing: ['a'], cases: [{ id: 'a', status: 'failed' }] }),
-    'causes.json': [],
+    'results.json': base({ failing: ['a', 'b'], cases: [{ id: 'a', status: 'failed' }, { id: 'b', status: 'failed' }] }),
+    'causes.json': [{ title: 'A broke', summary: 'sa', tests: ['a', 'zz'], causeCommand: 'ta' }],
     'open-issues.json': [],
   });
   try {
-    await assert.rejects(run(d), /partition/);
+    const { plan, out } = await run(d);
+    assert.deepEqual(plan.map((a) => [a.type, a.title]), [['open', 'A broke'], ['open', 'Ungrouped failures']]);
+    assert.equal(out.length, 1);
+    assert.equal(out[0].actions, 2);
+    assert.equal(out[0].notes.length, 2);
+    assert.match(out[0].notes.join('\n'), /unknown test id\(s\) dropped: zz/);
+    assert.match(out[0].notes.join('\n'), /moved to "Ungrouped failures": b/);
   } finally { rmSync(d, { recursive: true, force: true }); }
 });
 
