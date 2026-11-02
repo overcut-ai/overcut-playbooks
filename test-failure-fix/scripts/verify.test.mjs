@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { git, runSuite, sh } from '../../scripts/lib/nightly/exec.mjs';
 import { makeRepo, issueBody, installHooks, tgit } from './fixtures/repo.mjs';
@@ -866,8 +866,8 @@ test('Go-only fix: compiled, no mixed reason', async () => {
 for (const [label, cmdTail] of [
   ['sets http.proxy', 'git config http.proxy http://127.0.0.1:9'],
   ['sets core.sshCommand', "git config core.sshCommand 'ssh -o ProxyCommand=nc'"],
-  ['adds a hook to .git/hooks', 'printf "#!/bin/sh\\n" > .git/hooks/pre-push; chmod +x .git/hooks/pre-push'],
-  ['edits an existing hook', 'echo "# x" >> .git/hooks/pre-commit.sample'],
+  ['sets credential.helper', "git config credential.helper '!echo x'"],
+  ['adds an include.path', 'git config include.path /dev/null'],
 ]) {
   test(`config tamper: a run that ${label} -> exit 1 "git config changed during verification"`, async () => {
     const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
@@ -880,14 +880,88 @@ for (const [label, cmdTail] of [
   });
 }
 
-test('config tamper: a hook added to a repo-configured core.hooksPath dir is detected', async () => {
+// --- fix round 4: only network-affecting config rejects; other repo-local changes are restored ---
+
+const RESTORED = 'restored repo-local git config changed by setup/test (non-network keys)';
+
+function localConfig(t, key) {
+  try { return tgit(['config', '--local', '--get', key], t.dir).trim(); } catch { return null; }
+}
+
+test('husky-style setup (core.hooksPath + .husky/_ hooks) -> not rejected, config restored, pushed, pre-push hook not run', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    const sha = t.commit(GO_FIX);
+    const marker = join(t.ws, 'husky-hook-ran');
+    const hook = `#!/bin/sh\ntouch ${marker}\n`;
+    const husky = `mkdir -p .husky/_ && printf '*\\n' > .husky/_/.gitignore && for h in pre-push pre-commit post-checkout reference-transaction; do printf ${JSON.stringify(hook)} > .husky/_/$h; chmod +x .husky/_/$h; done && git config core.hooksPath .husky/_`;
+    await main(t.env({ OC_PARAM_NIGHTLY_SETUP_COMMAND: husky }), t.deps);
+    const out = t.calls.out.at(-1);
+    assert.equal(out.verified, true, JSON.stringify(out));
+    assert.ok(out.checks.includes(RESTORED), out.checks.join('\n'));
+    assert.equal(t.remoteHead('nightly-fix/7'), sha);
+    assert.equal(existsSync(join(t.dir, '.husky', '_', 'pre-push')), true, 'the husky hook was written');
+    assert.equal(existsSync(marker), false, 'a husky hook ran');
+    assert.equal(localConfig(t, 'core.hooksPath'), null, 'repo-local config restored');
+    await assertHead({ AGENT_WORKSPACE_PATH: t.ws, REPO_FULL_NAME: 'o/repo', BRANCH: 'nightly-fix/7', SHA: sha, PUSH_URL: out.pushUrl }, { git, outputJson: () => {} });
+    assert.equal(existsSync(marker), false, 'a hook ran on assert-head ls-remote');
+  } finally { t.cleanup(); }
+});
+
+test('a pre-push hook written to .git/hooks during a run does not execute on the verify push', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    const sha = t.commit(GO_FIX);
+    const marker = join(t.ws, 'pre-push-ran');
+    const cmd = `${t.test}; ec=$?; printf ${JSON.stringify(`#!/bin/sh\ntouch ${marker}\n`)} > .git/hooks/pre-push; chmod +x .git/hooks/pre-push; exit $ec`;
+    await main(t.env({ OC_PARAM_NIGHTLY_TEST_COMMAND: cmd }), t.deps);
+    assert.equal(t.calls.out.at(-1).verified, true);
+    assert.equal(existsSync(join(t.dir, '.git', 'hooks', 'pre-push')), true);
+    assert.equal(t.remoteHead('nightly-fix/7'), sha);
+    assert.equal(existsSync(marker), false, 'the pre-push hook ran');
+  } finally { t.cleanup(); }
+});
+
+test('a run that sets submodule.foo.url -> restored, not rejected', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  try {
+    const sha = t.commit(GO_FIX);
+    const cmd = `${t.test}; ec=$?; git config submodule.foo.url https://example.invalid/foo.git; git config user.name changed; exit $ec`;
+    await main(t.env({ OC_PARAM_NIGHTLY_TEST_COMMAND: cmd }), t.deps);
+    const out = t.calls.out.at(-1);
+    assert.equal(out.verified, true, JSON.stringify(out));
+    assert.ok(out.checks.includes(RESTORED));
+    assert.equal(t.remoteHead('nightly-fix/7'), sha);
+    assert.equal(localConfig(t, 'submodule.foo.url'), null);
+    assert.equal(localConfig(t, 'user.name'), null);
+  } finally { t.cleanup(); }
+});
+
+test('no config change -> no restore line', async () => {
   const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
   try {
     t.commit(GO_FIX);
-    const hooks = join(t.ws, 'myhooks');
-    mkdirSync(hooks);
-    tgit(['config', 'core.hooksPath', hooks], t.dir);
-    const cmd = `${t.test}; ec=$?; printf "#!/bin/sh\\n" > ${JSON.stringify(join(hooks, 'post-merge'))}; exit $ec`;
-    await rejected(t, /git config changed during verification/, { OC_PARAM_NIGHTLY_TEST_COMMAND: cmd });
+    await main(t.env(), t.deps);
+    assert.equal(t.calls.out.at(-1).checks.includes(RESTORED), false);
   } finally { t.cleanup(); }
+});
+
+test('a run that adds url.X.insteadOf in the global config -> exit 1, nothing pushed anywhere', async () => {
+  const t = setup(GO, {}, { cause: GO_CAUSE, total: 2 });
+  const saved = process.env.GIT_CONFIG_GLOBAL;
+  try {
+    t.commit(GO_FIX);
+    const o = otherBare(t);
+    const global = join(t.ws, 'global.gitconfig');
+    writeFileSync(global, '');
+    process.env.GIT_CONFIG_GLOBAL = global;
+    const cmd = `${t.test}; ec=$?; git config --global ${JSON.stringify(`url.${o.other}.pushInsteadOf`)} ${JSON.stringify(t.origin)}; exit $ec`;
+    const out = await rejected(t, /git config changed during verification/, { OC_PARAM_NIGHTLY_TEST_COMMAND: cmd });
+    assert.deepEqual(out.reasons, ['git config changed during verification']);
+    assert.match(readFileSync(global, 'utf8'), /pushInsteadOf/i, 'the global rule was written');
+    assert.equal(o.head('nightly-fix/7'), null);
+  } finally {
+    if (saved === undefined) delete process.env.GIT_CONFIG_GLOBAL; else process.env.GIT_CONFIG_GLOBAL = saved;
+    t.cleanup();
+  }
 });

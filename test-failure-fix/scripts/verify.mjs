@@ -1,7 +1,5 @@
-import { rmSync, realpathSync, readdirSync, readFileSync, readlinkSync, lstatSync } from 'node:fs';
-import { join, posix, resolve } from 'node:path';
-import { createHash } from 'node:crypto';
-import { homedir } from 'node:os';
+import { rmSync, realpathSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, posix } from 'node:path';
 import { runSuite, git, sh, repoDir, outputJson } from '../../scripts/lib/nightly/exec.mjs';
 import { statusById, summarize } from '../../scripts/lib/nightly/junit.mjs';
 import { parseMarker } from '../../scripts/lib/nightly/marker.mjs';
@@ -119,36 +117,32 @@ export function verifyMode({ marker, fixCases, nameStatus, isTest, junitFiles, d
   return { mode, paths: causeFiles.length > 0 ? causeFiles : touched, mixed };
 }
 
-function verifyListDir(p, acc, depth) {
-  let st;
-  try { st = lstatSync(p); } catch { acc.push(`${p}: missing`); return acc; }
-  if (st.isSymbolicLink()) acc.push(`${p} -> ${readlinkSync(p)}`);
-  else if (st.isFile()) acc.push(`${p} ${st.mode} ${createHash('sha256').update(readFileSync(p)).digest('hex')}`);
-  else if (st.isDirectory() && depth < 4) {
-    acc.push(`${p}/`);
-    for (const n of readdirSync(p).sort()) verifyListDir(join(p, n), acc, depth + 1);
-  } else acc.push(`${p}: ${st.mode}`);
-  return acc;
+// Config keys that can redirect, intercept or re-authenticate a network operation (the push,
+// a later ls-remote). Hooks are not here: every git call the gate makes sets core.hooksPath=/dev/null.
+const VERIFY_NETWORK_PREFIXES = ['url.', 'remote.', 'http.', 'https.', 'credential.', 'include.', 'includeif.', 'protocol.'];
+const VERIFY_NETWORK_KEYS = new Set(['core.sshcommand', 'core.gitproxy', 'core.askpass']);
+
+export function verifyNetworkKey(key) {
+  const k = String(key).toLowerCase();
+  return VERIFY_NETWORK_KEYS.has(k) || VERIFY_NETWORK_PREFIXES.some((p) => k.startsWith(p));
 }
 
-// What later git commands (ours and later steps') depend on: repo-local config, URL rewrite
-// rules from every scope, and the files of the hooks dir git would use without our override.
+// Network-affecting entries from every scope git reports (our own -c flags excluded), plus the
+// repo-local config file's bytes so other changes made by setup/test can be put back.
 export function verifyConfigState(deps, dir) {
-  const local = verifyGit(deps, ['config', '--local', '--list', '-z'], dir);
   const parts = verifyGit(deps, ['config', '--list', '-z', '--show-scope'], dir).split('\0');
-  const urls = [];
-  let hooksPath = null;
+  const network = [];
   for (let i = 0; i + 1 < parts.length; i += 2) {
     if (parts[i] === 'command') continue;
     const nl = parts[i + 1].indexOf('\n');
-    const key = (nl < 0 ? parts[i + 1] : parts[i + 1].slice(0, nl)).toLowerCase();
-    if (key.startsWith('url.')) urls.push(`${parts[i]} ${parts[i + 1]}`);
-    if (key === 'core.hookspath') hooksPath = nl < 0 ? '' : parts[i + 1].slice(nl + 1);
+    const key = nl < 0 ? parts[i + 1] : parts[i + 1].slice(0, nl);
+    if (verifyNetworkKey(key)) network.push(`${parts[i]} ${parts[i + 1]}`);
   }
   const common = verifyGit(deps, ['rev-parse', '--path-format=absolute', '--git-common-dir'], dir).trim();
-  const expanded = hooksPath && hooksPath.startsWith('~/') ? join(homedir(), hooksPath.slice(2)) : hooksPath;
-  const hooksDir = expanded ? resolve(dir, expanded) : join(common, 'hooks');
-  return JSON.stringify({ local, urls, hooksDir, hooks: verifyListDir(hooksDir, [], 0) });
+  const localPath = join(common, 'config');
+  let localBytes = null;
+  try { localBytes = readFileSync(localPath); } catch { /* compared as missing */ }
+  return { network: JSON.stringify(network), localPath, localBytes };
 }
 
 // Pin the commit to verify, reset the work tree to exactly that commit, and capture everything
@@ -344,11 +338,19 @@ function verifyRun(env, deps) {
   checks.push(...res.checks);
   const needsHuman = !marker.junit;
 
-  // 8. The runs must not have moved HEAD, changed tracked files or changed git config or hooks.
+  // 8. The runs must not have moved HEAD, changed tracked files or changed network-affecting git
+  // config in any scope. Other repo-local config changes (core.hooksPath from husky, submodule.*)
+  // are put back to the pin-time bytes: the gate cleaned this checkout and owns it.
   const head = verifyGit(deps, ['rev-parse', '--verify', 'HEAD^{commit}'], dir).trim().toLowerCase();
   if (head !== sha || verifyGit(deps, VERIFY_STATUS, dir).trim() !== '') reasons.push('tracked files changed during verification');
   else checks.push('HEAD and tracked files unchanged after the runs');
-  if (verifyConfigState(deps, dir) !== pin.config) reasons.push(VERIFY_CONFIG_REASON);
+  const after = verifyConfigState(deps, dir);
+  if (after.network !== pin.config.network) reasons.push(VERIFY_CONFIG_REASON);
+  const pinBytes = pin.config.localBytes;
+  if (pinBytes && !(after.localBytes && pinBytes.equals(after.localBytes))) {
+    writeFileSync(pin.config.localPath, pinBytes);
+    checks.push('restored repo-local git config changed by setup/test (non-network keys)');
+  }
 
   // 9. Reject: nothing is pushed. Diff violations follow so a retry sees the full picture.
   if (reasons.length > 0) {
