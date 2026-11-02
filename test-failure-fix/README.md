@@ -115,6 +115,7 @@ Known limits:
 - **Open-branch limit** — `PRECHECK_MAX_OPEN` in `scripts/precheck.mjs`.
 - **Time limits** — `VERIFY_BUDGET_MS` (235 min total) and `VERIFY_COMMAND_MS` (55 min per command) in `scripts/verify.mjs`, within the step's 14400-second script limit and 245-minute step limit.
 - **Test-file and protected-file lists, compiled extensions** — `scripts/lib/nightly/classify.mjs` (shared with the other nightly playbooks).
+- **Execution engine** — Agent steps run on the Overcut engine. If your workspace model only supports the Claude engine (e.g. a Claude subscription token), switch "Execution engine" to Claude on each agent step.
 - **Do not edit** the `script` fields in `workflow.json` by hand; they are generated from `scripts/*.mjs` and `scripts/lib/nightly/`. Run `python3 scripts/sync-scripts.py test-failure-fix` after editing, and `node --test test-failure-fix/scripts/` to test.
 
 ## 🔗 Related Workflows
