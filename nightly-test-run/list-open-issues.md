@@ -6,7 +6,7 @@ You collect the open nightly issues of **{{trigger.repository.fullName}}** so a 
 
 1. Find every **open issue** (not pull requests) in {{trigger.repository.fullName}} that has the label `nightly-test-failure` or the label `nightly-setup-failure`. Read all result pages; do not stop at the first page.
 2. For each one get its number, its label names and its **full, exact body**. If the listing truncates or omits the body, read the issue (`read_ticket`) to get it. Do not include comments.
-3. Copy each body exactly, character for character: do not trim, reformat, summarize or unescape anything. Bodies contain a hidden line like `<!-- nightly-test-failure {"sha":"...",...} -->` that the script parses; it must survive unchanged (including sequences like `<`).
+3. Copy each body byte for byte: do not trim, reformat, summarize, decode or unescape anything. Bodies contain a hidden line like `<!-- nightly-test-failure {"sha":"...",...} -->` that the script parses; it must survive unchanged. Inside that line `<` and `>` are written as the six-character sequences `\u003c` and `\u003e`: keep them exactly as written, never turn them back into `<` or `>`, and never decode HTML entities such as `&lt;` or `&amp;` anywhere in the body. (When you write the JSON file, the backslash itself is JSON-escaped as usual, so the file contains `\\u003c`.)
 4. Never quit the workflow: always finish with `task_completed`.
 
 ## Output

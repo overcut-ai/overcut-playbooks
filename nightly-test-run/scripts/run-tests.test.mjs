@@ -172,3 +172,32 @@ test('bad sha throws', async () => {
     await assert.rejects(main(env(ws), deps), /sha/);
   } finally { rmSync(ws, { recursive: true, force: true }); }
 });
+
+for (const [label, cases] of [['all-passing cases', [tc('a', 'passed'), tc('b', 'skipped')]], ['empty cases', []]]) {
+  test(`non-zero exit with ${label} and no failing test -> red, junit false`, async () => {
+    const ws = workspace({ commands: { setup: '', test: 'mvn test' } });
+    try {
+      const { calls, deps } = harness({ setupCode: 0, testCode: 1, cases, log: '' });
+      await main(env(ws), deps);
+      const r = results(ws);
+      assert.equal(r.status, 'red');
+      assert.equal(r.junit, false);
+      assert.equal(r.cases, null);
+      assert.equal(r.total, 0);
+      assert.equal(r.skipped, 0);
+      assert.deepEqual(r.failing, []);
+      assert.equal(r.testCode, 1);
+      assert.deepEqual(calls.out, [{ status: 'red', total: 0, failing: 0 }]);
+    } finally { rmSync(ws, { recursive: true, force: true }); }
+  });
+}
+
+test('exit 0 with all-passing cases -> green, junit true', async () => {
+  const ws = workspace({ commands: { setup: '', test: 't' } });
+  try {
+    const { deps } = harness({ setupCode: 0, testCode: 0, cases: [tc('a', 'passed')], log: '' });
+    await main(env(ws), deps);
+    assert.equal(results(ws).status, 'green');
+    assert.equal(results(ws).junit, true);
+  } finally { rmSync(ws, { recursive: true, force: true }); }
+});

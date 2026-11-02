@@ -71,7 +71,7 @@ The flow is linear and every step runs every night; steps with nothing to do wri
 
 **Step 2: Discover Test Commands** — If both settings are set, writes them verbatim. Otherwise discovers the missing command(s), verifies they run in the container (installing tooling and services as needed) and that the test command writes JUnit XML. Never modifies tracked files.
 
-**Step 3: Run Tests** (script, deterministic) — Runs setup, then the test command, from the repo root. Settings win over discovered commands. Reads JUnit XML from a directory it empties first, so stale results are never used; a timed-out run counts as having no results. Records status `green`, `red` or `setup-failed`. Always exits 0 for test outcomes.
+**Step 3: Run Tests** (script, deterministic) — Runs setup, then the test command, from the repo root. Settings win over discovered commands. Reads JUnit XML from a directory it empties first, so stale results are never used; a timed-out run, or a non-zero exit whose XML shows no failing test (for example a module that never compiled), counts as having no per-test results and is judged by exit code. Records status `green`, `red` or `setup-failed`. Always exits 0 for test outcomes.
 
 **Step 4: Group Failures** — On red nights with JUnit results, groups the failing test ids into root causes, each with a title, summary, test ids and a narrowed `causeCommand`. Writes `[]` otherwise.
 

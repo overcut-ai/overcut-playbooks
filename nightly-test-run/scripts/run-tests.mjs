@@ -38,8 +38,14 @@ export async function main(env, deps = { runSuite, git, outputJson }) {
   if (!/^[0-9a-f]{40}$/i.test(sha)) throw new Error(`bad sha from git rev-parse HEAD: ${sha}`);
 
   const r = deps.runSuite({ dir, setup, test, junitDir: join(stateDir, 'junit'), timeoutMs: RUN_TESTS_TIMEOUT_MS });
-  const cases = r.cases === undefined ? null : r.cases;
-  const sum = cases === null ? { total: 0, skipped: 0, failing: [] } : summarize(cases);
+  let cases = r.cases === undefined ? null : r.cases;
+  let sum = cases === null ? { total: 0, skipped: 0, failing: [] } : summarize(cases);
+  // Non-zero exit with no failing test in the XML (e.g. a module that never compiled):
+  // the XML is incomplete, so judge by exit code alone instead of reading it as green.
+  if (cases !== null && r.setupCode === 0 && r.testCode !== 0 && sum.failing.length === 0) {
+    cases = null;
+    sum = { total: 0, skipped: 0, failing: [] };
+  }
   const status = runTestsStatus({ setupCode: r.setupCode, testCode: r.testCode, cases }, sum.failing);
 
   const results = {

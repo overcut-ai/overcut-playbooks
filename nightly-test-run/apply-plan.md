@@ -19,7 +19,7 @@ You execute the GitHub issue actions a script computed for **{{trigger.repositor
 - If the array is empty: there is nothing to do. Call `task_completed` with "Nightly run: no issue changes." and stop.
 - Execute the actions **in array order, one by one, exactly as given**. Never add, skip, merge, reorder or reword an action. Use titles, bodies, labels and markers verbatim, character for character (bodies contain hidden `<!-- ... -->` lines that must stay exactly as they are).
 - Labels are `nightly-test-failure` or `nightly-setup-failure`. If one does not exist in the repository yet, create it with exactly that name, then apply it.
-- If an action fails, retry it once. If it still fails, stop: do not run later actions. Report which actions succeeded and the error.
+- If an action fails, retry it once. Before retrying a failed `open` or `open-setup`, first search the open issues for one with exactly the same title and the action's label; if one exists, the action is done (use that issue's number) and you must not create another. If the retry also fails, stop: do not run later actions. Report which actions succeeded and the error.
 - Do not touch any other issue, pull request or file. Never quit the workflow; finish with `task_completed`.
 
 ## Output
