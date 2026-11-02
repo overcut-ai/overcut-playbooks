@@ -32,10 +32,16 @@ test('null cases', () => {
   assert.equal(parseMarker(formatMarker({ ...base(), total: -1 })), null);
   assert.equal(parseMarker(formatMarker({ ...base(), greenNights: 1.5 })), null);
   assert.equal(parseMarker(formatMarker({ ...base(), tests: [1] })), null);
-  assert.equal(parseMarker('<!-- nightly-baseline: {not json} -->'), null);
+  assert.equal(parseMarker('<!-- nightly-test-failure {not json} -->'), null);
 });
 
 test('quoted marker in reply counts as second marker', () => {
   const line = formatMarker(base());
   assert.equal(parseMarker(`${line}\n\n> ${line}\nreply`), null);
+});
+
+test('exact marker prefix and suffix', () => {
+  const line = formatMarker(base());
+  assert.ok(line.startsWith('<!-- nightly-test-failure {'));
+  assert.ok(line.endsWith(' -->'));
 });

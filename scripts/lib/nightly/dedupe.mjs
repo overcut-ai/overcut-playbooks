@@ -4,15 +4,16 @@ export const NIGHTLY_LABEL = 'nightly-test-failure';
 export const NIGHTLY_SETUP_LABEL = 'nightly-setup-failure';
 export const NIGHTLY_NO_JUNIT_TITLE = 'Test suite failing (no per-test results)';
 
-export function dedupeCheckPartition(failing, causes) {
+export function dedupeCheckPartition(failing, causes, requireTests) {
   const count = new Map();
   for (const c of causes) for (const t of c.tests) count.set(t, (count.get(t) || 0) + 1);
   const fset = new Set(failing);
   const missing = [...fset].filter((t) => !count.has(t));
   const duplicate = [...count].filter(([, n]) => n > 1).map(([t]) => t);
   const unknown = [...count.keys()].filter((t) => !fset.has(t));
-  if (missing.length || duplicate.length || unknown.length) {
-    throw new Error(`causes do not partition failing tests: missing [${missing.join(', ')}] duplicate [${duplicate.join(', ')}] unknown [${unknown.join(', ')}]`);
+  const empty = requireTests ? causes.filter((c) => c.tests.length === 0).map((c) => c.title) : [];
+  if (missing.length || duplicate.length || unknown.length || empty.length) {
+    throw new Error(`causes do not partition failing tests: missing [${missing.join(', ')}] duplicate [${duplicate.join(', ')}] unknown [${unknown.join(', ')}] empty [${empty.join(', ')}]`);
   }
 }
 
@@ -38,7 +39,7 @@ export function planIssues({ results, causes, openIssues, setupFailed }) {
   const effective = results.junit
     ? causes
     : noJunitFail ? [{ title: NIGHTLY_NO_JUNIT_TITLE, summary: 'The test suite failed and produced no per-test results.', tests: [], causeCommand: results.test }] : [];
-  dedupeCheckPartition(results.junit ? results.failing : [], effective);
+  dedupeCheckPartition(results.junit ? results.failing : [], effective, results.junit);
 
   const issues = labelled(NIGHTLY_LABEL)
     .map((i) => ({ number: i.number, marker: parseMarker(i.body) }))

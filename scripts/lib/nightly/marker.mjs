@@ -1,4 +1,4 @@
-const MARKER_PREFIX = '<!-- nightly-baseline: ';
+const MARKER_PREFIX = '<!-- nightly-test-failure ';
 const MARKER_SUFFIX = ' -->';
 
 export function formatMarker(b) {
@@ -20,7 +20,7 @@ export function markerIsCount(n) {
 
 export function parseMarker(body) {
   if (typeof body !== 'string') return null;
-  const found = [...body.matchAll(/<!-- nightly-baseline: (.*?) -->/g)];
+  const found = [...body.matchAll(new RegExp(MARKER_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(.*?)' + MARKER_SUFFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'))];
   if (found.length !== 1) return null;
   let o;
   try { o = JSON.parse(found[0][1]); } catch { return null; }

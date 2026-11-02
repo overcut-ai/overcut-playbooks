@@ -33,7 +33,7 @@ test('two new causes open two issues', () => {
   assert.equal(m.causeCommand, 'run A');
   assert.equal(m.sha, SHA);
   assert.equal(m.greenNights, 0);
-  assert.ok(a[0].body.trim().split('\n').pop().includes('nightly-baseline'));
+  assert.ok(a[0].body.trim().split('\n').pop().includes('<!-- nightly-test-failure {'));
   assert.ok(a[0].body.includes('- t1'));
 });
 
@@ -90,9 +90,15 @@ test('failed marker test with no greenNights emits nothing', () => {
 test('partition errors', () => {
   const r = res({ testCode: 1, failing: ['a', 'b'], cases: [] });
   const go = (causes) => () => planIssues({ results: r, causes, openIssues: [], setupFailed: null });
-  assert.throws(go([cause('X', ['a'])]), { message: 'causes do not partition failing tests: missing [b] duplicate [] unknown []' });
-  assert.throws(go([cause('X', ['a', 'b']), cause('Y', ['b'])]), { message: 'causes do not partition failing tests: missing [] duplicate [b] unknown []' });
-  assert.throws(go([cause('X', ['a', 'b', 'c'])]), { message: 'causes do not partition failing tests: missing [] duplicate [] unknown [c]' });
+  assert.throws(go([cause('X', ['a'])]), { message: 'causes do not partition failing tests: missing [b] duplicate [] unknown [] empty []' });
+  assert.throws(go([cause('X', ['a', 'b']), cause('Y', ['b'])]), { message: 'causes do not partition failing tests: missing [] duplicate [b] unknown [] empty []' });
+  assert.throws(go([cause('X', ['a', 'b', 'c'])]), { message: 'causes do not partition failing tests: missing [] duplicate [] unknown [c] empty []' });
+});
+
+test('junit night rejects empty-tests cause', () => {
+  const r = res({ testCode: 1, failing: ['a'], cases: [] });
+  assert.throws(() => planIssues({ results: r, causes: [cause('X', ['a']), cause('Empty', [])], openIssues: [], setupFailed: null }),
+    { message: 'causes do not partition failing tests: missing [] duplicate [] unknown [] empty [Empty]' });
 });
 
 test('no-junit failing creates script cause; dedupes on junit:false marker', () => {
